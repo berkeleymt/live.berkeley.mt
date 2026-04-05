@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans Variable", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
 
   --color-berkeley-blue: #003262;
   --color-california-gold: #FDB515;
@@ -42,29 +42,117 @@ body {
   scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
-.widget-grid {
+/* ── Widget grid ── */
+
+.widget-grid-container {
   container-type: inline-size;
+}
+
+.widget-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  /* Row height = column width = (container - gap) / 2 */
   grid-auto-rows: calc((100cqi - 12px) / 2);
 }
 
-.widget-shadow {
+@container (min-width: 540px) {
+  .widget-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    grid-auto-rows: calc((100cqi - 54px) / 4);
+  }
+}
+
+/* ── Utilities ── */
+
+@utility widget-shadow {
   box-shadow:
     0 1px 1px rgba(0, 0, 0, 0.04),
     0 2px 6px rgba(0, 0, 0, 0.04),
     0 8px 24px rgba(0, 0, 0, 0.06);
-  border-radius: 22px;
-  corner-shape: squircle;
+  border-radius: 16px;
+
+  @supports (corner-shape: squircle) {
+    border-radius: 22px;
+    corner-shape: squircle;
+  }
 }
 
-.widget-shadow-lg {
+@utility widget-shadow-lg {
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.04),
     0 8px 24px rgba(0, 0, 0, 0.08),
     0 24px 48px rgba(0, 0, 0, 0.08);
-  border-radius: 22px;
-  corner-shape: squircle;
+  border-radius: 16px;
+
+  @supports (corner-shape: squircle) {
+    border-radius: 22px;
+    corner-shape: squircle;
+  }
+}
+
+@utility glass-heavy {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(40px) saturate(1.8);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+/* ── Admin UI ── */
+
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.input {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--color-separator);
+  background: var(--color-bg);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input:focus {
+  border-color: var(--color-berkeley-blue);
+}
+
+.btn-primary {
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: var(--color-berkeley-blue);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-primary:hover { opacity: 0.85; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-secondary {
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-secondary-label);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--color-bg);
+  color: var(--color-secondary-label);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-danger {
+  background: #fff0f0;
+  color: var(--color-danger);
 }

@@ -1,5 +1,25 @@
 import type { LiveData } from "./types";
 
+/**
+ * Mock data for local development.
+ *
+ * This object matches the exact shape the API should return (LiveData).
+ * Timestamps use relative Date.now() so the mock always feels "live."
+ *
+ * When wiring up a real backend, the API endpoint should return JSON
+ * in this same shape. See types.ts for the full interface definitions.
+ *
+ * Example API response:
+ * {
+ *   "lastUpdated": "2026-04-12T10:30:00Z",
+ *   "schedule":      [...ScheduleEvent],
+ *   "announcements": [...Announcement],   // body supports markdown
+ *   "delays":        [...DelayNotice],
+ *   "venues":        [...VenueLocation],
+ *   "info":          [...InfoItem]
+ * }
+ */
+
 export const mockData: LiveData = {
   lastUpdated: new Date().toISOString(),
 
