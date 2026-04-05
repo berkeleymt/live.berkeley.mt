@@ -30,7 +30,7 @@ export function AnnouncementsCardCompact({ announcements }: AnnouncementsCardPro
             <span className="mt-0.5 text-[10px] shrink-0">📌</span>
           )}
           <div className="min-w-0 flex-1">
-            <p className={`text-xs font-medium truncate ${a.priority === "urgent" ? "text-danger" : "text-white"}`}>
+            <p className={`text-xs font-medium truncate ${a.priority === "urgent" ? "text-danger" : "text-heading"}`}>
               {a.title}
             </p>
             <p className="text-[10px] text-muted truncate">{a.body}</p>
@@ -58,18 +58,18 @@ export function AnnouncementsCardExpanded({ announcements }: AnnouncementsCardPr
         <div
           key={a.id}
           className={`rounded-xl p-3 ${
-            a.priority === "urgent" ? "bg-danger/10 ring-1 ring-danger/30" : "bg-white/5"
+            a.priority === "urgent" ? "bg-red-50 ring-1 ring-danger/30" : "bg-slate-50"
           }`}
         >
           <div className="flex items-center gap-2 mb-1">
             {a.priority === "urgent" && <span className="h-2 w-2 rounded-full bg-danger shrink-0" />}
             {a.pinned && <span className="text-[10px]">📌</span>}
-            <span className={`text-sm font-medium ${a.priority === "urgent" ? "text-danger" : "text-white"}`}>
+            <span className={`text-sm font-medium ${a.priority === "urgent" ? "text-danger" : "text-heading"}`}>
               {a.title}
             </span>
             <span className="ml-auto text-[10px] text-muted shrink-0">{timeAgo(a.timestamp)}</span>
           </div>
-          <p className="text-xs text-slate-300 leading-relaxed">{a.body}</p>
+          <p className="text-xs text-body leading-relaxed">{a.body}</p>
         </div>
       ))}
     </div>

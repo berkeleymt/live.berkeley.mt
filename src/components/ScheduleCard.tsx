@@ -8,10 +8,10 @@ interface ScheduleCardProps {
 }
 
 const categoryColors: Record<ScheduleEvent["category"], string> = {
-  individual: "bg-blue-500/20 text-blue-400",
-  team: "bg-emerald-500/20 text-emerald-400",
-  general: "bg-slate-500/20 text-slate-300",
-  ceremony: "bg-amber-500/20 text-amber-400",
+  individual: "bg-blue-100 text-blue-700",
+  team: "bg-emerald-100 text-emerald-700",
+  general: "bg-slate-100 text-slate-600",
+  ceremony: "bg-amber-100 text-amber-700",
 };
 
 function formatTime(t: string) {
@@ -47,14 +47,14 @@ export function ScheduleCardCompact({ events, delays }: ScheduleCardProps) {
             key={ev.id}
             className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
               isCurrent
-                ? "bg-cal-california-gold/15 ring-1 ring-cal-california-gold/40"
-                : "bg-white/5"
+                ? "bg-cal-california-gold/15 ring-1 ring-cal-california-gold/50"
+                : "bg-slate-50"
             }`}
           >
             {isCurrent && (
               <span className="relative flex h-2 w-2 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cal-california-gold opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-cal-california-gold" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cal-medalist opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cal-medalist" />
               </span>
             )}
             <span className="text-muted w-16 shrink-0 tabular-nums">
@@ -63,7 +63,7 @@ export function ScheduleCardCompact({ events, delays }: ScheduleCardProps) {
               ) : null}
               {formatTime(delay ? delay.newTime : ev.startTime)}
             </span>
-            <span className={`truncate ${isCurrent ? "text-white font-medium" : "text-slate-300"}`}>
+            <span className={`truncate ${isCurrent ? "text-heading font-medium" : "text-body"}`}>
               {ev.title}
             </span>
           </div>
@@ -91,20 +91,20 @@ export function ScheduleCardExpanded({ events, delays }: ScheduleCardProps) {
             key={ev.id}
             className={`rounded-xl px-3 py-3 ${
               isCurrent
-                ? "bg-cal-california-gold/15 ring-1 ring-cal-california-gold/40"
-                : "bg-white/5"
+                ? "bg-cal-california-gold/15 ring-1 ring-cal-california-gold/50"
+                : "bg-slate-50"
             }`}
           >
             <div className="flex items-start gap-2">
               {isCurrent && (
                 <span className="relative flex h-2 w-2 shrink-0 mt-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cal-california-gold opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cal-california-gold" />
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cal-medalist opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cal-medalist" />
                 </span>
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-white font-medium text-sm">{ev.title}</span>
+                  <span className="text-heading font-medium text-sm">{ev.title}</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${categoryColors[ev.category]}`}>
                     {ev.category}
                   </span>

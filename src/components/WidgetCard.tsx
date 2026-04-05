@@ -48,7 +48,7 @@ export function WidgetCard({
         layoutId={`card-${id}`}
         className={`
           relative rounded-2xl border border-card-border bg-card-bg
-          overflow-hidden ${spanClass}
+          shadow-sm overflow-hidden ${spanClass}
           ${isExpandable ? "cursor-pointer active:scale-[0.98]" : ""}
           transition-[filter] duration-200
         `}
@@ -58,12 +58,12 @@ export function WidgetCard({
         onClick={() => {
           if (isExpandable && !isExpanded) onExpand(id);
         }}
-        whileHover={isExpandable ? { backgroundColor: "oklch(0.26 0.01 260)" } : undefined}
+        whileHover={isExpandable ? { backgroundColor: "#f8fafc" } : undefined}
       >
         <div className="p-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-lg shrink-0">{icon}</span>
-            <h2 className="text-sm font-semibold text-white truncate">{title}</h2>
+            <h2 className="text-sm font-semibold text-heading truncate">{title}</h2>
             {isExpandable && (
               <span className="ml-auto text-muted text-xs">Tap to expand</span>
             )}
@@ -76,7 +76,7 @@ export function WidgetCard({
         {isExpanded && (
           <>
             <motion.div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+              className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -89,7 +89,7 @@ export function WidgetCard({
               <motion.div
                 layoutId={`card-${id}`}
                 className="relative rounded-2xl border border-card-border bg-card-bg
-                  overflow-hidden w-full max-w-lg max-h-[85vh] flex flex-col"
+                  shadow-xl overflow-hidden w-full max-w-lg max-h-[85vh] flex flex-col"
                 style={{
                   borderTop: accentColor ? `2px solid ${accentColor}` : undefined,
                 }}
@@ -97,10 +97,10 @@ export function WidgetCard({
               >
                 <div className="p-5 border-b border-card-border flex items-center gap-2 shrink-0">
                   <span className="text-lg">{icon}</span>
-                  <h2 className="text-base font-semibold text-white flex-1">{title}</h2>
+                  <h2 className="text-base font-semibold text-heading flex-1">{title}</h2>
                   <button
                     onClick={onCollapse}
-                    className="text-muted hover:text-white transition-colors p-1 -mr-1"
+                    className="text-muted hover:text-heading transition-colors p-1 -mr-1"
                     aria-label="Close"
                   >
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">

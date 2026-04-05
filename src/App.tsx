@@ -12,17 +12,17 @@ function Header() {
   return (
     <header className="px-4 pt-5 pb-3 flex items-center justify-between">
       <div>
-        <h1 className="text-lg font-bold text-white tracking-tight">BmMT 2026</h1>
+        <h1 className="text-lg font-bold text-cal-berkeley-blue tracking-tight">BmMT 2026</h1>
         <p className="text-xs text-muted">
           Sunday, April 12 &middot; UC Berkeley
         </p>
       </div>
       <div className="flex items-center gap-2">
         <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
         </span>
-        <span className="text-xs text-emerald-400 font-medium">LIVE</span>
+        <span className="text-xs text-emerald-600 font-medium">LIVE</span>
       </div>
     </header>
   );

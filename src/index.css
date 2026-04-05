@@ -5,13 +5,15 @@
   --color-cal-california-gold: #FDB515;
   --color-cal-founders-rock: #3B7EA1;
   --color-cal-medalist: #C4820E;
-  --color-card-bg: oklch(0.22 0.01 260);
-  --color-card-border: oklch(0.3 0.01 260);
-  --color-card-hover: oklch(0.26 0.01 260);
-  --color-surface: oklch(0.13 0.01 260);
-  --color-muted: oklch(0.6 0.01 260);
+  --color-card-bg: #ffffff;
+  --color-card-border: #e2e8f0;
+  --color-card-hover: #f8fafc;
+  --color-surface: #f1f5f9;
+  --color-muted: #64748b;
   --color-accent: #FDB515;
-  --color-danger: #ef4444;
+  --color-danger: #dc2626;
+  --color-heading: #0f172a;
+  --color-body: #334155;
 }
 
 html {
@@ -25,5 +27,5 @@ body {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: oklch(0.35 0.01 260) transparent;
+  scrollbar-color: oklch(0.75 0.01 260) transparent;
 }
