@@ -11,7 +11,7 @@ export interface ScheduleEvent {
 export interface Announcement {
   id: string;
   title: string;
-  body: string;
+  body: string; // supports markdown (bold, italic, links, etc.)
   timestamp: string; // ISO
   priority: "normal" | "urgent";
   pinned?: boolean;
