@@ -1,0 +1,156 @@
+import type { LiveData } from "./types";
+
+export const mockData: LiveData = {
+  lastUpdated: new Date().toISOString(),
+
+  schedule: [
+    {
+      id: "s1",
+      title: "Check-in & Registration",
+      startTime: "08:00",
+      endTime: "08:45",
+      location: "Li Ka Shing Lobby",
+      category: "general",
+      description: "Pick up your nametag and team packet at the registration tables.",
+    },
+    {
+      id: "s2",
+      title: "Opening Ceremony",
+      startTime: "09:00",
+      endTime: "09:30",
+      location: "Li Ka Shing 245",
+      category: "ceremony",
+      description: "Welcome address, rules overview, and logistics.",
+    },
+    {
+      id: "s3",
+      title: "Individual Round",
+      startTime: "09:45",
+      endTime: "10:45",
+      location: "Various Rooms",
+      category: "individual",
+      description: "60-minute individual test. Bring pencils and erasers only.",
+    },
+    {
+      id: "s4",
+      title: "Team Round",
+      startTime: "11:00",
+      endTime: "12:00",
+      location: "Various Rooms",
+      category: "team",
+      description: "60-minute team test. Work with your team of up to 5.",
+    },
+    {
+      id: "s5",
+      title: "Lunch Break",
+      startTime: "12:00",
+      endTime: "13:00",
+      location: "Memorial Glade",
+      category: "general",
+      description: "Lunch provided on Memorial Glade. Vegetarian options available.",
+    },
+    {
+      id: "s6",
+      title: "Relay Round",
+      startTime: "13:15",
+      endTime: "14:00",
+      location: "Wheeler Hall",
+      category: "team",
+      description: "Fast-paced relay-style round. Teams of 5.",
+    },
+    {
+      id: "s7",
+      title: "Estimathon",
+      startTime: "14:15",
+      endTime: "15:00",
+      location: "Dwinelle 155",
+      category: "team",
+      description: "Fermi estimation team event. Closest guesses win!",
+    },
+    {
+      id: "s8",
+      title: "Awards Ceremony",
+      startTime: "15:30",
+      endTime: "16:30",
+      location: "Li Ka Shing 245",
+      category: "ceremony",
+      description: "Results announcement and trophy presentation.",
+    },
+  ],
+
+  announcements: [
+    {
+      id: "a1",
+      title: "Welcome to BmMT 2026!",
+      body: "We're so excited to have you here. Check in at the Li Ka Shing lobby when you arrive. Look for the volunteers in blue shirts!",
+      timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+      priority: "normal",
+      pinned: true,
+    },
+    {
+      id: "a2",
+      title: "Individual Round rooms posted",
+      body: "Room assignments for the Individual Round are now posted on the bulletin boards outside Li Ka Shing 245. You can also check your assignment at the info desk.",
+      timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+      priority: "normal",
+    },
+    {
+      id: "a3",
+      title: "Lunch location change",
+      body: "Due to weather, lunch will now be served inside Li Ka Shing lobby instead of Memorial Glade. Same time: 12:00\u201313:00.",
+      timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+      priority: "urgent",
+    },
+  ],
+
+  delays: [
+    {
+      id: "d1",
+      eventId: "s4",
+      eventTitle: "Team Round",
+      originalTime: "11:00",
+      newTime: "11:15",
+      reason: "Extended individual round wrap-up",
+      timestamp: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
+    },
+  ],
+
+  venues: [
+    {
+      id: "v1",
+      name: "Li Ka Shing Center",
+      shortName: "LKS",
+      description: "Main venue. Registration, opening/closing ceremonies, and some test rooms.",
+      floor: "1F\u20133F",
+    },
+    {
+      id: "v2",
+      name: "Wheeler Hall",
+      shortName: "Wheeler",
+      description: "Relay round and overflow test rooms.",
+      floor: "1F",
+    },
+    {
+      id: "v3",
+      name: "Dwinelle Hall",
+      shortName: "Dwinelle",
+      description: "Estimathon and team round overflow.",
+      floor: "1F",
+    },
+    {
+      id: "v4",
+      name: "Memorial Glade",
+      shortName: "Glade",
+      description: "Outdoor lunch area (weather permitting).",
+    },
+  ],
+
+  info: [
+    { id: "i1", label: "Wi-Fi", value: "CalVisitor (no password)" },
+    { id: "i2", label: "Emergency", value: "Call 510-642-3333 (UCPD)" },
+    { id: "i3", label: "Lost & Found", value: "Li Ka Shing front desk" },
+    { id: "i4", label: "Restrooms", value: "LKS 1F, Wheeler 1F, Dwinelle 1F" },
+    { id: "i5", label: "First Aid", value: "LKS 1F lobby, ask any volunteer" },
+    { id: "i6", label: "Contact Staff", value: "Text (510) 555-0142" },
+  ],
+};
