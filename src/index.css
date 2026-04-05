@@ -42,6 +42,15 @@ body {
   scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
+.widget-grid {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  /* Row height = column width = (container - gap) / 2 */
+  grid-auto-rows: calc((100cqi - 12px) / 2);
+}
+
 .widget-shadow {
   box-shadow:
     0 1px 1px rgba(0, 0, 0, 0.04),

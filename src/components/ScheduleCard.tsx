@@ -24,10 +24,11 @@ export function ScheduleCardCompact({ events, delays }: ScheduleCardProps) {
   const highlightId = currentId ?? nextId;
 
   const visibleEvents = useMemo(() => {
-    if (!highlightId) return events.slice(0, 4);
+    const count = 4;
+    if (!highlightId) return events.slice(0, count);
     const idx = events.findIndex((e) => e.id === highlightId);
     const start = Math.max(0, idx - 1);
-    return events.slice(start, start + 4);
+    return events.slice(start, start + count);
   }, [events, highlightId]);
 
   return (
@@ -38,7 +39,7 @@ export function ScheduleCardCompact({ events, delays }: ScheduleCardProps) {
         return (
           <div
             key={ev.id}
-            className={`flex items-center gap-3 px-4 py-2.5 ${
+            className={`flex items-center gap-3 px-4 py-2 ${
               i < visibleEvents.length - 1 ? "border-b border-separator" : ""
             } ${isCurrent ? "bg-california-gold/8" : ""}`}
           >
@@ -62,11 +63,6 @@ export function ScheduleCardCompact({ events, delays }: ScheduleCardProps) {
           </div>
         );
       })}
-      {events.length > 4 && (
-        <p className="text-[11px] text-tertiary-label text-center py-2">
-          Tap to see full schedule
-        </p>
-      )}
     </div>
   );
 }

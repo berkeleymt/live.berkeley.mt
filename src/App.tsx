@@ -65,14 +65,14 @@ export default function App() {
       <Header />
 
       <motion.main
-        className="px-4 pt-4 pb-8 space-y-3"
+        className="px-4 pt-4 pb-8 widget-grid"
         variants={staggerContainer}
         initial="hidden"
         animate="show"
       >
         {/* Delays — prominent when active */}
         {hasDelays && (
-          <motion.div variants={cardReveal}>
+          <motion.div variants={cardReveal} className="col-span-2">
             <WidgetCard
               id="delays"
               title="Delays"
@@ -87,8 +87,8 @@ export default function App() {
           </motion.div>
         )}
 
-        {/* Schedule */}
-        <motion.div variants={cardReveal}>
+        {/* Schedule — wide */}
+        <motion.div variants={cardReveal} className="col-span-2">
           <WidgetCard
             id="schedule"
             title="Schedule"
@@ -104,8 +104,37 @@ export default function App() {
           </WidgetCard>
         </motion.div>
 
-        {/* Announcements */}
+        {/* Map + Info — square pair */}
         <motion.div variants={cardReveal}>
+          <WidgetCard
+            id="map"
+            title="Campus Map"
+            icon="📍"
+            expandedId={expandedId}
+            onExpand={setExpandedId}
+            onCollapse={() => setExpandedId(null)}
+            expandedContent={<MapCardExpanded venues={data.venues} />}
+          >
+            <MapCardCompact venues={data.venues} />
+          </WidgetCard>
+        </motion.div>
+
+        <motion.div variants={cardReveal}>
+          <WidgetCard
+            id="info"
+            title="Info & Help"
+            icon="📋"
+            expandedId={expandedId}
+            onExpand={setExpandedId}
+            onCollapse={() => setExpandedId(null)}
+            expandedContent={<InfoCardExpanded info={data.info} />}
+          >
+            <InfoCardCompact info={data.info} />
+          </WidgetCard>
+        </motion.div>
+
+        {/* Announcements — wide */}
+        <motion.div variants={cardReveal} className="col-span-2">
           <WidgetCard
             id="announcements"
             title="Announcements"
@@ -121,48 +150,16 @@ export default function App() {
           </WidgetCard>
         </motion.div>
 
-        {/* Two-column row: Map + Info */}
-        <div className="grid grid-cols-2 gap-3">
-          <motion.div variants={cardReveal}>
-            <WidgetCard
-              id="map"
-              title="Campus Map"
-              icon="📍"
-              expandedId={expandedId}
-              onExpand={setExpandedId}
-              onCollapse={() => setExpandedId(null)}
-              expandedContent={<MapCardExpanded venues={data.venues} />}
-            >
-              <MapCardCompact venues={data.venues} />
-            </WidgetCard>
-          </motion.div>
-
-          <motion.div variants={cardReveal}>
-            <WidgetCard
-              id="info"
-              title="Info & Help"
-              icon="📋"
-              expandedId={expandedId}
-              onExpand={setExpandedId}
-              onCollapse={() => setExpandedId(null)}
-              expandedContent={<InfoCardExpanded info={data.info} />}
-            >
-              <InfoCardCompact info={data.info} />
-            </WidgetCard>
-          </motion.div>
-        </div>
-
-        {/* Status — when no delays, small inline indicator */}
+        {/* Status — when no delays */}
         {!hasDelays && (
           <motion.div variants={cardReveal}>
             <WidgetCard
-              id="delays"
+              id="status"
               title="Status"
               icon="✓"
               expandedId={expandedId}
               onExpand={setExpandedId}
               onCollapse={() => setExpandedId(null)}
-              expandedContent={<DelaysCardExpanded delays={data.delays} />}
             >
               <DelaysCardCompact delays={data.delays} />
             </WidgetCard>

@@ -49,8 +49,8 @@ export function WidgetCard({
             if (isExpandable && !isExpanded) onExpand(id);
           }}
         >
-          <div className="px-4 py-3">
-            <div className="flex items-center gap-2 mb-2.5">
+          <div className="px-4 py-3 h-full flex flex-col">
+            <div className="flex items-center gap-2 mb-2">
               <span className="text-sm shrink-0">{icon}</span>
               <h2 className="text-[15px] font-semibold text-label tracking-tight truncate">
                 {title}
@@ -73,7 +73,9 @@ export function WidgetCard({
                 </svg>
               )}
             </div>
-            {children}
+            <div className="flex-1 min-h-0 overflow-hidden">
+              {children}
+            </div>
           </div>
         </motion.div>
       </div>

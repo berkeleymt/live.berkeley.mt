@@ -17,14 +17,14 @@ export function AnnouncementsCardCompact({ announcements }: AnnouncementsCardPro
   const sorted = [...announcements].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
   );
-  const top = sorted.slice(0, 2);
+  const top = sorted.slice(0, 3);
 
   return (
     <div className="-mx-4">
       {top.map((a, i) => (
         <div
           key={a.id}
-          className={`flex items-start gap-3 px-4 py-2.5 ${
+          className={`flex items-start gap-3 px-4 py-2 ${
             i < top.length - 1 ? "border-b border-separator" : ""
           }`}
         >
@@ -45,11 +45,6 @@ export function AnnouncementsCardCompact({ announcements }: AnnouncementsCardPro
           </span>
         </div>
       ))}
-      {announcements.length > 2 && (
-        <p className="text-[11px] text-tertiary-label text-center py-2">
-          +{announcements.length - 2} more
-        </p>
-      )}
     </div>
   );
 }

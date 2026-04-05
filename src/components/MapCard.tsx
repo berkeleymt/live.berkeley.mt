@@ -6,10 +6,10 @@ interface MapCardProps {
 
 export function MapCardCompact({ venues: _venues }: MapCardProps) {
   return (
-    <div className="flex items-center justify-center h-20 rounded-lg bg-bg">
+    <div className="flex items-center justify-center h-full rounded-lg bg-bg -mx-4 -mb-3">
       <div className="text-center">
-        <span className="text-xl block mb-0.5">🗺️</span>
-        <span className="text-[11px] text-tertiary-label">Tap for map</span>
+        <span className="text-3xl block mb-1">🗺️</span>
+        <span className="text-[12px] text-tertiary-label">Tap for map</span>
       </div>
     </div>
   );

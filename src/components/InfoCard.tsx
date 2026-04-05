@@ -16,28 +16,20 @@ const iconMap: Record<string, string> = {
 };
 
 export function InfoCardCompact({ info }: InfoCardProps) {
-  const top = info.slice(0, 3);
+  const top = info.slice(0, 4);
   return (
     <div className="-mx-4">
       {top.map((item, i) => (
         <div
           key={item.id}
-          className={`flex items-center gap-3 px-4 py-2 text-[13px] ${
+          className={`flex items-center gap-2.5 px-4 py-1.5 text-[13px] ${
             i < top.length - 1 ? "border-b border-separator" : ""
           }`}
         >
           <span className="shrink-0 text-sm">{iconMap[item.label] ?? "ℹ️"}</span>
-          <span className="text-secondary-label">{item.label}</span>
-          <span className="ml-auto text-label font-medium truncate max-w-[120px] text-right">
-            {item.value}
-          </span>
+          <span className="text-secondary-label truncate">{item.label}</span>
         </div>
       ))}
-      {info.length > 3 && (
-        <p className="text-[11px] text-tertiary-label text-center py-2">
-          +{info.length - 3} more
-        </p>
-      )}
     </div>
   );
 }
