@@ -1,0 +1,24 @@
+export const cardSpring = {
+  layout: {
+    type: "spring" as const,
+    stiffness: 500,
+    damping: 35,
+    mass: 0.5,
+  },
+};
+
+export const staggerContainer = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.06, delayChildren: 0.1 },
+  },
+};
+
+export const cardReveal = {
+  hidden: { opacity: 0, y: 16 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 300, damping: 26 },
+  },
+};

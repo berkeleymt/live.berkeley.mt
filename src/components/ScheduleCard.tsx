@@ -7,13 +7,6 @@ interface ScheduleCardProps {
   delays: DelayNotice[];
 }
 
-const categoryStyles: Record<ScheduleEvent["category"], string> = {
-  individual: "bg-founders-rock/10 text-founders-rock",
-  team: "bg-berkeley-blue/10 text-berkeley-blue",
-  general: "bg-ink/5 text-ink-light",
-  ceremony: "bg-california-gold/15 text-medalist",
-};
-
 function formatTime(t: string) {
   const [h, m] = t.split(":").map(Number);
   const suffix = h >= 12 ? "PM" : "AM";
@@ -38,40 +31,40 @@ export function ScheduleCardCompact({ events, delays }: ScheduleCardProps) {
   }, [events, highlightId]);
 
   return (
-    <div className="space-y-1">
-      {visibleEvents.map((ev) => {
+    <div className="-mx-4">
+      {visibleEvents.map((ev, i) => {
         const isCurrent = ev.id === currentId;
         const delay = getDelayForEvent(ev.id, delays);
         return (
           <div
             key={ev.id}
-            className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs transition-all ${
-              isCurrent
-                ? "bg-california-gold/12 ring-1 ring-california-gold/30"
-                : "bg-surface/50"
-            }`}
+            className={`flex items-center gap-3 px-4 py-2.5 ${
+              i < visibleEvents.length - 1 ? "border-b border-separator" : ""
+            } ${isCurrent ? "bg-california-gold/8" : ""}`}
           >
-            {isCurrent && (
+            {isCurrent ? (
               <span className="relative flex h-2 w-2 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-medalist opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-medalist" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-california-gold opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-california-gold" />
               </span>
+            ) : (
+              <span className="w-2 shrink-0" />
             )}
-            <span className="text-ink-muted w-[4.5rem] shrink-0 tabular-nums font-body">
+            <span className="text-[13px] text-tertiary-label w-[4.5rem] shrink-0 tabular-nums">
               {delay ? (
                 <span className="text-danger line-through mr-1">{formatTime(delay.originalTime)}</span>
               ) : null}
               {formatTime(delay ? delay.newTime : ev.startTime)}
             </span>
-            <span className={`truncate font-body ${isCurrent ? "text-ink font-600" : "text-ink-light"}`}>
+            <span className={`text-[13px] truncate ${isCurrent ? "text-label font-semibold" : "text-secondary-label"}`}>
               {ev.title}
             </span>
           </div>
         );
       })}
       {events.length > 4 && (
-        <p className="text-[10px] text-ink-muted text-center pt-1 font-body tracking-wide">
-          TAP TO SEE FULL SCHEDULE
+        <p className="text-[11px] text-tertiary-label text-center py-2">
+          Tap to see full schedule
         </p>
       )}
     </div>
@@ -82,34 +75,36 @@ export function ScheduleCardExpanded({ events, delays }: ScheduleCardProps) {
   const currentId = useMemo(() => getCurrentEvent(events), [events]);
 
   return (
-    <div className="space-y-2">
-      {events.map((ev) => {
+    <div className="-mx-5 -my-4">
+      {events.map((ev, i) => {
         const isCurrent = ev.id === currentId;
         const delay = getDelayForEvent(ev.id, delays);
         return (
           <div
             key={ev.id}
-            className={`rounded-xl px-4 py-3 transition-all ${
-              isCurrent
-                ? "bg-california-gold/12 ring-1 ring-california-gold/30"
-                : "bg-surface/60"
-            }`}
+            className={`px-5 py-3.5 ${
+              i < events.length - 1 ? "border-b border-separator" : ""
+            } ${isCurrent ? "bg-california-gold/8" : ""}`}
           >
-            <div className="flex items-start gap-2.5">
-              {isCurrent && (
-                <span className="relative flex h-2.5 w-2.5 shrink-0 mt-1">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-medalist opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-medalist" />
+            <div className="flex items-start gap-3">
+              {isCurrent ? (
+                <span className="relative flex h-2 w-2 shrink-0 mt-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-california-gold opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-california-gold" />
                 </span>
+              ) : (
+                <span className="w-2 shrink-0" />
               )}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-display font-600 text-sm text-ink">{ev.title}</span>
-                  <span className={`text-[10px] font-600 px-2 py-0.5 rounded-full ${categoryStyles[ev.category]}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`text-[15px] ${isCurrent ? "font-semibold text-label" : "text-label"}`}>
+                    {ev.title}
+                  </span>
+                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-bg text-tertiary-label shrink-0">
                     {ev.category}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 mt-1 text-xs text-ink-muted font-body">
+                <div className="flex items-center gap-3 mt-0.5 text-[13px] text-tertiary-label">
                   <span className="tabular-nums">
                     {delay ? (
                       <>
@@ -122,13 +117,13 @@ export function ScheduleCardExpanded({ events, delays }: ScheduleCardProps) {
                       </>
                     )}
                   </span>
-                  <span className="text-founders-rock">{ev.location}</span>
+                  <span className="text-link">{ev.location}</span>
                 </div>
                 {ev.description && (
-                  <p className="text-xs text-ink-light mt-1.5 leading-relaxed font-body">{ev.description}</p>
+                  <p className="text-[13px] text-secondary-label mt-1 leading-relaxed">{ev.description}</p>
                 )}
                 {delay?.reason && (
-                  <p className="text-xs text-danger mt-1 font-500">
+                  <p className="text-[13px] text-danger mt-1">
                     Delayed: {delay.reason}
                   </p>
                 )}

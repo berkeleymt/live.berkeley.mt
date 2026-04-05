@@ -1,25 +1,23 @@
 @import "tailwindcss";
 
 @theme {
-  --font-display: "Bricolage Grotesque", serif;
-  --font-body: "DM Sans", sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 
   --color-berkeley-blue: #003262;
   --color-california-gold: #FDB515;
   --color-founders-rock: #3B7EA1;
   --color-medalist: #C4820E;
-  --color-golden-gate: #ED4E33;
 
-  --color-surface: #f0ede6;
+  --color-bg: #f2f2f7;
   --color-card: #ffffff;
-  --color-card-border: rgba(0, 50, 98, 0.08);
-  --color-card-hover: #fdfcfa;
-  --color-ink: #1a1a2e;
-  --color-ink-light: #4a4a5a;
-  --color-ink-muted: #8a8a96;
-  --color-accent: #FDB515;
-  --color-danger: #c53030;
-  --color-success: #276749;
+  --color-separator: rgba(60, 60, 67, 0.12);
+  --color-label: #000000;
+  --color-secondary-label: #3c3c43;
+  --color-tertiary-label: #8e8e93;
+  --color-quaternary-label: #c7c7cc;
+  --color-danger: #ff3b30;
+  --color-success: #34c759;
+  --color-link: #3B7EA1;
 }
 
 html {
@@ -27,33 +25,11 @@ html {
 }
 
 body {
-  font-family: var(--font-body);
-  background: var(--color-surface);
-  color: var(--color-ink);
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-label);
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
-}
-
-/* Subtle dot grid background — math paper feel */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image: radial-gradient(circle, rgba(0, 50, 98, 0.06) 1px, transparent 1px);
-  background-size: 20px 20px;
-}
-
-/* Subtle grain overlay */
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.3;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
 }
 
 #root {
@@ -63,11 +39,23 @@ body::after {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 50, 98, 0.15) transparent;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
-/* Card shimmer on hover */
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+.widget-shadow {
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.04),
+    0 2px 6px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.06);
+  border-radius: 22px;
+  corner-shape: squircle;
+}
+
+.widget-shadow-lg {
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    0 24px 48px rgba(0, 0, 0, 0.08);
+  border-radius: 22px;
+  corner-shape: squircle;
 }

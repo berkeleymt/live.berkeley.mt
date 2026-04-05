@@ -20,29 +20,34 @@ export function AnnouncementsCardCompact({ announcements }: AnnouncementsCardPro
   const top = sorted.slice(0, 2);
 
   return (
-    <div className="space-y-2.5">
-      {top.map((a) => (
-        <div key={a.id} className="flex items-start gap-2.5">
+    <div className="-mx-4">
+      {top.map((a, i) => (
+        <div
+          key={a.id}
+          className={`flex items-start gap-3 px-4 py-2.5 ${
+            i < top.length - 1 ? "border-b border-separator" : ""
+          }`}
+        >
           {a.priority === "urgent" && (
-            <span className="mt-1 flex h-2 w-2 shrink-0 rounded-full bg-danger" />
+            <span className="mt-1.5 flex h-2 w-2 shrink-0 rounded-full bg-danger" />
           )}
           {a.pinned && a.priority !== "urgent" && (
-            <span className="mt-0.5 text-[10px] shrink-0">📌</span>
+            <span className="mt-0.5 text-[11px] shrink-0">📌</span>
           )}
           <div className="min-w-0 flex-1">
-            <p className={`text-xs font-display font-600 truncate ${a.priority === "urgent" ? "text-danger" : "text-ink"}`}>
+            <p className={`text-[13px] font-medium truncate ${a.priority === "urgent" ? "text-danger" : "text-label"}`}>
               {a.title}
             </p>
-            <p className="text-[10px] text-ink-muted font-body truncate mt-0.5">{a.body}</p>
+            <p className="text-[12px] text-tertiary-label truncate mt-0.5">{a.body}</p>
           </div>
-          <span className="text-[10px] text-ink-muted font-body shrink-0 tabular-nums">
+          <span className="text-[11px] text-tertiary-label shrink-0 tabular-nums mt-0.5">
             {timeAgo(a.timestamp)}
           </span>
         </div>
       ))}
       {announcements.length > 2 && (
-        <p className="text-[10px] text-ink-muted text-center font-body tracking-wide">
-          +{announcements.length - 2} MORE
+        <p className="text-[11px] text-tertiary-label text-center py-2">
+          +{announcements.length - 2} more
         </p>
       )}
     </div>
@@ -55,27 +60,25 @@ export function AnnouncementsCardExpanded({ announcements }: AnnouncementsCardPr
   );
 
   return (
-    <div className="space-y-3">
-      {sorted.map((a) => (
+    <div className="-mx-5 -my-4">
+      {sorted.map((a, i) => (
         <div
           key={a.id}
-          className={`rounded-xl p-4 ${
-            a.priority === "urgent"
-              ? "bg-danger/5 ring-1 ring-danger/20"
-              : "bg-surface/60"
-          }`}
+          className={`px-5 py-3.5 ${
+            i < sorted.length - 1 ? "border-b border-separator" : ""
+          } ${a.priority === "urgent" ? "bg-danger/5" : ""}`}
         >
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex items-center gap-2 mb-1">
             {a.priority === "urgent" && <span className="h-2 w-2 rounded-full bg-danger shrink-0" />}
-            {a.pinned && <span className="text-xs">📌</span>}
-            <span className={`font-display font-600 text-sm ${a.priority === "urgent" ? "text-danger" : "text-ink"}`}>
+            {a.pinned && a.priority !== "urgent" && <span className="text-[11px]">📌</span>}
+            <span className={`text-[15px] font-medium ${a.priority === "urgent" ? "text-danger" : "text-label"}`}>
               {a.title}
             </span>
-            <span className="ml-auto text-[10px] text-ink-muted font-body tabular-nums shrink-0">
+            <span className="ml-auto text-[11px] text-tertiary-label tabular-nums shrink-0">
               {timeAgo(a.timestamp)}
             </span>
           </div>
-          <p className="text-xs text-ink-light leading-relaxed font-body">{a.body}</p>
+          <p className="text-[13px] text-secondary-label leading-relaxed">{a.body}</p>
         </div>
       ))}
     </div>

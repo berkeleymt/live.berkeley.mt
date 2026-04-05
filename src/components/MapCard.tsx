@@ -6,15 +6,10 @@ interface MapCardProps {
 
 export function MapCardCompact({ venues: _venues }: MapCardProps) {
   return (
-    <div
-      className="rounded-xl h-24 flex items-center justify-center overflow-hidden"
-      style={{
-        background: "linear-gradient(135deg, rgba(0,50,98,0.04), rgba(59,126,161,0.06))",
-      }}
-    >
+    <div className="flex items-center justify-center h-20 rounded-lg bg-bg">
       <div className="text-center">
-        <span className="text-2xl block mb-1">🗺️</span>
-        <span className="text-[10px] text-ink-muted font-body tracking-wide">TAP FOR MAP</span>
+        <span className="text-xl block mb-0.5">🗺️</span>
+        <span className="text-[11px] text-tertiary-label">Tap for map</span>
       </div>
     </div>
   );
@@ -23,23 +18,17 @@ export function MapCardCompact({ venues: _venues }: MapCardProps) {
 export function MapCardExpanded({ venues }: MapCardProps) {
   return (
     <div className="space-y-5">
-      <div
-        className="rounded-xl aspect-[4/3] flex items-center justify-center"
-        style={{
-          background: "linear-gradient(135deg, rgba(0,50,98,0.04), rgba(59,126,161,0.08))",
-        }}
-      >
+      <div className="rounded-xl aspect-[4/3] flex items-center justify-center bg-bg">
         <div className="text-center px-4">
           <span className="text-4xl block mb-3">🗺️</span>
-          <p className="text-xs text-ink-muted font-body">
+          <p className="text-[13px] text-tertiary-label">
             Interactive campus map coming soon.
           </p>
           <a
             href="https://berkeley.edu/map"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 mt-3 text-xs font-display font-600
-              text-founders-rock hover:text-berkeley-blue transition-colors"
+            className="inline-flex items-center gap-1 mt-3 text-[13px] font-medium text-link"
           >
             Open UC Berkeley map
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -50,21 +39,24 @@ export function MapCardExpanded({ venues }: MapCardProps) {
       </div>
 
       <div>
-        <h3 className="font-display font-700 text-xs text-ink tracking-tight mb-3">
-          KEY LOCATIONS
+        <h3 className="text-[13px] font-semibold text-tertiary-label uppercase tracking-wide mb-2 px-1">
+          Key Locations
         </h3>
-        <div className="space-y-2">
-          {venues.map((v) => (
-            <div key={v.id} className="rounded-xl bg-surface/60 p-3.5">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-display font-600 text-sm text-ink">{v.name}</span>
+        <div className="-mx-5">
+          {venues.map((v, i) => (
+            <div
+              key={v.id}
+              className={`px-5 py-3 ${i < venues.length - 1 ? "border-b border-separator" : ""}`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-[15px] text-label font-medium">{v.name}</span>
                 {v.floor && (
-                  <span className="text-[10px] font-600 px-2 py-0.5 rounded-full bg-berkeley-blue/8 text-berkeley-blue">
+                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-bg text-tertiary-label">
                     {v.floor}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-ink-muted leading-relaxed font-body">{v.description}</p>
+              <p className="text-[13px] text-tertiary-label mt-0.5">{v.description}</p>
             </div>
           ))}
         </div>

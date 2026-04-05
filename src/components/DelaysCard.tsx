@@ -22,20 +22,25 @@ function timeAgo(timestamp: string) {
 export function DelaysCardCompact({ delays }: DelaysCardProps) {
   if (delays.length === 0) {
     return (
-      <div className="flex items-center gap-2.5 text-xs font-body">
+      <div className="flex items-center gap-2 text-[13px]">
         <span className="h-2 w-2 rounded-full bg-success shrink-0" />
-        <span className="text-ink-light">All events on schedule</span>
+        <span className="text-secondary-label">All events on schedule</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      {delays.map((d) => (
-        <div key={d.id} className="flex items-center gap-2.5 rounded-xl bg-danger/5 px-3 py-2.5 text-xs">
+    <div className="-mx-4">
+      {delays.map((d, i) => (
+        <div
+          key={d.id}
+          className={`flex items-center gap-3 px-4 py-2.5 ${
+            i < delays.length - 1 ? "border-b border-separator" : ""
+          }`}
+        >
           <span className="h-2 w-2 rounded-full bg-danger shrink-0" />
-          <span className="font-display font-600 text-ink truncate">{d.eventTitle}</span>
-          <span className="ml-auto text-danger tabular-nums shrink-0 font-body font-500">
+          <span className="text-[13px] font-medium text-label truncate">{d.eventTitle}</span>
+          <span className="ml-auto text-[13px] text-danger tabular-nums shrink-0 font-medium">
             {formatTime(d.originalTime)} → {formatTime(d.newTime)}
           </span>
         </div>
@@ -51,28 +56,33 @@ export function DelaysCardExpanded({ delays }: DelaysCardProps) {
         <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-3">
           <span className="text-success text-lg">✓</span>
         </div>
-        <p className="font-display font-600 text-sm text-ink">All on schedule</p>
-        <p className="text-xs text-ink-muted mt-1 font-body">Any delays will appear here in real time.</p>
+        <p className="text-[15px] font-medium text-label">All on schedule</p>
+        <p className="text-[13px] text-tertiary-label mt-1">Any delays will appear here in real time.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      {delays.map((d) => (
-        <div key={d.id} className="rounded-xl bg-danger/5 ring-1 ring-danger/15 p-4">
-          <div className="flex items-center gap-2.5 mb-2">
+    <div className="-mx-5 -my-4">
+      {delays.map((d, i) => (
+        <div
+          key={d.id}
+          className={`px-5 py-3.5 ${
+            i < delays.length - 1 ? "border-b border-separator" : ""
+          }`}
+        >
+          <div className="flex items-center gap-2 mb-1">
             <span className="h-2 w-2 rounded-full bg-danger shrink-0" />
-            <span className="font-display font-600 text-sm text-ink">{d.eventTitle}</span>
-            <span className="ml-auto text-[10px] text-ink-muted font-body">{timeAgo(d.timestamp)}</span>
+            <span className="text-[15px] font-medium text-label">{d.eventTitle}</span>
+            <span className="ml-auto text-[11px] text-tertiary-label">{timeAgo(d.timestamp)}</span>
           </div>
-          <div className="text-xs text-ink-light font-body space-y-1">
+          <div className="text-[13px] text-secondary-label space-y-0.5">
             <p className="tabular-nums">
               <span className="line-through text-danger">{formatTime(d.originalTime)}</span>
-              <span className="mx-1.5 text-ink-muted">→</span>
-              <span className="text-ink font-600">{formatTime(d.newTime)}</span>
+              <span className="mx-1.5 text-tertiary-label">→</span>
+              <span className="text-label font-medium">{formatTime(d.newTime)}</span>
             </p>
-            {d.reason && <p className="text-ink-muted italic">{d.reason}</p>}
+            {d.reason && <p className="text-tertiary-label">{d.reason}</p>}
           </div>
         </div>
       ))}

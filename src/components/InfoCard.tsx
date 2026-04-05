@@ -18,19 +18,24 @@ const iconMap: Record<string, string> = {
 export function InfoCardCompact({ info }: InfoCardProps) {
   const top = info.slice(0, 3);
   return (
-    <div className="space-y-2">
-      {top.map((item) => (
-        <div key={item.id} className="flex items-center gap-2.5 text-xs">
+    <div className="-mx-4">
+      {top.map((item, i) => (
+        <div
+          key={item.id}
+          className={`flex items-center gap-3 px-4 py-2 text-[13px] ${
+            i < top.length - 1 ? "border-b border-separator" : ""
+          }`}
+        >
           <span className="shrink-0 text-sm">{iconMap[item.label] ?? "ℹ️"}</span>
-          <span className="text-ink-muted font-body">{item.label}</span>
-          <span className="ml-auto text-ink-light font-body font-500 truncate max-w-[130px] text-right">
+          <span className="text-secondary-label">{item.label}</span>
+          <span className="ml-auto text-label font-medium truncate max-w-[120px] text-right">
             {item.value}
           </span>
         </div>
       ))}
       {info.length > 3 && (
-        <p className="text-[10px] text-ink-muted text-center pt-0.5 font-body tracking-wide">
-          +{info.length - 3} MORE
+        <p className="text-[11px] text-tertiary-label text-center py-2">
+          +{info.length - 3} more
         </p>
       )}
     </div>
@@ -39,13 +44,18 @@ export function InfoCardCompact({ info }: InfoCardProps) {
 
 export function InfoCardExpanded({ info }: InfoCardProps) {
   return (
-    <div className="space-y-2">
-      {info.map((item) => (
-        <div key={item.id} className="rounded-xl bg-surface/60 p-3.5 flex items-start gap-3">
+    <div className="-mx-5 -my-4">
+      {info.map((item, i) => (
+        <div
+          key={item.id}
+          className={`px-5 py-3 flex items-start gap-3 ${
+            i < info.length - 1 ? "border-b border-separator" : ""
+          }`}
+        >
           <span className="text-lg shrink-0">{iconMap[item.label] ?? "ℹ️"}</span>
           <div className="min-w-0">
-            <p className="font-display font-600 text-sm text-ink">{item.label}</p>
-            <p className="text-xs text-ink-muted mt-0.5 font-body">{item.value}</p>
+            <p className="text-[15px] font-medium text-label">{item.label}</p>
+            <p className="text-[13px] text-tertiary-label mt-0.5">{item.value}</p>
           </div>
         </div>
       ))}
