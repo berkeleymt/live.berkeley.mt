@@ -10,11 +10,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource-variable/ibm-plex-sans": "^5.2.8",
     "@tailwindcss/vite": "^4.2.2",
     "framer-motion": "^12.38.0",
     "react": "^19.2.4",
     "react-aria": "^3.47.0",
     "react-dom": "^19.2.4",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.14.0",
     "tailwindcss": "^4.2.2"
   },
   "devDependencies": {

@@ -1,47 +1,53 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { LiveData } from "./types";
 import { mockData } from "./mock";
 
-type DataSource = "mock" | "api";
+/**
+ * Live data hook.
+ *
+ * In development, returns static mock data (no network requests).
+ * To connect to a real backend, set VITE_API_URL in your .env:
+ *
+ *   VITE_API_URL=https://api.berkeley.mt/live
+ *
+ * The endpoint should return JSON matching the LiveData interface.
+ * When set, this hook polls the endpoint every POLL_INTERVAL ms.
+ */
 
-const DATA_SOURCE: DataSource = "mock";
-const _API_URL = "/api/live"; // placeholder for future backend
+const API_URL = import.meta.env.VITE_API_URL as string | undefined;
+const POLL_INTERVAL = 5_000; // 5 seconds for snappy sync
 
 export function useLiveData() {
   const [data, setData] = useState<LiveData>(mockData);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
-  const refresh = useCallback(async () => {
-    if (DATA_SOURCE === "mock") {
-      setData({ ...mockData, lastUpdated: new Date().toISOString() });
-      return;
-    }
+  const fetchData = useCallback(async () => {
+    if (!API_URL) return;
 
-    setLoading(true);
-    setError(null);
     try {
-      const res = await fetch(_API_URL);
+      const res = await fetch(API_URL);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = (await res.json()) as LiveData;
       setData(json);
+      setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unknown error");
-    } finally {
-      setLoading(false);
+      setError(e instanceof Error ? e.message : "Failed to fetch");
     }
   }, []);
 
   useEffect(() => {
-    refresh();
-    if (DATA_SOURCE === "api") {
-      const interval = setInterval(refresh, 30_000);
-      return () => clearInterval(interval);
-    }
-  }, [refresh]);
+    if (!API_URL) return;
 
-  return { data, loading, error, refresh };
+    fetchData();
+    intervalRef.current = setInterval(fetchData, POLL_INTERVAL);
+    return () => clearInterval(intervalRef.current);
+  }, [fetchData]);
+
+  return { data, error };
 }
+
+// ── Schedule helpers ──
 
 export function getCurrentEvent(schedule: LiveData["schedule"]): string | null {
   const now = new Date();
