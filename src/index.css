@@ -1,19 +1,25 @@
 @import "tailwindcss";
 
 @theme {
-  --color-cal-berkeley-blue: #003262;
-  --color-cal-california-gold: #FDB515;
-  --color-cal-founders-rock: #3B7EA1;
-  --color-cal-medalist: #C4820E;
-  --color-card-bg: #ffffff;
-  --color-card-border: #e2e8f0;
-  --color-card-hover: #f8fafc;
-  --color-surface: #f1f5f9;
-  --color-muted: #64748b;
+  --font-display: "Bricolage Grotesque", serif;
+  --font-body: "DM Sans", sans-serif;
+
+  --color-berkeley-blue: #003262;
+  --color-california-gold: #FDB515;
+  --color-founders-rock: #3B7EA1;
+  --color-medalist: #C4820E;
+  --color-golden-gate: #ED4E33;
+
+  --color-surface: #f0ede6;
+  --color-card: #ffffff;
+  --color-card-border: rgba(0, 50, 98, 0.08);
+  --color-card-hover: #fdfcfa;
+  --color-ink: #1a1a2e;
+  --color-ink-light: #4a4a5a;
+  --color-ink-muted: #8a8a96;
   --color-accent: #FDB515;
-  --color-danger: #dc2626;
-  --color-heading: #0f172a;
-  --color-body: #334155;
+  --color-danger: #c53030;
+  --color-success: #276749;
 }
 
 html {
@@ -21,11 +27,47 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-body);
+  background: var(--color-surface);
+  color: var(--color-ink);
   overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle dot grid background — math paper feel */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(0, 50, 98, 0.06) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Subtle grain overlay */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.3;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+#root {
+  position: relative;
+  z-index: 1;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: oklch(0.75 0.01 260) transparent;
+  scrollbar-color: rgba(0, 50, 98, 0.15) transparent;
+}
+
+/* Card shimmer on hover */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }

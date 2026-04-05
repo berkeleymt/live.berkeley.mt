@@ -20,27 +20,29 @@ export function AnnouncementsCardCompact({ announcements }: AnnouncementsCardPro
   const top = sorted.slice(0, 2);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {top.map((a) => (
-        <div key={a.id} className="flex items-start gap-2">
+        <div key={a.id} className="flex items-start gap-2.5">
           {a.priority === "urgent" && (
-            <span className="mt-0.5 flex h-2 w-2 shrink-0 rounded-full bg-danger" />
+            <span className="mt-1 flex h-2 w-2 shrink-0 rounded-full bg-danger" />
           )}
           {a.pinned && a.priority !== "urgent" && (
             <span className="mt-0.5 text-[10px] shrink-0">📌</span>
           )}
           <div className="min-w-0 flex-1">
-            <p className={`text-xs font-medium truncate ${a.priority === "urgent" ? "text-danger" : "text-heading"}`}>
+            <p className={`text-xs font-display font-600 truncate ${a.priority === "urgent" ? "text-danger" : "text-ink"}`}>
               {a.title}
             </p>
-            <p className="text-[10px] text-muted truncate">{a.body}</p>
+            <p className="text-[10px] text-ink-muted font-body truncate mt-0.5">{a.body}</p>
           </div>
-          <span className="text-[10px] text-muted shrink-0">{timeAgo(a.timestamp)}</span>
+          <span className="text-[10px] text-ink-muted font-body shrink-0 tabular-nums">
+            {timeAgo(a.timestamp)}
+          </span>
         </div>
       ))}
       {announcements.length > 2 && (
-        <p className="text-[10px] text-muted text-center">
-          +{announcements.length - 2} more
+        <p className="text-[10px] text-ink-muted text-center font-body tracking-wide">
+          +{announcements.length - 2} MORE
         </p>
       )}
     </div>
@@ -57,19 +59,23 @@ export function AnnouncementsCardExpanded({ announcements }: AnnouncementsCardPr
       {sorted.map((a) => (
         <div
           key={a.id}
-          className={`rounded-xl p-3 ${
-            a.priority === "urgent" ? "bg-red-50 ring-1 ring-danger/30" : "bg-slate-50"
+          className={`rounded-xl p-4 ${
+            a.priority === "urgent"
+              ? "bg-danger/5 ring-1 ring-danger/20"
+              : "bg-surface/60"
           }`}
         >
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1.5">
             {a.priority === "urgent" && <span className="h-2 w-2 rounded-full bg-danger shrink-0" />}
-            {a.pinned && <span className="text-[10px]">📌</span>}
-            <span className={`text-sm font-medium ${a.priority === "urgent" ? "text-danger" : "text-heading"}`}>
+            {a.pinned && <span className="text-xs">📌</span>}
+            <span className={`font-display font-600 text-sm ${a.priority === "urgent" ? "text-danger" : "text-ink"}`}>
               {a.title}
             </span>
-            <span className="ml-auto text-[10px] text-muted shrink-0">{timeAgo(a.timestamp)}</span>
+            <span className="ml-auto text-[10px] text-ink-muted font-body tabular-nums shrink-0">
+              {timeAgo(a.timestamp)}
+            </span>
           </div>
-          <p className="text-xs text-body leading-relaxed">{a.body}</p>
+          <p className="text-xs text-ink-light leading-relaxed font-body">{a.body}</p>
         </div>
       ))}
     </div>
