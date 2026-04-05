@@ -1,9 +1,9 @@
 export const cardSpring = {
   layout: {
     type: "spring" as const,
-    stiffness: 500,
-    damping: 35,
-    mass: 0.5,
+    stiffness: 600,
+    damping: 38,
+    mass: 0.4,
   },
 };
 

@@ -5,10 +5,15 @@ import { ExpandableOverlay } from "./ExpandableOverlay";
 import { cardSpring } from "./springs";
 
 interface WidgetCardProps {
+  /** Title shown only in the expanded overlay header */
   title: string;
+  /** Icon shown only in the expanded overlay header */
   icon: ReactNode;
+  /** Compact content — owns the entire card visual */
   children: ReactNode;
   expandedContent?: ReactNode;
+  /** "card" (default) or "list" (each child is its own bubble) */
+  expandedVariant?: "card" | "list";
   expandedId: string | null;
   id: string;
   onExpand: (id: string) => void;
@@ -20,6 +25,7 @@ export function WidgetCard({
   icon,
   children,
   expandedContent,
+  expandedVariant,
   expandedId,
   id,
   onExpand,
@@ -33,7 +39,7 @@ export function WidgetCard({
 
   return (
     <>
-      <div style={{ perspective: 800 }}>
+      <div style={{ perspective: 800 }} className="h-full">
         <motion.div
           layoutId={layoutId}
           transition={cardSpring}
@@ -49,34 +55,7 @@ export function WidgetCard({
             if (isExpandable && !isExpanded) onExpand(id);
           }}
         >
-          <div className="px-4 py-3 h-full flex flex-col">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm shrink-0">{icon}</span>
-              <h2 className="text-[15px] font-semibold text-label tracking-tight truncate">
-                {title}
-              </h2>
-              {isExpandable && (
-                <svg
-                  className="ml-auto shrink-0 text-quaternary-label"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 14 14"
-                  fill="none"
-                >
-                  <path
-                    d="M5.25 3.5l3.5 3.5-3.5 3.5"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              )}
-            </div>
-            <div className="flex-1 min-h-0 overflow-hidden">
-              {children}
-            </div>
-          </div>
+          {children}
         </motion.div>
       </div>
 
@@ -86,6 +65,7 @@ export function WidgetCard({
         onClose={onCollapse}
         icon={icon}
         title={title}
+        variant={expandedVariant}
       >
         {expandedContent}
       </ExpandableOverlay>

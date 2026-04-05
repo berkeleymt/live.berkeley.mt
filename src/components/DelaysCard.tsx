@@ -20,31 +20,40 @@ function timeAgo(timestamp: string) {
 }
 
 export function DelaysCardCompact({ delays }: DelaysCardProps) {
-  if (delays.length === 0) {
-    return (
-      <div className="flex items-center gap-2 text-[13px]">
-        <span className="h-2 w-2 rounded-full bg-success shrink-0" />
-        <span className="text-secondary-label">All events on schedule</span>
-      </div>
-    );
-  }
+  const first = delays[0];
+  if (!first) return null;
 
   return (
-    <div className="-mx-4">
-      {delays.map((d, i) => (
-        <div
-          key={d.id}
-          className={`flex items-center gap-3 px-4 py-2.5 ${
-            i < delays.length - 1 ? "border-b border-separator" : ""
-          }`}
-        >
-          <span className="h-2 w-2 rounded-full bg-danger shrink-0" />
-          <span className="text-[13px] font-medium text-label truncate">{d.eventTitle}</span>
-          <span className="ml-auto text-[13px] text-danger tabular-nums shrink-0 font-medium">
-            {formatTime(d.originalTime)} → {formatTime(d.newTime)}
+    <div className="h-full p-5 flex gap-4 bg-gradient-to-br from-danger/10 to-danger/5">
+      {/* Left: icon */}
+      <div className="flex flex-col items-center gap-1 pt-0.5 shrink-0">
+        <span className="text-[32px] leading-none">⚠️</span>
+        {delays.length > 1 && (
+          <span className="text-[12px] font-bold text-white bg-danger rounded-full min-w-[22px] h-[22px] flex items-center justify-center px-1.5">
+            {delays.length}
           </span>
-        </div>
-      ))}
+        )}
+      </div>
+
+      {/* Right: content */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <p className="text-[12px] font-bold text-danger uppercase tracking-wide mb-1">
+          {delays.length === 1 ? "Delay" : `${delays.length} Delays`}
+        </p>
+        <p className="text-[20px] font-bold text-label leading-tight tracking-tight">
+          {first.eventTitle}
+        </p>
+        <p className="text-[17px] tabular-nums font-semibold mt-1.5">
+          <span className="text-danger line-through">{formatTime(first.originalTime)}</span>
+          <span className="text-tertiary-label mx-1.5 text-[13px]">now</span>
+          <span className="text-label">{formatTime(first.newTime)}</span>
+        </p>
+        {first.reason && (
+          <p className="text-[13px] text-tertiary-label mt-1 line-clamp-1">
+            {first.reason}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -68,7 +77,7 @@ export function DelaysCardExpanded({ delays }: DelaysCardProps) {
         <div
           key={d.id}
           className={`px-5 py-3.5 ${
-            i < delays.length - 1 ? "border-b border-separator" : ""
+            i < delays.length - 1 ? "border-b border-white/20" : ""
           }`}
         >
           <div className="flex items-center gap-2 mb-1">
@@ -79,13 +88,27 @@ export function DelaysCardExpanded({ delays }: DelaysCardProps) {
           <div className="text-[13px] text-secondary-label space-y-0.5">
             <p className="tabular-nums">
               <span className="line-through text-danger">{formatTime(d.originalTime)}</span>
-              <span className="mx-1.5 text-tertiary-label">→</span>
+              <span className="mx-1.5 text-tertiary-label">now</span>
               <span className="text-label font-medium">{formatTime(d.newTime)}</span>
             </p>
             {d.reason && <p className="text-tertiary-label">{d.reason}</p>}
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+export function StatusCardCompact() {
+  return (
+    <div className="h-full p-4 flex flex-col items-center justify-center bg-gradient-to-br from-success/8 to-success/3">
+      <div className="w-14 h-14 rounded-full bg-success/15 flex items-center justify-center">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" className="text-success">
+          <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+      <p className="text-[18px] font-bold text-label mt-3 tracking-tight">On Schedule</p>
+      <p className="text-[12px] text-tertiary-label leading-tight text-center mt-0.5">Everything on time</p>
     </div>
   );
 }

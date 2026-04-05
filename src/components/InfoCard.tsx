@@ -16,20 +16,25 @@ const iconMap: Record<string, string> = {
 };
 
 export function InfoCardCompact({ info }: InfoCardProps) {
-  const top = info.slice(0, 4);
+  const tiles = info.slice(0, 4);
   return (
-    <div className="-mx-4">
-      {top.map((item, i) => (
-        <div
-          key={item.id}
-          className={`flex items-center gap-2.5 px-4 py-1.5 text-[13px] ${
-            i < top.length - 1 ? "border-b border-separator" : ""
-          }`}
-        >
-          <span className="shrink-0 text-sm">{iconMap[item.label] ?? "ℹ️"}</span>
-          <span className="text-secondary-label truncate">{item.label}</span>
-        </div>
-      ))}
+    <div className="h-full p-4 flex flex-col">
+      <p className="text-[13px] font-bold text-secondary-label uppercase tracking-wide px-0.5 mb-3">
+        Info & Help
+      </p>
+      <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-2">
+        {tiles.map((item) => (
+          <div
+            key={item.id}
+            className="flex flex-col items-center justify-center rounded-xl bg-bg/80"
+          >
+            <span className="text-[28px] leading-none">{iconMap[item.label] ?? "ℹ️"}</span>
+            <p className="text-[11px] font-semibold text-secondary-label leading-tight mt-1.5 text-center px-1">
+              {item.label}
+            </p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -41,7 +46,7 @@ export function InfoCardExpanded({ info }: InfoCardProps) {
         <div
           key={item.id}
           className={`px-5 py-3 flex items-start gap-3 ${
-            i < info.length - 1 ? "border-b border-separator" : ""
+            i < info.length - 1 ? "border-b border-white/20" : ""
           }`}
         >
           <span className="text-lg shrink-0">{iconMap[item.label] ?? "ℹ️"}</span>

@@ -4,12 +4,31 @@ interface MapCardProps {
   venues: VenueLocation[];
 }
 
-export function MapCardCompact({ venues: _venues }: MapCardProps) {
+const MAP_TILE_URL = "https://tile.openstreetmap.org/15/5254/12648.png";
+
+export function MapCardCompact({ venues }: MapCardProps) {
   return (
-    <div className="flex items-center justify-center h-full rounded-lg bg-bg -mx-4 -mb-3">
-      <div className="text-center">
-        <span className="text-3xl block mb-1">🗺️</span>
-        <span className="text-[12px] text-tertiary-label">Tap for map</span>
+    <div className="h-full relative">
+      {/* Map background */}
+      <img
+        src={MAP_TILE_URL}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover"
+        draggable={false}
+      />
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+      {/* Content */}
+      <div className="absolute bottom-0 left-0 right-0 p-4">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[20px] leading-none">📍</span>
+          <p className="text-[18px] font-bold text-white tracking-tight">
+            Map
+          </p>
+        </div>
+        <p className="text-[13px] text-white/70 leading-tight mt-0.5">
+          {venues.length} locations
+        </p>
       </div>
     </div>
   );
@@ -17,26 +36,26 @@ export function MapCardCompact({ venues: _venues }: MapCardProps) {
 
 export function MapCardExpanded({ venues }: MapCardProps) {
   return (
-    <div className="space-y-5">
-      <div className="rounded-xl aspect-[4/3] flex items-center justify-center bg-bg">
-        <div className="text-center px-4">
-          <span className="text-4xl block mb-3">🗺️</span>
-          <p className="text-[13px] text-tertiary-label">
-            Interactive campus map coming soon.
-          </p>
-          <a
-            href="https://berkeley.edu/map"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 mt-3 text-[13px] font-medium text-link"
-          >
-            Open UC Berkeley map
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M3 9l6-6M5 3h4v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </a>
-        </div>
+    <div className="space-y-4">
+      <div className="rounded-xl overflow-hidden aspect-[4/3] relative">
+        <iframe
+          title="UC Berkeley Campus Map"
+          src="https://www.openstreetmap.org/export/embed.html?bbox=-122.265,37.868,-122.252,37.876&layer=mapnik"
+          className="w-full h-full border-0"
+        />
       </div>
+
+      <a
+        href="https://www.openstreetmap.org/#map=16/37.872/-122.258"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 text-[13px] font-medium text-link"
+      >
+        Open full map
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M3 9l6-6M5 3h4v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </a>
 
       <div>
         <h3 className="text-[13px] font-semibold text-tertiary-label uppercase tracking-wide mb-2 px-1">
@@ -46,12 +65,12 @@ export function MapCardExpanded({ venues }: MapCardProps) {
           {venues.map((v, i) => (
             <div
               key={v.id}
-              className={`px-5 py-3 ${i < venues.length - 1 ? "border-b border-separator" : ""}`}
+              className={`px-5 py-3 ${i < venues.length - 1 ? "border-b border-white/20" : ""}`}
             >
               <div className="flex items-center gap-2">
                 <span className="text-[15px] text-label font-medium">{v.name}</span>
                 {v.floor && (
-                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-bg text-tertiary-label">
+                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-black/5 text-tertiary-label">
                     {v.floor}
                   </span>
                 )}
