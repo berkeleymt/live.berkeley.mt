@@ -1,6 +1,13 @@
 import { useRef, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+const layoutTransition = {
+  type: "spring" as const,
+  stiffness: 400,
+  damping: 30,
+  mass: 0.8,
+};
+
 type AccentStyle = "gold" | "danger" | "success" | "blue" | undefined;
 
 interface WidgetCardProps {
@@ -43,6 +50,7 @@ export function WidgetCard({
       <motion.div
         ref={cardRef}
         layoutId={`card-${id}`}
+        transition={{ layout: layoutTransition }}
         className={`
           relative rounded-2xl bg-card overflow-hidden h-full
           shadow-[0_1px_3px_rgba(0,50,98,0.06),0_1px_2px_rgba(0,50,98,0.04)]
@@ -93,11 +101,11 @@ export function WidgetCard({
         {isExpanded && (
           <>
             <motion.div
-              className="fixed inset-0 bg-berkeley-blue/20 backdrop-blur-md z-40"
+              className="fixed inset-0 bg-berkeley-blue/20 backdrop-blur-sm z-40"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
               onClick={onCollapse}
             />
             <div
@@ -106,6 +114,7 @@ export function WidgetCard({
             >
               <motion.div
                 layoutId={`card-${id}`}
+                transition={{ layout: layoutTransition }}
                 className="relative rounded-2xl bg-card overflow-hidden
                   w-full max-w-lg max-h-[85vh] flex flex-col
                   shadow-[0_25px_50px_rgba(0,50,98,0.15),0_10px_20px_rgba(0,50,98,0.1)]"
