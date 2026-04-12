@@ -8,14 +8,6 @@ fn utc_now_ts() -> String {
     chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string()
 }
 
-/// Build a UTC timestamp for a given local (h, m) today — used by seed data.
-fn local_hm_to_utc(h: u32, m: u32) -> String {
-    use chrono::{Local, NaiveTime, TimeZone};
-    let today = Local::now().date_naive();
-    let naive = today.and_time(NaiveTime::from_hms_opt(h, m, 0).unwrap());
-    let local = Local.from_local_datetime(&naive).single().unwrap();
-    local.to_utc().format("%Y-%m-%dT%H:%M:%SZ").to_string()
-}
 
 pub struct Db {
     conn: Mutex<Connection>,
@@ -164,19 +156,6 @@ impl Db {
             ).unwrap();
         }
 
-        // Delays — timestamped so they appear at realistic points during the day
-        let delays: [(&str, &str, Option<&str>, Option<&str>, Option<&str>, String); 4] = [
-            ("d1", "s3", Some("11:10"), Some("11:50"), Some("Puzzle round ran over"), local_hm_to_utc(10, 20)),
-            ("d2", "s4", Some("12:10"), Some("12:50"), Some("Individual round pushed back"), local_hm_to_utc(11, 0)),
-            ("d3", "s5", Some("13:25"), Some("14:25"), Some("Extended lunch break"), local_hm_to_utc(12, 15)),
-            ("d4", "s2", None, Some("10:30"), Some("Extra time for puzzle round"), local_hm_to_utc(9, 45)),
-        ];
-        for (id, event_id, new_time, new_end_time, reason, ts) in &delays {
-            conn.execute(
-                "INSERT INTO delays (id, event_id, new_time, new_end_time, reason, timestamp) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                params![id, event_id, new_time, new_end_time, reason, ts],
-            ).unwrap();
-        }
     }
 
     // ── Queries ──
