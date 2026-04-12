@@ -16,6 +16,7 @@ use crate::models::*;
 pub struct AppState {
     pub db: Arc<Db>,
     pub postmark: Option<PostmarkConfig>,
+    pub admin_password: Option<String>,
 }
 
 #[derive(Deserialize)]

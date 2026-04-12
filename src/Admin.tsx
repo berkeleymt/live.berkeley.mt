@@ -11,11 +11,12 @@ const API = import.meta.env.VITE_API_URL?.replace(/\/live$/, "") ?? "/api";
 // ── Helpers ──
 
 async function api(method: string, path: string, body?: unknown) {
-  await fetch(`${API}${path}`, {
+  const res = await fetch(`${API}${path}`, {
     method,
     headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
+  if (res.status === 401) window.location.reload();
 }
 
 /** "14:30" → "2:30 PM" */
