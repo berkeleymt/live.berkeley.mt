@@ -84,6 +84,19 @@ impl Db {
                 value TEXT NOT NULL,
                 icon  TEXT
             );
+
+            CREATE TABLE IF NOT EXISTS email_subscribers (
+                id                TEXT PRIMARY KEY,
+                email             TEXT NOT NULL UNIQUE,
+                unsubscribe_token TEXT NOT NULL UNIQUE,
+                created_at        TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS email_log (
+                id              TEXT PRIMARY KEY,
+                announcement_id TEXT NOT NULL,
+                sent_at         TEXT NOT NULL
+            );
             ",
         )
         .expect("failed to run migrations");
@@ -435,5 +448,93 @@ impl Db {
         let conn = self.conn.lock().unwrap();
         let rows = conn.execute("DELETE FROM announcements WHERE id=?1", params![id]).unwrap_or(0);
         rows > 0
+    }
+
+    // ── Email Subscribers ──
+
+    pub fn add_subscriber(&self, email: &str) -> Option<String> {
+        let conn = self.conn.lock().unwrap();
+        let id = format!("sub{}", chrono::Utc::now().timestamp_millis());
+        let token = uuid::Uuid::new_v4().to_string();
+        let now = utc_now_ts();
+        conn.execute(
+            "INSERT OR IGNORE INTO email_subscribers (id, email, unsubscribe_token, created_at) VALUES (?1, ?2, ?3, ?4)",
+            params![id, email, token, now],
+        ).ok()?;
+        // Return None if nothing was inserted (email already exists)
+        if conn.changes() == 0 { return None; }
+        Some(token)
+    }
+
+    pub fn remove_subscriber_by_token(&self, token: &str) -> bool {
+        let conn = self.conn.lock().unwrap();
+        let rows = conn.execute(
+            "DELETE FROM email_subscribers WHERE unsubscribe_token=?1",
+            params![token],
+        ).unwrap_or(0);
+        rows > 0
+    }
+
+    pub fn get_all_subscribers(&self) -> Vec<(String, String)> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn
+            .prepare("SELECT email, unsubscribe_token FROM email_subscribers")
+            .unwrap();
+        stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+            .unwrap()
+            .filter_map(|r| r.ok())
+            .collect()
+    }
+
+    pub fn has_email_been_sent(&self, announcement_id: &str) -> bool {
+        let conn = self.conn.lock().unwrap();
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM email_log WHERE announcement_id=?1",
+                params![announcement_id],
+                |r| r.get(0),
+            )
+            .unwrap_or(0);
+        count > 0
+    }
+
+    pub fn mark_email_sent(&self, announcement_id: &str) {
+        let conn = self.conn.lock().unwrap();
+        let id = format!("el{}", chrono::Utc::now().timestamp_millis());
+        let now = utc_now_ts();
+        conn.execute(
+            "INSERT INTO email_log (id, announcement_id, sent_at) VALUES (?1, ?2, ?3)",
+            params![id, announcement_id, now],
+        ).ok();
+    }
+
+    /// Find scheduled announcements whose scheduled_at <= now and haven't been emailed yet.
+    pub fn get_due_unsent_announcements(&self) -> Vec<Announcement> {
+        let conn = self.conn.lock().unwrap();
+        let now = utc_now_ts();
+        let mut stmt = conn
+            .prepare(
+                "SELECT a.id, a.title, a.body, a.timestamp, a.priority, a.pinned, a.scheduled_at
+                 FROM announcements a
+                 WHERE a.scheduled_at IS NOT NULL
+                   AND a.scheduled_at <= ?1
+                   AND a.id NOT IN (SELECT announcement_id FROM email_log)"
+            )
+            .unwrap();
+        stmt.query_map(params![now], |row| {
+            let pinned_val: i32 = row.get(5)?;
+            Ok(Announcement {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                body: row.get(2)?,
+                timestamp: row.get(3)?,
+                priority: row.get(4)?,
+                pinned: if pinned_val != 0 { Some(true) } else { None },
+                scheduled_at: row.get(6)?,
+            })
+        })
+        .unwrap()
+        .filter_map(|r| r.ok())
+        .collect()
     }
 }

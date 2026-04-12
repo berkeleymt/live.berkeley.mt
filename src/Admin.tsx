@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef, type KeyboardEvent, type Reac
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 import { PencilSimple, Trash, Timer, Plus, X, Check } from "@phosphor-icons/react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { LiveData, ScheduleEvent, Announcement, DelayNotice } from "./data/types";
 
 const API = import.meta.env.VITE_API_URL?.replace(/\/live$/, "") ?? "/api";
@@ -546,7 +548,13 @@ function AnnouncementsSection({ announcements, onUpdate }: {
                 {a.pinned && <span className="text-sm shrink-0">📌</span>}
                 {isFuture(a) && <span className="text-xs font-medium text-berkeley-blue bg-berkeley-blue/10 px-2 py-0.5 rounded-full shrink-0">Scheduled</span>}
               </div>
-              <Cell value={a.body} onSave={v => update(a, "body", v)} className="text-sm text-secondary-label mt-1" width="w-full" disabled={editingId !== a.id} />
+              {editingId === a.id ? (
+                <Cell value={a.body} onSave={v => update(a, "body", v)} className="text-sm text-secondary-label mt-1" width="w-full" />
+              ) : (
+                <div className="text-sm text-secondary-label mt-1 prose-sm">
+                  <Markdown remarkPlugins={[remarkGfm]} skipHtml>{a.body}</Markdown>
+                </div>
+              )}
               <p className="text-xs text-tertiary-label mt-1.5">
                 {isFuture(a)
                   ? <>Publishes {new Date(a.scheduledAt!).toLocaleString()}</>

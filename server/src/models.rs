@@ -105,6 +105,19 @@ pub struct InfoItem {
     pub icon: Option<String>,
 }
 
+// ── Email Subscriptions ──
+
+#[derive(Debug, Deserialize)]
+pub struct SubscribeInput {
+    pub email: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SubscribeResponse {
+    pub ok: bool,
+    pub message: String,
+}
+
 // ── LiveData (the full response) ──
 
 #[derive(Debug, Serialize)]

@@ -9,7 +9,7 @@ import { WidgetCard } from "./components/WidgetCard";
 import { staggerContainer, cardReveal } from "./components/springs";
 import { ScheduleCardExpanded } from "./components/ScheduleCard";
 import { MapCardCompact, MapCardExpanded } from "./components/MapCard";
-import { InfoCardCompact, InfoCardExpanded } from "./components/InfoCard";
+import { InfoCardCompact, InfoCardExpanded, EmailSubscribe } from "./components/InfoCard";
 
 const IS_DEV = import.meta.env.DEV;
 
@@ -332,7 +332,7 @@ function useTallCards(gridRef: React.RefObject<HTMLDivElement | null>) {
       const w = el.clientWidth;
       const gap = 18;
       const rowH = (w - gap * 3) / 4;
-      const tallHeight = 60 + 12 + 4 * rowH + 3 * gap + 24 + 32;
+      const tallHeight = 60 + 50 + 12 + 4 * rowH + 3 * gap + 24 + 32;
       setTall(window.innerHeight >= tallHeight);
     };
 
@@ -394,7 +394,7 @@ export default function App() {
         </div>
       )}
 
-      <div className="max-w-lg mx-auto px-4 pt-6 pb-8 lg:max-w-6xl lg:px-6 lg:py-6 lg:w-full">
+      <div className="max-w-lg mx-auto px-4 pt-6 pb-8 lg:max-w-7xl lg:px-6 lg:py-6 lg:w-full">
         <div className="widget-grid-container" ref={gridRef}>
           {/* Header strip */}
           <motion.div
@@ -404,6 +404,15 @@ export default function App() {
             className="mb-3"
           >
             <HeaderWidget />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.35 }}
+            className="mb-3 glass-heavy widget-shadow rounded-2xl overflow-hidden"
+          >
+            <EmailSubscribe />
           </motion.div>
 
           <motion.div

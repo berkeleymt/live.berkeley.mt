@@ -60,7 +60,7 @@ body {
   .widget-grid {
     grid-template-columns: repeat(4, 1fr);
     gap: 18px;
-    grid-auto-rows: calc((100cqi - 54px) / 4);
+    grid-auto-rows: min(calc((100cqi - 54px) / 4), calc((100dvh - 220px) / 3));
   }
 }
 
