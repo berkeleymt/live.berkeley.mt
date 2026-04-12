@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use axum::{routing::{get, post, put, delete}, Router};
 use tower_http::cors::CorsLayer;
+use tower_http::services::{ServeDir, ServeFile};
 
 use routes::AppState;
 
@@ -42,6 +43,11 @@ async fn main() {
         });
     }
 
+    // Serve frontend static files — fall back to index.html for SPA routing
+    let static_dir = std::env::var("STATIC_DIR").unwrap_or_else(|_| "dist".to_string());
+    let spa_fallback = ServeDir::new(&static_dir)
+        .not_found_service(ServeFile::new(format!("{}/index.html", static_dir)));
+
     let app = Router::new()
         .route("/api/live", get(routes::get_live))
         // Schedule
@@ -58,6 +64,7 @@ async fn main() {
         // Email subscriptions
         .route("/api/email/subscribe", post(routes::subscribe))
         .route("/api/email/unsubscribe", get(routes::unsubscribe))
+        .fallback_service(spa_fallback)
         .layer(CorsLayer::very_permissive())
         .with_state(state);
 

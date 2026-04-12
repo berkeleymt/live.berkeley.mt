@@ -1,0 +1,10 @@
+# Ignore build artifacts and dev files
+node_modules
+dist
+server/target
+data.db
+data.db-shm
+data.db-wal
+.env
+.git
+.jj
