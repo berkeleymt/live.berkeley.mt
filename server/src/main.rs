@@ -23,6 +23,7 @@ async fn main() {
         .route("/api/delays/{id}", delete(routes::delete_delay))
         // Announcements
         .route("/api/announcements", post(routes::create_announcement))
+        .route("/api/announcements/{id}", put(routes::update_announcement))
         .route("/api/announcements/{id}", delete(routes::delete_announcement))
         .layer(CorsLayer::very_permissive())
         .with_state(db);

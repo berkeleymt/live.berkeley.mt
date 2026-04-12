@@ -29,6 +29,7 @@ pub struct ScheduleEventInput {
 // ── Announcements ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Announcement {
     pub id: String,
     pub title: String,
@@ -37,14 +38,18 @@ pub struct Announcement {
     pub priority: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pinned: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scheduled_at: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AnnouncementInput {
     pub title: String,
     pub body: String,
     pub priority: Option<String>,
     pub pinned: Option<bool>,
+    pub scheduled_at: Option<String>,
 }
 
 // ── Delays ──
@@ -56,7 +61,12 @@ pub struct DelayNotice {
     pub event_id: String,
     pub event_title: String,
     pub original_time: String,
-    pub new_time: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub new_time: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub original_end_time: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub new_end_time: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reason: Option<String>,
     pub timestamp: String,
@@ -66,7 +76,8 @@ pub struct DelayNotice {
 #[serde(rename_all = "camelCase")]
 pub struct DelayInput {
     pub event_id: String,
-    pub new_time: String,
+    pub new_time: Option<String>,
+    pub new_end_time: Option<String>,
     pub reason: Option<String>,
 }
 

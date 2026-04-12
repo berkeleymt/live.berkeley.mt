@@ -5,7 +5,7 @@ import { useDialog, usePreventScroll, FocusScope, DismissButton } from "react-ar
 import { useEscapeKey } from "../hooks/useEscapeKey";
 import { cardSpring } from "./springs";
 
-type OverlayVariant = "card" | "list";
+type OverlayVariant = "card" | "list" | "fullscreen";
 
 interface ExpandableOverlayProps {
   layoutId: string;
@@ -56,6 +56,39 @@ function DialogContent({
   usePreventScroll();
   useEscapeKey(true, onClose);
 
+  if (variant === "fullscreen") {
+    return (
+      <FocusScope contain restoreFocus autoFocus>
+        <motion.div
+          ref={dialogRef}
+          {...safeDialogProps}
+          layoutId={layoutId}
+          transition={cardSpring}
+          className="relative glass-heavy overflow-hidden pointer-events-auto
+            w-full max-w-[min(100vw-2rem,56rem)] widget-shadow-lg
+            h-[calc(100vh-2rem)] flex flex-col outline-none"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <DismissButton onDismiss={onClose} />
+          <div className="px-5 py-3 flex items-center gap-2 shrink-0 border-b border-black/[0.06]">
+            <span className="text-sm">{icon}</span>
+            <h2
+              {...titleProps}
+              className="text-[17px] font-semibold text-label tracking-tight flex-1"
+            >
+              {title}
+            </h2>
+            <CloseButton onClose={onClose} />
+          </div>
+          <div className="flex-1 min-h-0 flex flex-col">
+            {children}
+          </div>
+          <DismissButton onDismiss={onClose} />
+        </motion.div>
+      </FocusScope>
+    );
+  }
+
   if (variant === "list") {
     return (
       <FocusScope contain restoreFocus autoFocus>
@@ -97,7 +130,7 @@ function DialogContent({
         transition={cardSpring}
         className="relative glass-heavy overflow-hidden pointer-events-auto
           w-full max-w-lg widget-shadow-lg
-          max-h-[85vh] flex flex-col outline-none"
+          max-h-[calc(100vh-2rem)] flex flex-col outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <DismissButton onDismiss={onClose} />

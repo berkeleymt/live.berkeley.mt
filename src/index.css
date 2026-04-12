@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 @theme {
   --font-sans: "IBM Plex Sans Variable", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
@@ -118,6 +119,12 @@ body {
     0 1px 2px -1px rgba(0, 0, 0, 0.08),
     0 2px 4px rgba(0, 0, 0, 0.06);
 }
+.card.editing-card,
+.card.editing-card:hover {
+  box-shadow:
+    0 0 0 2px var(--color-berkeley-blue),
+    0 2px 8px rgba(0, 50, 98, 0.15);
+}
 
 .input {
   padding: 8px 12px;
@@ -182,4 +189,88 @@ body {
 }
 .animate-in {
   animation: slide-up 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Leaflet building labels */
+.building-label {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  font-family: "IBM Plex Sans Variable", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  color: #1e3a8a !important;
+  paint-order: stroke fill !important;
+  -webkit-text-stroke: 4px #fff !important;
+  text-shadow:
+    0 0 8px #fff, 0 0 8px #fff, 0 0 8px #fff,
+    0 1px 3px rgba(0,0,0,0.1) !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+}
+.building-label::before {
+  display: none !important;
+}
+
+/* Parking garage markers */
+.parking-marker {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+.parking-marker span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #be185d;
+  color: #fff;
+  font-family: "IBM Plex Sans Variable", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}
+
+/* BART station marker */
+.bart-marker {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+.bart-marker span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #1e3a5f;
+  color: #fff;
+  font-family: "IBM Plex Sans Variable", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}
+
+/* Check-in star marker */
+.checkin-marker {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+.checkin-marker span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: 22px;
+  color: #eab308;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
 }

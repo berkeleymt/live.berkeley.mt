@@ -15,6 +15,7 @@ export interface Announcement {
   timestamp: string; // ISO
   priority: "normal" | "urgent";
   pinned?: boolean;
+  scheduledAt?: string; // ISO — if set, announcement is hidden until this time
 }
 
 export interface DelayNotice {
@@ -22,7 +23,9 @@ export interface DelayNotice {
   eventId: string;
   eventTitle: string;
   originalTime: string;
-  newTime: string;
+  newTime?: string;
+  originalEndTime?: string;
+  newEndTime?: string;
   reason?: string;
   timestamp: string;
 }

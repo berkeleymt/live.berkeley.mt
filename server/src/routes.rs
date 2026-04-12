@@ -1,15 +1,25 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     Json,
 };
+use serde::Deserialize;
 use std::sync::Arc;
 
 use crate::db::Db;
 use crate::models::*;
 
-pub async fn get_live(State(db): State<Arc<Db>>) -> Json<LiveData> {
-    Json(db.get_live_data())
+#[derive(Deserialize)]
+pub struct LiveQuery {
+    at: Option<String>,
+    include_future: Option<bool>,
+}
+
+pub async fn get_live(
+    State(db): State<Arc<Db>>,
+    Query(query): Query<LiveQuery>,
+) -> Json<LiveData> {
+    Json(db.get_live_data(query.at.as_deref(), query.include_future.unwrap_or(false)))
 }
 
 // ── Schedule ──
@@ -68,6 +78,18 @@ pub async fn delete_delay(
 }
 
 // ── Announcements ──
+
+pub async fn update_announcement(
+    State(db): State<Arc<Db>>,
+    Path(id): Path<String>,
+    Json(input): Json<AnnouncementInput>,
+) -> StatusCode {
+    if db.update_announcement(&id, &input) {
+        StatusCode::OK
+    } else {
+        StatusCode::NOT_FOUND
+    }
+}
 
 pub async fn create_announcement(
     State(db): State<Arc<Db>>,

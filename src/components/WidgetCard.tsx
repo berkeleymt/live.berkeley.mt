@@ -12,8 +12,8 @@ interface WidgetCardProps {
   /** Compact content — owns the entire card visual */
   children: ReactNode;
   expandedContent?: ReactNode;
-  /** "card" (default) or "list" (each child is its own bubble) */
-  expandedVariant?: "card" | "list";
+  /** "card" (default), "list" (each child is its own bubble), or "fullscreen" */
+  expandedVariant?: "card" | "list" | "fullscreen";
   expandedId: string | null;
   id: string;
   onExpand: (id: string) => void;
@@ -45,7 +45,7 @@ export function WidgetCard({
           transition={cardSpring}
           whileHover={isExpandable ? { scale: 1.025 } : undefined}
           whileTap={isExpandable ? { scale: 0.98 } : undefined}
-          style={tilt.style}
+          style={{ ...tilt.style, visibility: isExpanded ? "hidden" : "visible" }}
           {...tilt.handlers}
           className={`
             bg-card overflow-hidden h-full widget-shadow outline-none

@@ -3,6 +3,20 @@ use std::sync::Mutex;
 
 use crate::models::*;
 
+/// Consistent UTC timestamp format used everywhere (sorts lexicographically).
+fn utc_now_ts() -> String {
+    chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string()
+}
+
+/// Build a UTC timestamp for a given local (h, m) today — used by seed data.
+fn local_hm_to_utc(h: u32, m: u32) -> String {
+    use chrono::{Local, NaiveTime, TimeZone};
+    let today = Local::now().date_naive();
+    let naive = today.and_time(NaiveTime::from_hms_opt(h, m, 0).unwrap());
+    let local = Local.from_local_datetime(&naive).single().unwrap();
+    local.to_utc().format("%Y-%m-%dT%H:%M:%SZ").to_string()
+}
+
 pub struct Db {
     conn: Mutex<Connection>,
 }
@@ -37,18 +51,20 @@ impl Db {
             );
 
             CREATE TABLE IF NOT EXISTS announcements (
-                id        TEXT PRIMARY KEY,
-                title     TEXT NOT NULL,
-                body      TEXT NOT NULL,
-                timestamp TEXT NOT NULL,
-                priority  TEXT NOT NULL DEFAULT 'normal',
-                pinned    INTEGER NOT NULL DEFAULT 0
+                id           TEXT PRIMARY KEY,
+                title        TEXT NOT NULL,
+                body         TEXT NOT NULL,
+                timestamp    TEXT NOT NULL,
+                priority     TEXT NOT NULL DEFAULT 'normal',
+                pinned       INTEGER NOT NULL DEFAULT 0,
+                scheduled_at TEXT
             );
 
             CREATE TABLE IF NOT EXISTS delays (
                 id            TEXT PRIMARY KEY,
                 event_id      TEXT NOT NULL,
-                new_time      TEXT NOT NULL,
+                new_time      TEXT,
+                new_end_time  TEXT,
                 reason        TEXT,
                 timestamp     TEXT NOT NULL,
                 FOREIGN KEY (event_id) REFERENCES schedule(id) ON DELETE CASCADE
@@ -85,14 +101,14 @@ impl Db {
 
         // Schedule
         let events = [
-            ("s1", "Check-in (Coaches Only)", "08:00", "08:45", "Dwinelle Hall", "general", Some("Coaches should proceed to Dwinelle Hall for check-in and materials pick-up. Room assignments, sticker sheets, and tournament guides will be distributed.")),
-            ("s2", "Puzzle Round", "09:00", "10:15", "Dwinelle Hall & Wheeler Hall", "team", Some("75-minute team-based round with a variety of mathematical puzzles. Report to your assigned classroom.")),
-            ("s3", "Individual Round", "10:30", "11:30", "Dwinelle Hall & Wheeler Hall", "individual", Some("60-minute individual test, 20 questions. No calculators. Remain in your assigned classroom.")),
-            ("s4", "Lunch", "11:30", "12:30", "Outside Dwinelle Hall", "general", Some("Pre-purchased lunches (Crave Subs) available for pick-up outside Dwinelle Hall. Restaurants also nearby on south side of campus and in Downtown Berkeley.")),
-            ("s5", "Team Round", "12:45", "13:45", "Dwinelle Hall & Wheeler Hall", "team", Some("60-minute team test, 20 questions. Work with your team of up to 5 in your assigned classroom.")),
-            ("s6", "Relay Round", "13:45", "14:25", "Dwinelle Hall & Wheeler Hall", "team", Some("40-minute relay-style round. Teams pass answers down the line. Stay in your assigned classroom.")),
-            ("s7", "Activities", "14:45", "16:00", "Various Locations", "general", Some("Fun math activities and campus exploration while scores are tabulated. Check the info booth for details.")),
-            ("s8", "Awards Ceremony", "17:00", "18:00", "Pauley Ballroom & Dwinelle 155", "ceremony", Some("Results announcement and trophy presentation. Report to your assigned awards room. Tiebreaker qualifiers will be announced after the Relay Round.")),
+            ("s1", "Check-in (Coaches Only)", "07:45", "09:00", "Dwinelle 145 / Dwinelle 155", "general", Some("Coaches check in at Dwinelle 145, or pick up materials at Dwinelle 155 if checked in online. Check-in closes promptly at 9:00 AM.")),
+            ("s2", "Puzzle Round", "09:00", "10:15", "Pauley Ballroom, VLSB, Dwinelle & Wheeler", "team", Some("75-minute team-based round with a variety of mathematical puzzles. Report to your assigned classroom.")),
+            ("s3", "Individual Round", "10:15", "11:15", "Pauley Ballroom, VLSB, Dwinelle & Wheeler", "individual", Some("60-minute individual test, 20 questions. No calculators. Remain in your assigned classroom.")),
+            ("s4", "Lunch", "12:00", "13:15", "Kerr Lobby (MLK Student Union)", "general", Some("Pre-ordered lunches (Crave Subs) available for pick-up inside Kerr Lobby. T-shirt & tote bag sales and free sponsor merch also in Kerr Lobby. Restaurants nearby on south side of campus and in Downtown Berkeley.")),
+            ("s5", "Team Round", "13:15", "14:15", "Pauley Ballroom, VLSB, Dwinelle & Wheeler", "team", Some("60-minute team test, 20 questions. Work with your team of up to 5 in your assigned classroom.")),
+            ("s6", "Relay Round", "14:15", "14:55", "Pauley Ballroom, VLSB, Dwinelle & Wheeler", "team", Some("40-minute relay-style round. Some questions depend on answers from prior questions. Stay in your assigned classroom.")),
+            ("s7", "Activities & Tiebreaker", "15:30", "17:00", "Various Locations", "general", Some("Student activities in Dwinelle Hall and Pauley Ballroom. Tiebreaker (by invite) in Dwinelle 229. Problem disputes (Team, Relay) in Dwinelle 234 from 3:30–4:00 PM.")),
+            ("s8", "Awards Ceremony", "17:00", "18:00", "Multiple Auditoriums", "ceremony", Some("Awards presented simultaneously in multiple auditoriums. Report to your assigned awards room — going to a different room may delay your award.")),
         ];
         for (i, (id, title, start, end, loc, cat, desc)) in events.iter().enumerate() {
             conn.execute(
@@ -101,25 +117,29 @@ impl Db {
             ).unwrap();
         }
 
-        // Announcements
-        let anns = [
-            ("a1", "Welcome to BmMT 2026!", "We're excited to have you at UC Berkeley for the Berkeley mini Math Tournament! Coaches: head to Dwinelle Hall for check-in. Students: find your team and wait for your coach to return with room assignments.", "normal", true),
-            ("a2", "Room assignments distributed", "Room assignments are on the sticker sheets given to coaches at check-in. You'll be in classrooms in Dwinelle Hall or Wheeler Hall. Check the campus map if you need directions.", "normal", false),
-            ("a3", "Lunch pick-up location update", "Pre-purchased lunches from Crave Subs will be available outside Dwinelle Hall starting at 11:30 AM. Please have your ticket ready. Vegetarian and vegan options labeled separately.", "urgent", false),
+        // Announcements — timestamps aligned with the schedule so the dev
+        // time-slider shows realistic data.
+        let anns: [(&str, &str, &str, &str, bool, String, Option<String>); 4] = [
+            ("a1", "Welcome to BmMT 2026!", "We're excited to have you at UC Berkeley for the Berkeley mini Math Tournament! Coaches: head to Dwinelle Hall for check-in. Students: find your team and wait for your coach to return with room assignments.", "normal", true, local_hm_to_utc(8, 0), None),
+            ("a2", "Room assignments distributed", "Room assignments are on the sticker sheets given to coaches at check-in. You'll be in Pauley Ballroom or classrooms in VLSB, Dwinelle Hall, or Wheeler Hall. Check the campus map if you need directions.", "normal", false, local_hm_to_utc(8, 30), None),
+            ("a3", "Lunch pick-up location update", "Pre-ordered lunches from Crave Subs available for pick-up inside Kerr Lobby (MLK Student Union) from 11:30 AM. Please have your voucher ready. Vegetarian and vegan options labeled separately.", "urgent", false, local_hm_to_utc(11, 15), None),
+            ("a4", "Tiebreaker qualifiers announced", "Tiebreaker qualifiers have been posted to the website and emailed to coaches. If you qualified, please report to Dwinelle 229 by 3:45 PM.", "normal", false, local_hm_to_utc(14, 30), Some(local_hm_to_utc(15, 15))),
         ];
-        for (id, title, body, priority, pinned) in &anns {
+        for (id, title, body, priority, pinned, ts, scheduled_at) in &anns {
             conn.execute(
-                "INSERT INTO announcements (id, title, body, timestamp, priority, pinned) VALUES (?1, ?2, ?3, datetime('now'), ?4, ?5)",
-                params![id, title, body, priority, *pinned as i32],
+                "INSERT INTO announcements (id, title, body, timestamp, priority, pinned, scheduled_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![id, title, body, ts, priority, *pinned as i32, scheduled_at],
             ).unwrap();
         }
 
         // Venues
         let venues = [
-            ("v1", "Dwinelle Hall", "Dwinelle", "Main venue for check-in, testing rooms, and awards. Coaches check in at Dwinelle 145/155.", Some("Multiple floors")),
-            ("v2", "Wheeler Hall", "Wheeler", "Overflow testing rooms for Puzzle, Individual, Team, and Relay rounds.", Some("1F–2F")),
-            ("v3", "Pauley Ballroom", "Pauley", "Awards ceremony location (shared with Dwinelle 155). Located in Martin Luther King Jr. Student Union.", None),
-            ("v4", "South Side & Downtown Berkeley", "Food", "Restaurants within a 5–15 minute walk from campus for those not purchasing lunch.", None),
+            ("v1", "Dwinelle Hall", "Dwinelle", "Main venue for check-in, testing rooms, information desk, and activities. Coaches check in at Dwinelle 145/155.", Some("Multiple floors")),
+            ("v2", "Wheeler Hall", "Wheeler", "Testing rooms for Puzzle, Individual, Team, and Relay rounds.", Some("1F–2F")),
+            ("v3", "Pauley Ballroom", "Pauley", "Testing room and Puzzle Hunt activity. Located in Martin Luther King Jr. Student Union.", None),
+            ("v4", "Valley Life Sciences Building", "VLSB", "Testing rooms for Puzzle, Individual, Team, and Relay rounds.", None),
+            ("v5", "Kerr Lobby (MLK Student Union)", "MLK", "Pre-ordered lunch pick-up, T-shirt & tote bag sales, free sponsor merch.", None),
+            ("v6", "South Side & Downtown Berkeley", "Food", "Restaurants within a 5–15 minute walk from campus for those not purchasing lunch.", None),
         ];
         for (id, name, short, desc, floor) in &venues {
             conn.execute(
@@ -130,14 +150,14 @@ impl Db {
 
         // Info
         let infos = [
-            ("i1", "Wi-Fi", "CalVisitor (no password)"),
-            ("i2", "Emergency", "UCPD: 510-642-3333"),
-            ("i3", "Lost & Found", "Information booth near Dwinelle"),
-            ("i4", "Restrooms", "Dwinelle 1F, Wheeler 1F"),
-            ("i5", "Disputes", "Wheeler 126, during lunch only"),
+            ("i1", "Wi-Fi", "Berkeley-Visitor (no password)"),
+            ("i2", "Emergency", "911 or UCPD: 510-642-3333"),
+            ("i3", "Information Desk", "Inside Dwinelle Hall (from 8 AM)"),
+            ("i4", "Restrooms", "Dwinelle Hall, Wheeler Hall"),
+            ("i5", "Disputes", "Dwinelle 234 (12–12:30 & 3:30–4)"),
             ("i6", "Contact Staff", "team@berkeley.mt"),
-            ("i7", "Campus Map", "berkeley.edu/map (PDF)"),
-            ("i8", "Parking", "See UC Berkeley Parking website"),
+            ("i7", "Campus Map", "berkeley.edu/map"),
+            ("i8", "Parking", "Telegraph-Channing Garage rec'd"),
         ];
         for (id, label, value) in &infos {
             conn.execute(
@@ -145,16 +165,31 @@ impl Db {
                 params![id, label, value],
             ).unwrap();
         }
+
+        // Delays — timestamped so they appear at realistic points during the day
+        let delays: [(&str, &str, Option<&str>, Option<&str>, Option<&str>, String); 4] = [
+            ("d1", "s3", Some("11:10"), Some("11:50"), Some("Puzzle round ran over"), local_hm_to_utc(10, 20)),
+            ("d2", "s4", Some("12:10"), Some("12:50"), Some("Individual round pushed back"), local_hm_to_utc(11, 0)),
+            ("d3", "s5", Some("13:25"), Some("14:25"), Some("Extended lunch break"), local_hm_to_utc(12, 15)),
+            ("d4", "s2", None, Some("10:30"), Some("Extra time for puzzle round"), local_hm_to_utc(9, 45)),
+        ];
+        for (id, event_id, new_time, new_end_time, reason, ts) in &delays {
+            conn.execute(
+                "INSERT INTO delays (id, event_id, new_time, new_end_time, reason, timestamp) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![id, event_id, new_time, new_end_time, reason, ts],
+            ).unwrap();
+        }
     }
 
     // ── Queries ──
 
-    pub fn get_live_data(&self) -> LiveData {
+    pub fn get_live_data(&self, at: Option<&str>, include_future: bool) -> LiveData {
         let conn = self.conn.lock().unwrap();
+        let effective_now = at.map(|s| s.to_string()).unwrap_or_else(|| utc_now_ts());
 
         let schedule = {
             let mut stmt = conn
-                .prepare("SELECT id, title, start_time, end_time, location, category, description FROM schedule ORDER BY sort_order")
+                .prepare("SELECT id, title, start_time, end_time, location, category, description FROM schedule ORDER BY start_time")
                 .unwrap();
             stmt.query_map([], |row| {
                 Ok(ScheduleEvent {
@@ -173,10 +208,18 @@ impl Db {
         };
 
         let announcements = {
-            let mut stmt = conn
-                .prepare("SELECT id, title, body, timestamp, priority, pinned FROM announcements ORDER BY timestamp DESC")
-                .unwrap();
-            stmt.query_map([], |row| {
+            let query = if include_future {
+                "SELECT id, title, body, timestamp, priority, pinned, scheduled_at FROM announcements ORDER BY COALESCE(scheduled_at, timestamp) DESC"
+            } else {
+                "SELECT id, title, body, timestamp, priority, pinned, scheduled_at FROM announcements WHERE COALESCE(scheduled_at, timestamp) <= ?1 ORDER BY COALESCE(scheduled_at, timestamp) DESC"
+            };
+            let mut stmt = conn.prepare(query).unwrap();
+            let params_slice: Vec<&dyn rusqlite::ToSql> = if include_future {
+                vec![]
+            } else {
+                vec![&effective_now]
+            };
+            stmt.query_map(params_slice.as_slice(), |row| {
                 let pinned_val: i32 = row.get(5)?;
                 Ok(Announcement {
                     id: row.get(0)?,
@@ -185,6 +228,7 @@ impl Db {
                     timestamp: row.get(3)?,
                     priority: row.get(4)?,
                     pinned: if pinned_val != 0 { Some(true) } else { None },
+                    scheduled_at: row.get(6)?,
                 })
             })
             .unwrap()
@@ -195,21 +239,24 @@ impl Db {
         let delays = {
             let mut stmt = conn
                 .prepare(
-                    "SELECT d.id, d.event_id, s.title, s.start_time, d.new_time, d.reason, d.timestamp
+                    "SELECT d.id, d.event_id, s.title, s.start_time, d.new_time, s.end_time, d.new_end_time, d.reason, d.timestamp
                      FROM delays d
                      JOIN schedule s ON s.id = d.event_id
+                     WHERE d.timestamp <= ?1
                      ORDER BY d.timestamp DESC"
                 )
                 .unwrap();
-            stmt.query_map([], |row| {
+            stmt.query_map(params![effective_now], |row| {
                 Ok(DelayNotice {
                     id: row.get(0)?,
                     event_id: row.get(1)?,
                     event_title: row.get(2)?,
                     original_time: row.get(3)?,
                     new_time: row.get(4)?,
-                    reason: row.get(5)?,
-                    timestamp: row.get(6)?,
+                    original_end_time: row.get(5)?,
+                    new_end_time: row.get(6)?,
+                    reason: row.get(7)?,
+                    timestamp: row.get(8)?,
                 })
             })
             .unwrap()
@@ -258,7 +305,7 @@ impl Db {
             delays,
             venues,
             info,
-            last_updated: chrono::Utc::now().to_rfc3339(),
+            last_updated: utc_now_ts(),
         }
     }
 
@@ -307,20 +354,23 @@ impl Db {
     pub fn create_delay(&self, input: &DelayInput) -> Option<DelayNotice> {
         let conn = self.conn.lock().unwrap();
         let id = format!("d{}", chrono::Utc::now().timestamp_millis());
-        let timestamp = chrono::Utc::now().to_rfc3339();
+        let timestamp = utc_now_ts();
 
-        // Look up event title and original time
+        // Remove any existing delay for this event (one delay per event)
+        conn.execute("DELETE FROM delays WHERE event_id=?1", params![input.event_id]).ok();
+
+        // Look up event title and original times
         let event = conn
             .query_row(
-                "SELECT title, start_time FROM schedule WHERE id=?1",
+                "SELECT title, start_time, end_time FROM schedule WHERE id=?1",
                 params![input.event_id],
-                |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, String>(2)?)),
             )
             .ok()?;
 
         conn.execute(
-            "INSERT INTO delays (id, event_id, new_time, reason, timestamp) VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![id, input.event_id, input.new_time, input.reason, timestamp],
+            "INSERT INTO delays (id, event_id, new_time, new_end_time, reason, timestamp) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![id, input.event_id, input.new_time, input.new_end_time, input.reason, timestamp],
         )
         .ok()?;
 
@@ -330,6 +380,8 @@ impl Db {
             event_title: event.0,
             original_time: event.1,
             new_time: input.new_time.clone(),
+            original_end_time: Some(event.2),
+            new_end_time: input.new_end_time.clone(),
             reason: input.reason.clone(),
             timestamp,
         })
@@ -346,13 +398,13 @@ impl Db {
     pub fn create_announcement(&self, input: &AnnouncementInput) -> Announcement {
         let conn = self.conn.lock().unwrap();
         let id = format!("a{}", chrono::Utc::now().timestamp_millis());
-        let timestamp = chrono::Utc::now().to_rfc3339();
+        let timestamp = utc_now_ts();
         let priority = input.priority.as_deref().unwrap_or("normal");
         let pinned = input.pinned.unwrap_or(false);
 
         conn.execute(
-            "INSERT INTO announcements (id, title, body, timestamp, priority, pinned) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![id, input.title, input.body, timestamp, priority, pinned as i32],
+            "INSERT INTO announcements (id, title, body, timestamp, priority, pinned, scheduled_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![id, input.title, input.body, timestamp, priority, pinned as i32, input.scheduled_at],
         ).unwrap();
 
         Announcement {
@@ -362,7 +414,21 @@ impl Db {
             timestamp,
             priority: priority.to_string(),
             pinned: if pinned { Some(true) } else { None },
+            scheduled_at: input.scheduled_at.clone(),
         }
+    }
+
+    pub fn update_announcement(&self, id: &str, input: &AnnouncementInput) -> bool {
+        let conn = self.conn.lock().unwrap();
+        let priority = input.priority.as_deref().unwrap_or("normal");
+        let pinned = input.pinned.unwrap_or(false);
+        let rows = conn
+            .execute(
+                "UPDATE announcements SET title=?1, body=?2, priority=?3, pinned=?4, scheduled_at=?5 WHERE id=?6",
+                params![input.title, input.body, priority, pinned as i32, input.scheduled_at, id],
+            )
+            .unwrap_or(0);
+        rows > 0
     }
 
     pub fn delete_announcement(&self, id: &str) -> bool {

@@ -7,7 +7,7 @@ interface InfoCardProps {
 const iconMap: Record<string, string> = {
   "Wi-Fi": "📶",
   Emergency: "🚨",
-  "Lost & Found": "📦",
+  "Information Desk": "ℹ️",
   Restrooms: "🚻",
   Disputes: "📋",
   "Contact Staff": "💬",
@@ -19,7 +19,7 @@ export function InfoCardCompact({ info }: InfoCardProps) {
   const tiles = info.slice(0, 4);
   return (
     <div className="h-full p-4 flex flex-col">
-      <p className="text-[13px] font-bold text-secondary-label uppercase tracking-wide px-0.5 mb-3">
+      <p className="text-[13px] font-semibold text-tertiary-label uppercase tracking-wider px-0.5 mb-3">
         Info & Help
       </p>
       <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-2">
