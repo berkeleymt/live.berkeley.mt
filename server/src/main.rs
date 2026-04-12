@@ -68,7 +68,7 @@ async fn main() {
         .layer(CorsLayer::very_permissive())
         .with_state(state);
 
-    let addr = "0.0.0.0:3001";
+    let addr = "[::]:3001";
     println!("Server listening on {addr}");
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
