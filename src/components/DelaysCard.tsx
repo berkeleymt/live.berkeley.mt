@@ -58,6 +58,21 @@ export function DelaysCardCompact({ delays }: DelaysCardProps) {
   );
 }
 
+function groupByEvent(delays: DelayNotice[]) {
+  const groups: { eventId: string; eventTitle: string; delays: DelayNotice[] }[] = [];
+  const idx = new Map<string, number>();
+  for (const d of delays) {
+    const i = idx.get(d.eventId);
+    if (i !== undefined) {
+      groups[i].delays.push(d);
+    } else {
+      idx.set(d.eventId, groups.length);
+      groups.push({ eventId: d.eventId, eventTitle: d.eventTitle, delays: [d] });
+    }
+  }
+  return groups;
+}
+
 export function DelaysCardExpanded({ delays }: DelaysCardProps) {
   if (delays.length === 0) {
     return (
@@ -71,27 +86,35 @@ export function DelaysCardExpanded({ delays }: DelaysCardProps) {
     );
   }
 
+  const groups = groupByEvent(delays);
+
   return (
     <div className="-mx-5 -my-4">
-      {delays.map((d, i) => (
+      {groups.map((g, gi) => (
         <div
-          key={d.id}
+          key={g.eventId}
           className={`px-5 py-3.5 ${
-            i < delays.length - 1 ? "border-b border-white/20" : ""
+            gi < groups.length - 1 ? "border-b border-black/[0.06]" : ""
           }`}
         >
           <div className="flex items-center gap-2 mb-1">
             <span className="h-2 w-2 rounded-full bg-danger shrink-0" />
-            <span className="text-[15px] font-medium text-label">{d.eventTitle}</span>
-            <span className="ml-auto text-[11px] text-tertiary-label">{timeAgo(d.timestamp)}</span>
+            <span className="text-[15px] font-medium text-label">{g.eventTitle}</span>
+            <span className="ml-auto text-[11px] text-tertiary-label">
+              {timeAgo(g.delays[0].timestamp)}
+            </span>
           </div>
           <div className="text-[13px] text-secondary-label space-y-0.5">
-            <p className="tabular-nums">
-              <span className="line-through text-danger">{formatTime(d.originalTime)}</span>
-              <span className="mx-1.5 text-tertiary-label">now</span>
-              <span className="text-label font-medium">{formatTime(d.newTime)}</span>
-            </p>
-            {d.reason && <p className="text-tertiary-label">{d.reason}</p>}
+            {g.delays.map((d) => (
+              <div key={d.id}>
+                <p className="tabular-nums">
+                  <span className="line-through text-danger">{formatTime(d.originalTime)}</span>
+                  <span className="mx-1.5 text-tertiary-label">→</span>
+                  <span className="text-label font-medium">{formatTime(d.newTime)}</span>
+                </p>
+                {d.reason && <p className="text-tertiary-label">{d.reason}</p>}
+              </div>
+            ))}
           </div>
         </div>
       ))}

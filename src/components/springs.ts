@@ -14,11 +14,13 @@ export const staggerContainer = {
   },
 };
 
+// Enter: opacity + y + blur for a polished feel
 export const cardReveal = {
-  hidden: { opacity: 0, y: 16 },
+  hidden: { opacity: 0, y: 16, filter: "blur(4px)" },
   show: {
     opacity: 1,
     y: 0,
+    filter: "blur(0px)",
     transition: { type: "spring" as const, stiffness: 300, damping: 26 },
   },
 };

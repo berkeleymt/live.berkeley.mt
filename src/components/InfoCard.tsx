@@ -26,7 +26,7 @@ export function InfoCardCompact({ info }: InfoCardProps) {
         {tiles.map((item) => (
           <div
             key={item.id}
-            className="flex flex-col items-center justify-center rounded-xl bg-bg/80"
+            className="flex flex-col items-center justify-center rounded-lg bg-bg/80"
           >
             <span className="text-[28px] leading-none">{iconMap[item.label] ?? "ℹ️"}</span>
             <p className="text-[11px] font-semibold text-secondary-label leading-tight mt-1.5 text-center px-1">
@@ -46,7 +46,7 @@ export function InfoCardExpanded({ info }: InfoCardProps) {
         <div
           key={item.id}
           className={`px-5 py-3 flex items-start gap-3 ${
-            i < info.length - 1 ? "border-b border-white/20" : ""
+            i < info.length - 1 ? "border-b border-black/[0.06]" : ""
           }`}
         >
           <span className="text-lg shrink-0">{iconMap[item.label] ?? "ℹ️"}</span>

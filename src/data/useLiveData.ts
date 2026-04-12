@@ -1,50 +1,44 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { LiveData } from "./types";
-import { mockData } from "./mock";
 
-/**
- * Live data hook.
- *
- * In development, returns static mock data (no network requests).
- * To connect to a real backend, set VITE_API_URL in your .env:
- *
- *   VITE_API_URL=https://api.berkeley.mt/live
- *
- * The endpoint should return JSON matching the LiveData interface.
- * When set, this hook polls the endpoint every POLL_INTERVAL ms.
- */
-
-const API_URL = import.meta.env.VITE_API_URL as string | undefined;
-const POLL_INTERVAL = 5_000; // 5 seconds for snappy sync
+const API_URL = import.meta.env.VITE_API_URL as string;
+const POLL_INTERVAL = 5_000;
+/** Show "stale" banner after this many consecutive failures. */
+const STALE_THRESHOLD = 3;
 
 export function useLiveData() {
-  const [data, setData] = useState<LiveData>(mockData);
+  const [data, setData] = useState<LiveData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** True when we have data but haven't been able to refresh it recently. */
+  const [stale, setStale] = useState(false);
+  const failCount = useRef(0);
   const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
   const fetchData = useCallback(async () => {
-    if (!API_URL) return;
-
     try {
       const res = await fetch(API_URL);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = (await res.json()) as LiveData;
-      setData(json);
+      setData(await res.json());
       setError(null);
+      setStale(false);
+      failCount.current = 0;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to fetch");
+      failCount.current += 1;
+      if (failCount.current >= STALE_THRESHOLD) {
+        setStale(true);
+        // If we never got data, surface as a hard error too
+        setError((prev) => prev ?? "Unable to connect");
+      }
     }
   }, []);
 
   useEffect(() => {
-    if (!API_URL) return;
-
     fetchData();
     intervalRef.current = setInterval(fetchData, POLL_INTERVAL);
     return () => clearInterval(intervalRef.current);
   }, [fetchData]);
 
-  return { data, error };
+  return { data, error, stale };
 }
 
 // ── Schedule helpers ──

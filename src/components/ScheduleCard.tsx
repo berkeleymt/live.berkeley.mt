@@ -70,7 +70,7 @@ export function ScheduleCardCompact({ events, delays }: ScheduleCardProps) {
         {/* Hero event */}
         {heroEvent && (
           <div>
-            <p className="text-[24px] font-bold text-label leading-[1.1] tracking-tight">
+            <p className="text-[24px] font-bold text-label leading-[1.1] tracking-tight text-balance">
               {heroEvent.title}
             </p>
             <p className="text-[17px] tabular-nums font-semibold text-secondary-label mt-1.5">
@@ -124,7 +124,7 @@ export function ScheduleCardExpanded({ events, delays }: ScheduleCardProps) {
 export function SchedulePanel({ events, delays }: ScheduleCardProps) {
   return (
     <div className="glass-heavy widget-shadow-lg h-full flex flex-col overflow-hidden">
-      <div className="px-5 py-3 border-b border-white/20 shrink-0">
+      <div className="px-5 py-3 border-b border-black/[0.06] shrink-0">
         <h2 className="text-[15px] font-semibold text-label tracking-tight">
           📅 Schedule
         </h2>
@@ -176,7 +176,7 @@ function ScheduleTimeline({ events, delays }: ScheduleCardProps) {
               )}
             </div>
 
-            {/* Event card */}
+            {/* Event card — concentric radius: outer widget is 20px, padding ~20px, so inner ≈ 12px */}
             <div className={`rounded-xl px-3.5 py-3 ${
               isCurrent ? "bg-california-gold/10" : "bg-white/50"
             } mb-3 flex-1 min-w-0`}>

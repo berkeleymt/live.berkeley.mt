@@ -24,7 +24,7 @@ function CloseButton({ onClose }: { onClose: () => void }) {
       onClick={onClose}
       className="text-tertiary-label hover:text-secondary-label transition-colors
         w-8 h-8 flex items-center justify-center rounded-full
-        bg-black/5 shrink-0"
+        bg-black/5 shrink-0 -mr-1"
       aria-label="Close"
     >
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -101,7 +101,7 @@ function DialogContent({
         onClick={(e) => e.stopPropagation()}
       >
         <DismissButton onDismiss={onClose} />
-        <div className="px-5 py-3 flex items-center gap-2 shrink-0 border-b border-white/30">
+        <div className="px-5 py-3 flex items-center gap-2 shrink-0 border-b border-black/[0.06]">
           <span className="text-sm">{icon}</span>
           <h2
             {...titleProps}

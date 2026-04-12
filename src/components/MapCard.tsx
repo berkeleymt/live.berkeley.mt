@@ -14,6 +14,7 @@ export function MapCardCompact({ venues }: MapCardProps) {
         src={MAP_TILE_URL}
         alt=""
         className="absolute inset-0 w-full h-full object-cover"
+        style={{ outline: "1px solid rgba(0,0,0,0.1)", outlineOffset: "-1px" }}
         draggable={false}
       />
       {/* Gradient overlay */}
@@ -65,7 +66,7 @@ export function MapCardExpanded({ venues }: MapCardProps) {
           {venues.map((v, i) => (
             <div
               key={v.id}
-              className={`px-5 py-3 ${i < venues.length - 1 ? "border-b border-white/20" : ""}`}
+              className={`px-5 py-3 ${i < venues.length - 1 ? "border-b border-black/[0.06]" : ""}`}
             >
               <div className="flex items-center gap-2">
                 <span className="text-[15px] text-label font-medium">{v.name}</span>

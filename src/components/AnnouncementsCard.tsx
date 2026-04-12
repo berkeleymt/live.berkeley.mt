@@ -55,7 +55,7 @@ export function AnnouncementsCardCompact({ announcements }: AnnouncementsCardPro
         <p className="text-[12px] font-bold text-tertiary-label uppercase tracking-wide mb-1">
           {latest.priority === "urgent" ? "Urgent" : "Latest"}
         </p>
-        <p className={`text-[20px] font-bold leading-tight tracking-tight line-clamp-2 ${
+        <p className={`text-[20px] font-bold leading-tight tracking-tight line-clamp-2 text-balance ${
           latest.priority === "urgent" ? "text-danger" : "text-label"
         }`}>
           {latest.title}
