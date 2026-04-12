@@ -27,4 +27,4 @@ COPY --from=backend /app/server/target/release/server ./server
 COPY --from=frontend /app/dist ./dist
 ENV STATIC_DIR=dist
 EXPOSE 3001
-CMD ["./server"]
+CMD ["/app/server"]
