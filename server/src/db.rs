@@ -130,21 +130,6 @@ impl Db {
             ).unwrap();
         }
 
-        // Announcements — timestamps aligned with the schedule so the dev
-        // time-slider shows realistic data.
-        let anns: [(&str, &str, &str, &str, bool, String, Option<String>); 4] = [
-            ("a1", "Welcome to BmMT 2026!", "We're excited to have you at UC Berkeley for the Berkeley mini Math Tournament! Coaches: head to Dwinelle Hall for check-in. Students: find your team and wait for your coach to return with room assignments.", "normal", true, local_hm_to_utc(8, 0), None),
-            ("a2", "Room assignments distributed", "Room assignments are on the sticker sheets given to coaches at check-in. You'll be in Pauley Ballroom or classrooms in VLSB, Dwinelle Hall, or Wheeler Hall. Check the campus map if you need directions.", "normal", false, local_hm_to_utc(8, 30), None),
-            ("a3", "Lunch pick-up location update", "Pre-ordered lunches from Crave Subs available for pick-up inside Kerr Lobby (MLK Student Union) from 11:30 AM. Please have your voucher ready. Vegetarian and vegan options labeled separately.", "urgent", false, local_hm_to_utc(11, 15), None),
-            ("a4", "Tiebreaker qualifiers announced", "Tiebreaker qualifiers have been posted to the website and emailed to coaches. If you qualified, please report to Dwinelle 229 by 3:45 PM.", "normal", false, local_hm_to_utc(14, 30), Some(local_hm_to_utc(15, 15))),
-        ];
-        for (id, title, body, priority, pinned, ts, scheduled_at) in &anns {
-            conn.execute(
-                "INSERT INTO announcements (id, title, body, timestamp, priority, pinned, scheduled_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                params![id, title, body, ts, priority, *pinned as i32, scheduled_at],
-            ).unwrap();
-        }
-
         // Venues
         let venues = [
             ("v1", "Dwinelle Hall", "Dwinelle", "Main venue for check-in, testing rooms, information desk, and activities. Coaches check in at Dwinelle 145/155.", Some("Multiple floors")),
