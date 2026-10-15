@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -13,23 +13,27 @@ import { useLiveData } from "./data/useLiveData";
 import { eventDateLabel, scheduleState } from "./data/schedule";
 import { formatTime } from "./data/utils";
 import { EmailSubscribe } from "./components/InfoCard";
+import {
+  SafeSiteMarkdown,
+  SiteImage,
+  siteText,
+  useSite,
+} from "./features/site";
+import type { SiteConfig } from "./features/site/config";
 import type { Announcement, LiveData } from "./data/types";
 import "./today.css";
-
-const CampusMap = lazy(() =>
-  import("./components/MapCard").then((module) => ({
-    default: module.MapCardExpanded,
-  })),
-);
 
 function Updates({
   announcements,
   timeZone,
+  site,
 }: {
   announcements: Announcement[];
   timeZone: string;
+  site: SiteConfig;
 }) {
   const [all, setAll] = useState(false);
+  const t = (key: string) => siteText(site, key);
   const sorted = [...announcements].sort(
     (a, b) =>
       Number(b.priority === "urgent") - Number(a.priority === "urgent") ||
@@ -44,19 +48,17 @@ function Updates({
       );
   return (
     <>
-      {sorted.length === 0 && (
-        <p className="empty-copy">
-          No updates yet. New announcements will appear here automatically.
-        </p>
-      )}
+      {!sorted.length && <p className="empty-copy">{t("updates.empty")}</p>}
       {visible.map((item) => (
         <article
           key={item.id}
           className={`update ${item.priority === "urgent" ? "update-urgent" : ""}`}
         >
           <div className="update-meta">
-            {item.priority === "urgent" && <strong>Urgent</strong>}
-            {item.pinned && <span>Pinned</span>}
+            {item.priority === "urgent" && (
+              <strong>{t("updates.urgent")}</strong>
+            )}
+            {item.pinned && <span>{t("updates.pinned")}</span>}
             <time dateTime={item.scheduledAt ?? item.timestamp}>
               {new Intl.DateTimeFormat("en-US", {
                 timeZone,
@@ -78,21 +80,31 @@ function Updates({
       ))}
       {sorted.length > visible.length && (
         <button className="text-button" onClick={() => setAll(true)}>
-          Show {sorted.length - visible.length} older updates{" "}
+          {siteText(site, "updates.older", {
+            count: sorted.length - visible.length,
+          })}
           <ArrowRight aria-hidden size={16} />
         </button>
       )}
     </>
   );
 }
-
-function Today({ data, stale }: { data: LiveData; stale: boolean }) {
+function Today({
+  data,
+  stale,
+  site,
+}: {
+  data: LiveData;
+  stale: boolean;
+  site: SiteConfig;
+}) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 10_000);
+    const timer = setInterval(() => setNow(Date.now()), 10000);
     return () => clearInterval(timer);
   }, []);
-  const { event, schedule, delays, announcements, venues, info } = data;
+  const { event, schedule, delays, announcements } = data;
+  const t = (key: string) => siteText(site, key);
   const { phase, current, next, events } = scheduleState(
     schedule,
     delays,
@@ -101,54 +113,59 @@ function Today({ data, stale }: { data: LiveData; stale: boolean }) {
   );
   const headline =
     phase === "unpublished"
-      ? "Schedule coming soon"
+      ? t("hero.unpublished")
       : phase === "before"
-        ? "See you at Berkeley."
+        ? t("hero.before")
         : current
           ? current.title
           : next
-            ? "Up next: " + next.title
-            : "That’s a wrap.";
+            ? t("hero.nextPrefix") + next.title
+            : t("hero.after");
   const summary =
     phase === "unpublished"
-      ? "The event schedule has not been published yet. Check back for updates."
+      ? t("hero.unpublishedSummary")
       : phase === "before"
         ? event.subtitle
         : current
           ? `${formatTime(current.startTime)} – ${formatTime(current.endTime)} · ${current.location}`
           : next
             ? `${formatTime(next.startTime)} · ${next.location}`
-            : `Thanks for being part of ${event.title}. The schedule and updates remain available below.`;
+            : siteText(site, "hero.afterSummary", { eventTitle: event.title });
   useEffect(() => {
     document.title = `${event.title} · Live`;
   }, [event.title]);
-
   return (
     <div className="today-page">
       <a href="#main" className="skip-link">
-        Skip to content
+        {t("a11y.skip")}
       </a>
       <header className="site-header">
         <div className="page-width header-inner">
-          <a href={event.eventUrl} className="brand">
-            <img src="/bmt-logo.svg" width="40" height="40" alt="" />
+          <a href={site.branding.homeUrl} className="brand">
+            <img
+              src={site.branding.logoUrl}
+              width="40"
+              height="40"
+              alt={site.branding.logoAlt}
+            />
             <span>
-              Berkeley Math Tournament
-              <span className="brand-caption">Tournament day companion</span>
+              {site.branding.title}
+              <span className="brand-caption">{site.branding.caption}</span>
             </span>
           </a>
-          <a href="/admin" className="staff-link">
-            Staff sign in <ArrowUpRight aria-hidden size={16} />
+          <a href="/staff/sign-in" className="staff-link">
+            {t("staff.signIn")}
+            <ArrowUpRight aria-hidden size={16} />
           </a>
         </div>
       </header>
-      <nav className="section-nav" aria-label="On this page">
+      <nav className="section-nav" aria-label={t("a11y.navigation")}>
         <div className="page-width">
-          <a href="#today">Today</a>
-          <a href="#schedule">Schedule</a>
-          <a href="#updates">Live updates</a>
-          <a href="#map">Campus map</a>
-          <a href="#help">Help & FAQ</a>
+          {site.navigation.map((link) => (
+            <a key={link.id} href={link.href}>
+              {link.label}
+            </a>
+          ))}
         </div>
       </nav>
       <main id="main" className="page-width" tabIndex={-1}>
@@ -160,8 +177,7 @@ function Today({ data, stale }: { data: LiveData; stale: boolean }) {
         )}
         {stale && (
           <p role="alert" className="connection-warning">
-            Updates are interrupted. Showing the last received information;
-            times may have changed. Reconnecting automatically.
+            {t("status.stale")}
           </p>
         )}
         <section
@@ -171,87 +187,101 @@ function Today({ data, stale }: { data: LiveData; stale: boolean }) {
         >
           <div className="event-heading">
             <p className="eyebrow">
-              {eventDateLabel(event.date)} · Berkeley, CA
+              {eventDateLabel(event.date)} · {site.hero.location}
             </p>
             <h1 id="event-heading">
-              {event.title} <span>Live</span>
+              {event.title} <span>{t("brand.live")}</span>
             </h1>
           </div>
+          {site.hero.imageUrl && (
+            <SiteImage
+              key={site.hero.imageUrl}
+              src={site.hero.imageUrl}
+              alt={site.hero.imageAlt}
+              unavailable={t("guide.imageUnavailable")}
+            />
+          )}
           <div className="hero-grid">
             <div className="now-block">
               <p className="eyebrow">
-                {phase === "before"
-                  ? "Before you arrive"
-                  : phase === "after"
-                    ? "Event complete"
-                    : current
-                      ? "Scheduled now"
-                      : "Your day at a glance"}
+                {t(
+                  phase === "before"
+                    ? "hero.beforeLabel"
+                    : phase === "after"
+                      ? "hero.afterLabel"
+                      : current
+                        ? "hero.nowLabel"
+                        : "hero.overviewLabel",
+                )}
               </p>
               <h2>{headline}</h2>
               <p>{summary}</p>
               {current?.delay && (
                 <p className="hero-delay">
-                  Time updated
+                  {t("status.timeUpdated")}
                   {current.delay.reason ? ` · ${current.delay.reason}` : ""}
                 </p>
               )}
               <a className="primary-link" href="#schedule">
-                View the schedule <ArrowRight aria-hidden size={18} />
+                {t("hero.scheduleAction")}
+                <ArrowRight aria-hidden size={18} />
               </a>
             </div>
-            <aside className="next-block" aria-label="Next event">
+            <aside className="next-block" aria-label={t("a11y.next")}>
               <Clock size={24} aria-hidden />
               <p className="eyebrow">
-                {phase === "before" ? "First on the schedule" : "Up next"}
+                {t(phase === "before" ? "hero.firstLabel" : "hero.nextLabel")}
               </p>
               {next ? (
                 <>
                   <h3>{next.title}</h3>
                   <p className="next-time">
-                    {formatTime(next.startTime)} <span>Pacific</span>
+                    {formatTime(next.startTime)}{" "}
+                    <span>{t("status.timeZone")}</span>
                   </p>
                   <p>{next.location}</p>
                 </>
               ) : (
                 <>
                   <h3>
-                    {phase === "unpublished"
-                      ? "Details to follow"
-                      : "No more scheduled events"}
+                    {t(
+                      phase === "unpublished"
+                        ? "hero.noDetails"
+                        : "hero.noMoreEvents",
+                    )}
                   </h3>
-                  <p>Keep an eye on live updates for announcements.</p>
+                  <p>{t("hero.nextEmpty")}</p>
                 </>
               )}
             </aside>
           </div>
         </section>
         <div className="quick-links">
-          <a href="#map">
+          <a href="/rooms">
             <MapPin size={22} aria-hidden />
             <span>
-              <strong>Find your building</strong>
-              <span>Campus map & venue details</span>
+              <strong>{t("quick.mapTitle")}</strong>
+              <span>{t("quick.mapDescription")}</span>
             </span>
-            <ArrowRight aria-hidden size={18} />
+            <ArrowRight size={18} aria-hidden />
           </a>
           {event.travelUrl && (
             <a href={event.travelUrl}>
               <ArrowUpRight size={22} aria-hidden />
               <span>
-                <strong>Getting here & going home</strong>
-                <span>Plan your trip with TakeTransit</span>
+                <strong>{t("quick.travelTitle")}</strong>
+                <span>{t("quick.travelDescription")}</span>
               </span>
-              <ArrowUpRight aria-hidden size={18} />
+              <ArrowUpRight size={18} aria-hidden />
             </a>
           )}
-          <a href="#help">
+          <a href="/lost-found">
             <WarningCircle size={22} aria-hidden />
             <span>
-              <strong>Need a hand?</strong>
-              <span>Wi-Fi, help & common questions</span>
+              <strong>{t("quick.helpTitle")}</strong>
+              <span>{t("quick.helpDescription")}</span>
             </span>
-            <ArrowRight aria-hidden size={18} />
+            <ArrowRight size={18} aria-hidden />
           </a>
         </div>
         <div className="day-grid">
@@ -262,15 +292,13 @@ function Today({ data, stale }: { data: LiveData; stale: boolean }) {
           >
             <div className="section-heading">
               <div>
-                <p className="eyebrow">Plan your day</p>
-                <h2 id="schedule-heading">Schedule</h2>
+                <p className="eyebrow">{t("schedule.eyebrow")}</p>
+                <h2 id="schedule-heading">{t("schedule.title")}</h2>
               </div>
-              <span>All times Pacific</span>
+              <span>{t("schedule.timeZone")}</span>
             </div>
-            {events.length === 0 && (
-              <p className="empty-copy">
-                The schedule will appear here when it is ready.
-              </p>
+            {!events.length && (
+              <p className="empty-copy">{t("schedule.empty")}</p>
             )}
             <ol className="agenda">
               {events.map((item) => {
@@ -293,7 +321,9 @@ function Today({ data, stale }: { data: LiveData; stale: boolean }) {
                       <div className="agenda-title">
                         <h3>{item.title}</h3>
                         {current?.id === item.id && (
-                          <span className="now-label">Scheduled now</span>
+                          <span className="now-label">
+                            {t("hero.nowLabel")}
+                          </span>
                         )}
                       </div>
                       <p className="agenda-location">
@@ -302,7 +332,7 @@ function Today({ data, stale }: { data: LiveData; stale: boolean }) {
                       </p>
                       {changed && (
                         <p className="time-change">
-                          Time updated · was{" "}
+                          {t("status.timeWas")}{" "}
                           <s>
                             {formatTime(original.startTime)} –{" "}
                             {formatTime(original.endTime)}
@@ -314,7 +344,7 @@ function Today({ data, stale }: { data: LiveData; stale: boolean }) {
                       )}
                       {item.description && (
                         <details className="event-details">
-                          <summary>Event details</summary>
+                          <summary>{t("schedule.details")}</summary>
                           <p>{item.description}</p>
                         </details>
                       )}
@@ -331,58 +361,49 @@ function Today({ data, stale }: { data: LiveData; stale: boolean }) {
           >
             <div className="section-heading">
               <div>
-                <p className="eyebrow">From the organizers</p>
-                <h2 id="updates-heading">Live updates</h2>
+                <p className="eyebrow">{t("updates.eyebrow")}</p>
+                <h2 id="updates-heading">{t("updates.title")}</h2>
               </div>
               <Megaphone size={22} aria-hidden />
             </div>
             <p className="refresh-status">
-              {stale
-                ? "Reconnecting · updates may be out of date"
-                : "Refreshes automatically every 5 seconds"}
+              {t(stale ? "status.reconnecting" : "status.refresh")}
             </p>
-            <Updates announcements={announcements} timeZone={event.timeZone} />
+            <Updates
+              announcements={announcements}
+              timeZone={event.timeZone}
+              site={site}
+            />
             <div className="subscribe-panel">
-              <EmailSubscribe />
+              <EmailSubscribe site={site} />
             </div>
           </section>
         </div>
         <section
           id="map"
-          className="content-section map-section"
+          className="content-section"
           aria-labelledby="map-heading"
         >
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Around campus</p>
-              <h2 id="map-heading">Find your building</h2>
+              <p className="eyebrow">{t("map.eyebrow")}</p>
+              <h2 id="map-heading">{t("map.title")}</h2>
             </div>
-            <a href="https://www.berkeley.edu/map/">
-              UC Berkeley map <ArrowUpRight aria-hidden size={16} />
+            <a
+              href={
+                site.usefulLinks.find((l) => l.id === "campus-map")?.href ??
+                "https://www.berkeley.edu/map/"
+              }
+            >
+              {t("map.externalLabel")}
+              <ArrowUpRight aria-hidden size={16} />
             </a>
           </div>
-          <p className="section-intro">
-            Use the map for campus orientation. Room assignments come from your
-            coach; indoor and step-free routes are not yet available here.
-          </p>
-          <div className="map-layout">
-            <div className="campus-map">
-              <Suspense
-                fallback={<p className="empty-copy">Loading campus map…</p>}
-              >
-                <CampusMap />
-              </Suspense>
-            </div>
-            <div className="venue-list">
-              {venues.map((venue) => (
-                <details key={venue.id}>
-                  <summary>{venue.name}</summary>
-                  <p>{venue.description}</p>
-                  {venue.floor && <p>{venue.floor}</p>}
-                </details>
-              ))}
-            </div>
-          </div>
+          <p className="section-intro">{t("map.intro")}</p>
+          <a className="primary-link" href="/rooms">
+            {t("quick.mapDescription")}
+            <ArrowRight aria-hidden size={18} />
+          </a>
         </section>
         <section
           id="help"
@@ -391,21 +412,25 @@ function Today({ data, stale }: { data: LiveData; stale: boolean }) {
         >
           <div className="section-heading">
             <div>
-              <p className="eyebrow">A little help</p>
-              <h2 id="help-heading">Good to know</h2>
+              <p className="eyebrow">{t("help.eyebrow")}</p>
+              <h2 id="help-heading">{t("help.title")}</h2>
             </div>
           </div>
-          <dl className="help-grid">
-            {info.map((item) => (
-              <div key={item.id}>
-                <dt>{item.label}</dt>
-                <dd>{item.value}</dd>
-              </div>
+          <div className="help-grid">
+            {site.help.map((item) => (
+              <article key={item.id}>
+                <h3>{item.title}</h3>
+                <SafeSiteMarkdown
+                  imageUnavailable={t("guide.imageUnavailable")}
+                >
+                  {item.markdown}
+                </SafeSiteMarkdown>
+              </article>
             ))}
-          </dl>
-          {event.faqs.length > 0 && (
+          </div>
+          {!!event.faqs.length && (
             <div className="faq-section">
-              <h3>Frequently asked questions</h3>
+              <h3>{t("help.faqTitle")}</h3>
               {event.faqs.map((faq, index) => (
                 <details key={index}>
                   <summary>{faq.question}</summary>
@@ -421,52 +446,58 @@ function Today({ data, stale }: { data: LiveData; stale: boolean }) {
         </section>
       </main>
       <footer className="page-width site-footer">
-        <span>Berkeley Math Tournament · Student-run at UC Berkeley</span>
+        <span>{t("footer.credit")}</span>
         <div>
           <a href={event.eventUrl}>
-            BMT website <ArrowUpRight aria-hidden size={14} />
+            {t("footer.website")}
+            <ArrowUpRight aria-hidden size={14} />
           </a>
-          <a href="/classic">Classic view</a>
-          <a href="/admin">Staff tools</a>
+          <a href="/classic">{t("footer.classic")}</a>
+          <a href="/admin">{t("footer.staff")}</a>
         </div>
       </footer>
     </div>
   );
 }
-
 export default function App() {
   const { data, stale, error, refresh } = useLiveData();
-  if (data?.event) return <Today data={data} stale={stale} />;
+  const site = useSite();
+  const t = (key: string) => siteText(site.content, key);
+  if (data?.event && site.document)
+    return (
+      <>
+        <Today data={data} stale={stale || site.stale} site={site.content} />
+        {site.stale && (
+          <button className="text-button" onClick={site.refresh}>
+            {t("loading.retry")}
+          </button>
+        )}
+      </>
+    );
   return (
     <main className="today-page loading-page">
       <img
-        src="/bmt-logo.svg"
-        alt="Berkeley Math Tournament"
+        src={site.content.branding.logoUrl}
+        alt={site.content.branding.logoAlt}
         width="56"
         height="56"
       />
-      <h1>BMT Live</h1>
+      <h1>{t("loading.title")}</h1>
       <p role="status">
-        {error
-          ? "We couldn’t load the live page. Check your connection and try again."
-          : data
-            ? "Event details are not available. The server needs the matching content update."
-            : "Loading your tournament day…"}
+        {t(error || site.error ? "loading.failure" : "loading.pending")}
       </p>
-      {error || data ? (
-        <>
-          <button className="primary-link" onClick={refresh}>
-            Try again
-          </button>
-          <a href="/classic">Open classic view</a>
-        </>
-      ) : (
-        <div className="loading-skeleton" aria-hidden>
-          <div />
-          <div />
-          <div />
-        </div>
+      {(error || site.error) && (
+        <button
+          className="primary-link"
+          onClick={() => {
+            refresh();
+            site.refresh();
+          }}
+        >
+          {t("loading.retry")}
+        </button>
       )}
+      <a href="/classic">{t("loading.classic")}</a>
     </main>
   );
 }

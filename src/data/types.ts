@@ -46,6 +46,7 @@ export interface InfoItem {
 }
 
 export interface LiveData {
+  operationRevision?: string;
   event: EventContent;
   schedule: ScheduleEvent[];
   announcements: Announcement[];

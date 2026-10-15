@@ -1,4 +1,6 @@
 import { useId, useState } from "react";
+import { siteDefaults, siteText } from '../features/site';
+import type { SiteConfig } from '../features/site/config';
 import type { InfoItem } from "../data/types";
 
 const API = import.meta.env.VITE_API_URL?.replace(/\/live$/, "") ?? "/api";
@@ -42,7 +44,8 @@ export function InfoCardCompact({ info }: InfoCardProps) {
   );
 }
 
-export function EmailSubscribe() {
+export function EmailSubscribe({ site = siteDefaults }: { site?: SiteConfig }) {
+  const t = (key: string) => siteText(site, key);
   const emailId = useId();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
@@ -50,20 +53,21 @@ export function EmailSubscribe() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || status === 'loading') return;
     setStatus("loading");
     try {
       const res = await fetch(`${API}/email/subscribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim() }),
+        signal: AbortSignal.timeout(12000),
       });
       const data = await res.json();
       setStatus(data.ok ? "done" : "error");
       setMessage(data.message);
     } catch {
       setStatus("error");
-      setMessage("Could not subscribe. Try again later.");
+      setMessage(t('subscription.failure'));
     }
   };
 
@@ -75,13 +79,13 @@ export function EmailSubscribe() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-2 lg:space-y-0 lg:flex lg:items-center lg:gap-3">
-          <label htmlFor={emailId} className="text-[13px] font-medium text-secondary-label shrink-0">Get email notifications</label>
+          <label htmlFor={emailId} className="text-[13px] font-medium text-secondary-label shrink-0">{t('subscription.label')}</label>
           <div className="flex items-center gap-2 flex-1 min-w-0">
           <input
             id={emailId}
             autoComplete="email"
             type="email"
-            placeholder="you@example.com"
+            placeholder={t('subscription.placeholder')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -92,7 +96,7 @@ export function EmailSubscribe() {
             disabled={status === "loading"}
             className="shrink-0 rounded-lg bg-berkeley-blue text-white text-[13px] font-semibold px-3.5 py-1.5 hover:bg-berkeley-blue/90 disabled:opacity-50 transition-colors"
           >
-            {status === "loading" ? "..." : "Subscribe"}
+            {t(status === 'loading' ? 'subscription.pending' : 'subscription.action')}
           </button>
           </div>
           {status === "error" && (

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 // ── Schedule ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ScheduleEvent {
     pub id: String,
     pub title: String,
@@ -15,7 +15,7 @@ pub struct ScheduleEvent {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScheduleEventInput {
     pub title: String,
@@ -29,7 +29,7 @@ pub struct ScheduleEventInput {
 // ── Announcements ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Announcement {
     pub id: String,
     pub title: String,
@@ -42,7 +42,7 @@ pub struct Announcement {
     pub scheduled_at: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnnouncementInput {
     pub title: String,
@@ -55,7 +55,7 @@ pub struct AnnouncementInput {
 // ── Delays ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DelayNotice {
     pub id: String,
     pub event_id: String,
@@ -72,7 +72,7 @@ pub struct DelayNotice {
     pub timestamp: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DelayInput {
     pub event_id: String,

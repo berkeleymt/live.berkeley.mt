@@ -22,6 +22,8 @@ async function launch(t, password) {
       PATH: process.env.PATH,
       PORT: "0",
       EVENT_CONTENT_PATH: path,
+      SITE_CONTENT_PATH: resolve('content/site.json'),
+      WAYFINDING_CONTENT_PATH: resolve('content/wayfinding.json'),
       ...(password ? { ADMIN_PASSWORD: password } : {}),
     },
     stdio: ["ignore", "pipe", "pipe"],
@@ -88,14 +90,15 @@ test("content and legacy APIs work together on an isolated database", async (t) 
         "info",
       ])
         assert.ok(Array.isArray(live[field]), field);
-      assert.equal(live.event.date, "2026-04-12");
+      assert.equal(live.event.date, JSON.parse(initial).date);
       assert.ok(live.schedule.length > 0);
       assert.ok(live.lastUpdated);
       document = await (await api("/api/content")).json();
     },
   );
   await t.test("admin reads and writes require authentication", async () => {
-    for (const endpoint of ["/api/content", "/admin"])
+    // The SPA sign-in shell is public; all protected data remains fail-closed.
+    for (const endpoint of ["/api/content", "/api/site/editor", "/api/wayfinding/editor", "/api/lost-found/staff"])
       assert.equal((await api(endpoint, { auth: false })).status, 401);
     assert.equal(
       (
@@ -316,6 +319,17 @@ test("content and legacy APIs work together on an isolated database", async (t) 
       );
     },
   );
+  await t.test("SQLite export is an authenticated migration path, not a Git-backup claim", async () => {
+    const response = await api("/api/publishing");
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("cache-control"), "no-store");
+    assert.deepEqual(await response.json(), { mode: "sqlite" });
+    const exported = await (await api("/api/publishing/export")).json();
+    assert.deepEqual(Object.keys(exported).sort(), ["announcements", "delays", "schedule"]);
+    assert.equal((await api("/api/publishing/export", { auth: false })).status, 401);
+    assert.equal((await api("/api/publishing/push", { method: "POST" })).status, 409);
+    assert.equal((await api("/api/publishing/restore", { method: "POST", body: { revision: "0".repeat(40) } })).status, 409);
+  });
   await t.test(
     "email subscription API remains available with Postmark disabled",
     async () => {
@@ -330,11 +344,18 @@ test("content and legacy APIs work together on an isolated database", async (t) 
   );
 });
 
-test("new publishing endpoint fails closed when ADMIN_PASSWORD is missing", async (t) => {
+test("all publishing endpoints fail closed without a staff identity", async (t) => {
   const { api } = await launch(t);
-  const document = await (await api("/api/content")).json();
+  assert.equal((await api('/api/content')).status, 401);
+  const document = { revision: '0'.repeat(64), content: JSON.parse(initial) };
+  for (const endpoint of ["/api/publishing", "/api/publishing/export"]) {
+    assert.equal((await api(endpoint)).status, 401);
+  }
+  for (const endpoint of ["/api/publishing/push", "/api/publishing/restore"]) {
+    assert.equal((await api(endpoint, { method: "POST", body: { revision: "0".repeat(40) } })).status, 401);
+  }
   assert.equal(
     (await api("/api/content", { method: "PUT", body: document })).status,
-    403,
+    401,
   );
 });

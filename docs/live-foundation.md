@@ -1,5 +1,7 @@
 # Live foundation — October 15, 2026
 
+**Integration update:** the Git publisher, complete public editorial bundle, named staff roles, private inbox, wayfinding/lookup and atomic schedule planner are now wired into the real application. `npm run demo` runs an isolated persistent synthetic November sandbox. See [demo.md](demo.md) for current decisions, test evidence, workflow and remaining launch gates. The notes below are the historical foundation milestone, not the current feature checklist.
+
 ## Decisions and scope
 
 - Begin with the public Today layout and a small server + staff-editor content slice, rather than replace all public storage in one patch.

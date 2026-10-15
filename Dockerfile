@@ -6,6 +6,7 @@ RUN npm ci
 COPY index.html tsconfig*.json vite.config.ts eslint.config.js ./
 COPY public/ public/
 COPY src/ src/
+COPY content/ content/
 ENV VITE_API_URL=/api/live
 RUN npm run build
 
@@ -21,7 +22,7 @@ RUN touch src/main.rs && cargo build --release
 
 # ── Stage 3: Final image ──
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ca-certificates git openssh-client && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=backend /app/server/target/release/server ./server
 COPY --from=frontend /app/dist ./dist

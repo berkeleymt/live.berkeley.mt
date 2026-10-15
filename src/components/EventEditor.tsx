@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useStaff } from '../features/staff';
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ContentDocument, EventContent } from "../data/types";
@@ -6,6 +7,7 @@ import type { ContentDocument, EventContent } from "../data/types";
 const API = import.meta.env.VITE_API_URL?.replace(/\/live$/, "") || "/api";
 
 export function EventEditor({ onPublish }: { onPublish: () => void }) {
+  const { request } = useStaff();
   const [saved, setSaved] = useState<ContentDocument | null>(null);
   const [draft, setDraft] = useState<EventContent | null>(null);
   const [busy, setBusy] = useState(false);
@@ -15,12 +17,12 @@ export function EventEditor({ onPublish }: { onPublish: () => void }) {
   const dirty =
     saved !== null && JSON.stringify(draft) !== JSON.stringify(saved.content);
 
-  async function load() {
+  const load = useCallback(async () => {
     setBusy(true);
     setError("");
     setStatus("");
     try {
-      const response = await fetch(`${API}/content`, {
+      const response = await request(`${API}/content`, {
         signal: AbortSignal.timeout(10_000),
         cache: "no-store",
       });
@@ -37,11 +39,11 @@ export function EventEditor({ onPublish }: { onPublish: () => void }) {
     } finally {
       setBusy(false);
     }
-  }
+  }, [request]);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
   useEffect(() => {
     if (!dirty) return;
     const warn = (event: BeforeUnloadEvent) => {
@@ -67,7 +69,7 @@ export function EventEditor({ onPublish }: { onPublish: () => void }) {
     setError("");
     setStatus("");
     try {
-      const response = await fetch(`${API}/content`, {
+      const response = await request(`${API}/content`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ revision: saved.revision, content: draft }),
@@ -78,7 +80,7 @@ export function EventEditor({ onPublish }: { onPublish: () => void }) {
       setSaved(document);
       setDraft(document.content);
       setStatus(
-        "Published to this server. Public pages pick it up on their next refresh, normally within 5 seconds. Download the JSON to retain it in Git.",
+        "Published to this server. In Git mode this is committed with the complete public bundle; remote backup is a separate action.",
       );
       onPublish();
     } catch (error) {
@@ -117,8 +119,7 @@ export function EventEditor({ onPublish }: { onPublish: () => void }) {
         sources.
       </p>
       <p className="editor-caution">
-        Publishing changes this server immediately; it does not commit to Git.
-        Persist the content directory before using this on a deployed container.
+        Git mode commits the complete public bundle before publishing. File mode writes event.json atomically. Neither action sends a remote backup.
       </p>
       {error && (
         <p className="editor-error" role="alert">

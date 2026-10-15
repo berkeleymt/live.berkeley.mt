@@ -30,7 +30,7 @@ pub struct Faq {
 }
 
 impl EventContent {
-    fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> Result<(), String> {
         if self.title.trim().is_empty() || self.title.len() > 120 {
             return Err("Event name is required (maximum 120 bytes).".into());
         }
@@ -89,6 +89,7 @@ struct StoredContent {
 pub struct ContentStore {
     path: PathBuf,
     stored: Mutex<StoredContent>,
+    published: std::sync::atomic::AtomicBool,
 }
 
 pub type ContentError = (StatusCode, String);
@@ -108,6 +109,7 @@ impl ContentStore {
         let (content, bytes) = read_content(&path)?;
         Ok(Self {
             path,
+            published: std::sync::atomic::AtomicBool::new(false),
             stored: Mutex::new(StoredContent {
                 document: ContentDocument {
                     revision: Uuid::new_v4().to_string(),
@@ -123,7 +125,16 @@ impl ContentStore {
     }
 
     // Valid direct file edits are loaded by the poller; invalid edits leave the last good content live.
+    pub fn publish(&self, content: EventContent, revision: String) {
+        self.published
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+        self.stored.lock().unwrap().document = ContentDocument { content, revision };
+    }
+
     pub fn reload(&self) -> Result<ContentDocument, String> {
+        if self.published.load(std::sync::atomic::Ordering::SeqCst) {
+            return Ok(self.snapshot());
+        }
         let mut stored = self.stored.lock().unwrap();
         let (content, bytes) = read_content(&self.path)?;
         if bytes != stored.bytes {
@@ -137,6 +148,12 @@ impl ContentStore {
     }
 
     pub fn save(&self, input: ContentDocument) -> Result<ContentDocument, ContentError> {
+        if self.published.load(std::sync::atomic::Ordering::SeqCst) {
+            return Err((
+                StatusCode::CONFLICT,
+                "Use the Git publication endpoint.".into(),
+            ));
+        }
         input
             .content
             .validate()

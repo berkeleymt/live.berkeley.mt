@@ -5,19 +5,20 @@ import { PencilSimple, Trash, Timer, Plus, X, Check } from "@phosphor-icons/reac
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { LiveData, ScheduleEvent, Announcement, DelayNotice } from "./data/types";
-import { EventEditor } from "./components/EventEditor";
+import { useStaff } from "./features/staff";
+import { SchedulePlanner } from "./components/SchedulePlanner";
+import { PublishingPanel } from "./components/PublishingPanel";
 
 const API = import.meta.env.VITE_API_URL?.replace(/\/live$/, "") ?? "/api";
 
 // ── Helpers ──
 
-async function api(method: string, path: string, body?: unknown) {
-  const res = await fetch(`${API}${path}`, {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (res.status === 401) window.location.reload();
+type OperationApi = (method: string, path: string, body?: unknown, expected?: string) => Promise<boolean>;
+
+function failure(error: unknown) {
+  return error instanceof TypeError || (error instanceof DOMException && ["TimeoutError", "AbortError"].includes(error.name))
+    ? "The server did not confirm this action. Your draft is kept. Refresh and check whether it was saved before retrying; do not submit it twice."
+    : error instanceof Error ? error.message : "Could not save. Your draft is kept.";
 }
 
 /** "14:30" → "2:30 PM" */
@@ -34,7 +35,8 @@ function toMinutes(t: string) {
 }
 
 function fromMinutes(mins: number) {
-  return `${Math.floor(mins / 60) % 24}`.padStart(2, "0") + ":" + `${mins % 60}`.padStart(2, "0");
+  if (!Number.isInteger(mins) || mins < 0 || mins >= 24 * 60) return "";
+  return `${Math.floor(mins / 60)}`.padStart(2, "0") + ":" + `${mins % 60}`.padStart(2, "0");
 }
 
 /** Parse flexible time input ("2:30 PM", "14:30", "230p") → "HH:mm" or null */
@@ -53,6 +55,7 @@ function parseTime(input: string): string | null {
   if (m12) {
     let h = parseInt(m12[1]);
     const m = parseInt(m12[2]);
+    if (h < 1 || h > 12 || m > 59) return null;
     const pm = m12[3].startsWith("p");
     if (h === 12) h = pm ? 12 : 0;
     else if (pm) h += 12;
@@ -76,22 +79,71 @@ function resolveDelay(input: string, baseTime: string): string | null {
 // ── Data hook ──
 
 function useAdminData() {
+  const { request } = useStaff();
   const [data, setData] = useState<LiveData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const latest = useRef<LiveData | null>(null);
+  const loading = useRef<Promise<boolean> | null>(null);
+  const saving = useRef(false);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback((): Promise<boolean> => {
+    if (loading.current) return loading.current;
+    const load = async () => {
+      try {
+        const res = await request(`${API}/live?include_future=true`, { cache: "no-store", signal: AbortSignal.timeout(10_000) });
+        if (!res.ok) throw new Error(`Could not refresh (HTTP ${res.status}).`);
+        const next: LiveData = await res.json();
+        latest.current = next;
+        setData(next);
+        setError(null);
+        return true;
+      } catch (e) {
+        setError(failure(e));
+        return false;
+      } finally { loading.current = null; }
+    };
+    loading.current = load();
+    return loading.current;
+  }, [request]);
+
+  const mutate = useCallback<OperationApi>(async (method, path, body, expected) => {
+    if (saving.current) return false;
+    saving.current = true;
+    setPending(true);
     try {
-      const res = await fetch(`${API}/live?include_future=true`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setData(await res.json());
-      setError(null);
+      const revision = expected ?? latest.current?.operationRevision;
+      const res = await request(`${API}${path}`, {
+        method, headers: {
+          ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+          ...(revision ? { "If-Match": `"${revision}"` } : {}),
+        },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(60_000),
+      });
+      if (!res.ok) {
+        const detail = await res.text();
+        throw new Error(res.status === 401 ? "Your staff session needs authentication. Drafts are kept; sign in again before retrying." : `Save failed (HTTP ${res.status}). ${detail || "Keep your draft, refresh and reconcile before retrying."}`);
+      }
+      // A pre-save read must not become the post-save revision.
+      if (loading.current) await loading.current;
+      // Only this editor's snapshots supply revisions. EventEditor/public requests never change them.
+      await refresh();
+      toast.success(path.startsWith("/publishing/push") ? "Remote revision verified." : "Saved to this server.");
+      return true;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to fetch");
+      const message = failure(e);
+      setError(message);
+      toast.error(message);
+      return false;
+    } finally {
+      saving.current = false;
+      setPending(false);
     }
-  }, []);
+  }, [refresh, request]);
 
-  useEffect(() => { refresh(); }, [refresh]);
-  return { data, error, refresh };
+  useEffect(() => { void refresh(); }, [refresh]);
+  return { data, error, refresh, mutate, pending };
 }
 
 // ── Animated icon swap ──
@@ -113,40 +165,75 @@ function IconSwap({ children, id }: { children: ReactNode; id: string }) {
   );
 }
 
+function useDraftWarning(dirty: boolean) {
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+}
+
 // ── Cell ──
 
 function Cell({
-  value, onSave, className = "", placeholder = "", mono = false, width, format, disabled = false,
+  value, onSave, className = "", placeholder = "", mono = false, width, format, disabled = false, label = "Edit value",
 }: {
-  value: string; onSave: (v: string) => void; className?: string;
+  value: string; onSave: (v: string) => Promise<boolean>; className?: string; label?: string;
   placeholder?: string; mono?: boolean; width?: string;
   format?: (v: string) => string; disabled?: boolean;
 }) {
   const [focused, setFocused] = useState(false);
   const [draft, setDraft] = useState(value);
+  const [dirty, setDirty] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [saving, setSaving] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
-
-  useEffect(() => { setDraft(value); }, [value]);
+  const armed = useRef(false);
+  const saver = useRef(onSave);
+  useDraftWarning(dirty);
 
   const display = format ? format(value) : value;
-  const shown = focused ? draft : display;
+  const shown = focused || dirty ? draft : display;
 
-  const commit = () => { setFocused(false); if (draft !== value) onSave(draft); };
-  const cancel = () => { setFocused(false); setDraft(value); ref.current?.blur(); };
+  const save = async (callback: typeof onSave) => {
+    if (saving) return;
+    setSaving(true);
+    const ok = await callback(draft);
+    setSaving(false);
+    setFailed(!ok);
+    if (ok) setDirty(false);
+  };
+  const commit = () => {
+    setFocused(false);
+    if (!armed.current) return;
+    armed.current = false;
+    if (dirty) void save(saver.current);
+  };
+  const cancel = () => {
+    armed.current = false;
+    setFocused(false); setDraft(value); setDirty(false); setFailed(false);
+    ref.current?.blur();
+  };
 
   return (
+    <span className={width === "w-full" ? "block w-full" : "inline-block"}>
     <input
+      aria-label={label}
+      aria-invalid={failed || undefined}
       ref={ref}
       value={shown}
-      onChange={e => setDraft(e.target.value)}
+      onChange={e => { setDraft(e.target.value); setDirty(true); }}
+      disabled={saving}
       onFocus={() => {
         if (disabled) { ref.current?.blur(); return; }
         setFocused(true);
-        setDraft(display);
+        armed.current = true;
+        if (!dirty) { setDraft(display); saver.current = onSave; }
       }}
       onBlur={commit}
       onKeyDown={(e: KeyboardEvent) => {
-        if (e.key === "Enter") { e.preventDefault(); commit(); ref.current?.blur(); }
+        if (e.key === "Enter") { e.preventDefault(); ref.current?.blur(); }
         if (e.key === "Escape") { e.preventDefault(); cancel(); }
       }}
       readOnly={disabled}
@@ -163,16 +250,54 @@ function Cell({
         className,
       ].filter(Boolean).join(" ")}
     />
+    {failed && <span className="block text-sm text-danger" role="alert">
+      Draft kept. Current value: {display || "(empty)"}. Refresh and compare before retrying.
+      <button type="button" className="btn-sm" disabled={saving} onClick={() => {
+        if (window.confirm("Save this draft against the refreshed value shown here?")) void save(onSave);
+      }}>Retry reviewed draft</button>
+      <button type="button" className="btn-sm" onClick={cancel}>Discard draft</button>
+    </span>}
+    </span>
   );
+}
+
+function ChoiceCell({ value, label, choices, onSave }: {
+  value: string; label: string; choices: string[]; onSave: (value: string) => Promise<boolean>;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const inFlight = useRef(false);
+  useDraftWarning(draft !== null);
+  async function save(next: string) {
+    if (inFlight.current) return;
+    inFlight.current = true; setDraft(next); setFailed(false);
+    const ok = await onSave(next);
+    inFlight.current = false;
+    if (ok) setDraft(null);
+    setFailed(!ok);
+  }
+  return <span>
+    <label>{label} <select value={draft ?? value} aria-invalid={failed || undefined} onChange={e => { void save(e.target.value); }}>
+      {choices.map(choice => <option key={choice} value={choice}>{choice}</option>)}
+    </select></label>
+    {failed && <span className="block text-danger" role="alert">Selection kept. Current published value: {value}.
+      <button type="button" className="btn-sm" onClick={() => { if (draft !== null && window.confirm("Save this selection against the refreshed publication?")) void save(draft); }}>Retry reviewed selection</button>
+      <button type="button" className="btn-sm" onClick={() => { setDraft(null); setFailed(false); }}>Discard selection</button>
+    </span>}
+  </span>;
 }
 
 // ── Schedule ──
 
-const emptyScheduleRow = { title: "", startTime: "", endTime: "", location: "", category: "general" as const, description: "" };
+const emptyScheduleRow = { title: "", startTime: "", endTime: "", location: "", category: "general" as ScheduleEvent["category"], description: "" };
 
-function ScheduleSection({ events, delays, onUpdate }: {
-  events: ScheduleEvent[]; delays: DelayNotice[]; onUpdate: () => void;
+function ScheduleSection({ events, delays, api, undo }: {
+  events: ScheduleEvent[]; delays: DelayNotice[]; api: OperationApi; undo: OperationApi;
 }) {
+  const newApi = useRef(api);
+  const delayApi = useRef(api);
+  const [editingEvent, setEditingEvent] = useState<ScheduleEvent | null>(null);
+  const [delayEvent, setDelayEvent] = useState<ScheduleEvent | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [newRow, setNewRow] = useState(emptyScheduleRow);
@@ -180,6 +305,11 @@ function ScheduleSection({ events, delays, onUpdate }: {
   const [delayInput, setDelayInput] = useState("");
   const [delayEndInput, setDelayEndInput] = useState("");
   const [delayReason, setDelayReason] = useState("");
+  useDraftWarning((adding && Boolean(newRow.title || newRow.startTime || newRow.endTime || newRow.location)) || Boolean(delayFor && (delayInput || delayEndInput || delayReason)));
+  const visibleEvents = [...events];
+  for (const retained of [editingId ? editingEvent : null, delayFor ? delayEvent : null]) {
+    if (retained && !visibleEvents.some(item => item.id === retained.id)) visibleEvents.push(retained);
+  }
 
   useEffect(() => {
     const handler = (e: globalThis.KeyboardEvent) => {
@@ -216,30 +346,35 @@ function ScheduleSection({ events, delays, onUpdate }: {
   };
 
   const update = async (id: string, field: string, value: string) => {
-    await api("PUT", `/schedule/${id}`, { [field]: value });
-    onUpdate();
+    const event = events.find(item => item.id === id);
+    if (!event) { toast.error("This event was removed. Your draft is kept; re-add the event deliberately if needed."); return false; }
+    const { id: _id, ...input } = event;
+    void _id;
+    return api("PUT", `/schedule/${id}`, { ...input, [field]: value });
   };
-  const saveTime = (id: string, field: string, input: string) => {
+  const saveTime = async (id: string, field: string, input: string) => {
     const t = parseTime(input);
-    if (t) update(id, field, t);
+    if (t) return update(id, field, t);
+    toast.error("Use a valid time such as 14:30 or 2:30 PM. Draft kept.");
+    return false;
   };
   const remove = async (ev: ScheduleEvent) => {
-    await api("DELETE", `/schedule/${ev.id}`);
+    if (!await api("DELETE", `/schedule/${ev.id}`)) return;
     setEditingId(null);
-    onUpdate();
     toast(`Deleted "${ev.title}"`, {
-      action: { label: "Undo", onClick: async () => { await api("POST", "/schedule", ev); onUpdate(); } },
+      action: { label: "Undo", onClick: async () => { const { id: _id, ...input } = ev; void _id; await undo("POST", "/schedule", input); } },
     });
   };
   const removeDelay = async (d: DelayNotice) => {
-    await api("DELETE", `/delays/${d.id}`);
-    onUpdate();
+    if (!await api("DELETE", `/delays/${d.id}`)) return;
     toast(`Removed delay for "${d.eventTitle}"`, {
-      action: { label: "Undo", onClick: async () => { await api("POST", "/delays", { eventId: d.eventId, newTime: d.newTime ?? undefined, newEndTime: d.newEndTime ?? undefined, reason: d.reason }); onUpdate(); } },
+      action: { label: "Undo", onClick: async () => { await undo("POST", "/delays", { eventId: d.eventId, newTime: d.newTime ?? undefined, newEndTime: d.newEndTime ?? undefined, reason: d.reason }); } },
     });
   };
 
   const openDelay = (ev: ScheduleEvent) => {
+    delayApi.current = api;
+    setDelayEvent(ev);
     const existing = (byEvent.get(ev.id) ?? [])[0];
     setDelayFor(ev.id);
     setDelayInput(existing?.newTime ?? "");
@@ -251,24 +386,23 @@ function ScheduleSection({ events, delays, onUpdate }: {
   const submitDelay = async () => {
     if (!delayFor || (!delayInput && !delayEndInput)) return;
     const ev = events.find(e => e.id === delayFor);
-    if (!ev) return;
+    if (!ev) { toast.error("This event was removed. Your delay draft is kept; refresh and review the schedule."); return; }
     const resolvedStart = delayInput ? resolveDelay(delayInput, ev.startTime) : null;
     const resolvedEnd = delayEndInput ? resolveDelay(delayEndInput, ev.endTime) : null;
-    if (delayInput && !resolvedStart) return;
-    if (delayEndInput && !resolvedEnd) return;
-    await api("POST", "/delays", {
+    if ((delayInput && !resolvedStart) || (delayEndInput && !resolvedEnd)) { toast.error("Enter valid delayed times within the same day. Draft kept."); return; }
+    if ((resolvedStart || ev.startTime) >= (resolvedEnd || ev.endTime)) { toast.error("The delayed end must be after the delayed start. Draft kept."); return; }
+    if (!await delayApi.current("POST", "/delays", {
       eventId: delayFor,
       newTime: resolvedStart || undefined,
       newEndTime: resolvedEnd || undefined,
       reason: delayReason || undefined,
-    });
+    })) return;
     const deltaMins = resolvedStart ? toMinutes(resolvedStart) - toMinutes(ev.startTime) : (resolvedEnd ? toMinutes(resolvedEnd) - toMinutes(ev.endTime) : 0);
     setLastDelay({ eventId: delayFor, deltaMins, reason: delayReason });
     setDelayFor(null);
     setDelayInput("");
     setDelayEndInput("");
     setDelayReason("");
-    onUpdate();
   };
   const applyDelayToNext = async () => {
     if (!lastDelay) return;
@@ -277,17 +411,18 @@ function ScheduleSection({ events, delays, onUpdate }: {
     if (!next) return;
     const newTime = fromMinutes(toMinutes(next.startTime) + lastDelay.deltaMins);
     const newEndTime = fromMinutes(toMinutes(next.endTime) + lastDelay.deltaMins);
-    await api("POST", "/delays", { eventId: next.id, newTime, newEndTime, reason: lastDelay.reason || undefined });
+    if (!newTime || !newEndTime) { toast.error("This delay would cross midnight. Adjust it manually."); return; }
+    if (!await api("POST", "/delays", { eventId: next.id, newTime, newEndTime, reason: lastDelay.reason || undefined })) return;
     setLastDelay({ ...lastDelay, eventId: next.id });
-    onUpdate();
   };
 
   const addNew = async () => {
     if (!newRow.title || !newRow.startTime || !newRow.endTime) return;
-    await api("POST", "/schedule", newRow);
+    const startTime = parseTime(newRow.startTime), endTime = parseTime(newRow.endTime);
+    if (!startTime || !endTime || startTime >= endTime) { toast.error("Use valid start/end times, ending after the start. Draft kept."); return; }
+    if (!await newApi.current("POST", "/schedule", { ...newRow, startTime, endTime })) return;
     setNewRow(emptyScheduleRow);
     setAdding(false);
-    onUpdate();
   };
 
   const delayKey = (e: KeyboardEvent) => {
@@ -303,25 +438,34 @@ function ScheduleSection({ events, delays, onUpdate }: {
     <section>
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-2xl font-bold">Schedule</h2>
-        <button onClick={() => { setAdding(!adding); setNewRow(emptyScheduleRow); }} className="btn-sm text-sm">
+        <button onClick={() => { if (!adding) { newApi.current = api; setNewRow(emptyScheduleRow); } setAdding(!adding); }} className="btn-sm text-sm">
           {adding ? "Cancel" : "+ Add"}
         </button>
       </div>
+      {(adding || delayFor) && <p className="text-sm text-secondary-label mb-2">Drafts keep the revision from when you opened them. After a conflict, refresh and compare before <button type="button" className="underline" onClick={() => {
+        if (window.confirm("Use the refreshed publication as the base for open schedule/delay drafts?")) { newApi.current = api; delayApi.current = api; }
+      }}>using the reviewed revision</button>.</p>}
+      {events.length === 0 && <p className="text-sm text-tertiary-label">No schedule entries yet. Add the first event above.</p>}
       <div className="space-y-1">
-        {events.map(ev => {
+        {visibleEvents.map(ev => {
           const evDelays = byEvent.get(ev.id) ?? [];
           const isEditing = editingId === ev.id;
           return (
             <div key={ev.id}>
+              {!events.some(item => item.id === ev.id) && <p role="alert" className="editor-error">This event was removed from the publication. Its open draft is retained here until you close it.</p>}
               <div className={`group card px-4 py-3 relative ${isEditing ? "editing-card" : ""}`}>
                 <div className="min-w-0">
-                  <Cell value={ev.title} onSave={v => update(ev.id, "title", v)} className="font-semibold text-lg" width="w-full" disabled={!isEditing} />
+                  <Cell label={`Title for ${ev.title}`} value={ev.title} onSave={v => update(ev.id, "title", v)} className="font-semibold text-lg" width="w-full" disabled={!isEditing} />
                   <div className="flex items-center gap-0 text-sm text-tertiary-label mt-0.5">
-                    <Cell value={ev.startTime} onSave={v => saveTime(ev.id, "startTime", v)} format={fmt} mono className="text-sm" disabled={!isEditing} />
+                    <Cell label={`Start time for ${ev.title}`} value={ev.startTime} onSave={v => saveTime(ev.id, "startTime", v)} format={fmt} mono className="text-sm" disabled={!isEditing} />
                     <span className="shrink-0">–</span>
-                    <Cell value={ev.endTime} onSave={v => saveTime(ev.id, "endTime", v)} format={fmt} mono className="text-sm" disabled={!isEditing} />
+                    <Cell label={`End time for ${ev.title}`} value={ev.endTime} onSave={v => saveTime(ev.id, "endTime", v)} format={fmt} mono className="text-sm" disabled={!isEditing} />
                     <span className="shrink-0 mx-0.5">·</span>
-                    <Cell value={ev.location} onSave={v => update(ev.id, "location", v)} className="text-sm" width="w-full" disabled={!isEditing} />
+                    <Cell label={`Location for ${ev.title}`} value={ev.location} onSave={v => update(ev.id, "location", v)} className="text-sm" width="w-full" disabled={!isEditing} />
+                  </div>
+                  <div hidden={!isEditing} className="mt-2 space-y-2 text-sm">
+                    <ChoiceCell label={`Category for ${ev.title}`} value={ev.category} choices={["general", "individual", "team", "ceremony"]} onSave={value => update(ev.id, "category", value)} />
+                    <Cell label={`Description for ${ev.title}`} value={ev.description ?? ""} onSave={v => update(ev.id, "description", v)} placeholder="Description (optional)" width="w-full" />
                   </div>
                   {evDelays.length > 0 && (
                     <div className="mt-0.5">
@@ -331,19 +475,19 @@ function ScheduleSection({ events, delays, onUpdate }: {
                             → {fmt(d.newTime ?? d.originalTime)}–{fmt(d.newEndTime ?? d.originalEndTime ?? ev.endTime)}
                           </span>
                           {d.reason && <span className="text-tertiary-label">— {d.reason}</span>}
-                          <button onClick={() => removeDelay(d)} className="text-danger/60 hover:text-danger px-1 rounded hover:bg-danger/10"><X size={14} weight="bold" /></button>
+                          <button aria-label={`Remove delay for ${d.eventTitle}`} onClick={() => removeDelay(d)} className="text-danger/60 hover:text-danger px-1 rounded hover:bg-danger/10"><X size={14} weight="bold" /></button>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
-                <div className={`absolute -right-2 -top-2 flex items-center gap-0.5 transition-opacity ${isEditing ? "" : "opacity-0 group-hover:opacity-100"}`}>
+                <div className={`absolute -right-2 -top-2 flex items-center gap-0.5 transition-opacity ${isEditing ? "" : "sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"}`}>
                   <button onClick={() => remove(ev)} className="w-7 h-7 rounded-full bg-white shadow-md border border-danger/50 flex items-center justify-center text-danger hover:bg-red-50 transition-colors" title="Delete"><Trash size={14} /></button>
                   <IconSwap id={isEditing ? "editing" : "idle"}>
                     {isEditing ? (
                       <button onClick={() => setEditingId(null)} className="w-7 h-7 rounded-full bg-white shadow-md border border-black/10 flex items-center justify-center text-green-600 hover:border-green-300 transition-colors" title="Done"><Check size={14} weight="bold" /></button>
                     ) : (
-                      <button onClick={() => setEditingId(ev.id)} className="w-7 h-7 rounded-full bg-white shadow-md border border-black/10 flex items-center justify-center text-tertiary-label hover:text-label hover:border-black/20 transition-colors" title="Edit"><PencilSimple size={14} /></button>
+                      <button onClick={() => { setEditingEvent(ev); setEditingId(ev.id); }} className="w-7 h-7 rounded-full bg-white shadow-md border border-black/10 flex items-center justify-center text-tertiary-label hover:text-label hover:border-black/20 transition-colors" title="Edit"><PencilSimple size={14} /></button>
                     )}
                   </IconSwap>
                   <button onClick={() => openDelay(ev)} className="w-7 h-7 rounded-full bg-white shadow-md border border-black/10 flex items-center justify-center text-tertiary-label hover:text-label hover:border-black/20 transition-colors" title="Add delay"><Timer size={14} /></button>
@@ -354,30 +498,30 @@ function ScheduleSection({ events, delays, onUpdate }: {
               {delayFor === ev.id && (() => {
                 const resolvedStart = delayInput ? resolveDelay(delayInput, ev.startTime) : null;
                 const resolvedEnd = delayEndInput ? resolveDelay(delayEndInput, ev.endTime) : null;
-                const canSubmit = (resolvedStart || resolvedEnd) ? true : false;
+                const canSubmit = Boolean((resolvedStart || resolvedEnd) && (!delayInput || resolvedStart) && (!delayEndInput || resolvedEnd) && (resolvedStart || ev.startTime) < (resolvedEnd || ev.endTime));
                 return (
                   <div className="ml-4 mt-1 card px-4 py-3 border-l-4 border-danger rounded-l-none bg-red-50/50 space-y-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm text-danger font-medium shrink-0">Start</span>
-                      <input ref={delayRef} value={delayInput} onChange={e => handleStartChange(e.target.value)} onKeyDown={delayKey}
+                      <input aria-label={`Delayed start for ${ev.title}`} ref={delayRef} value={delayInput} onChange={e => handleStartChange(e.target.value)} onKeyDown={delayKey}
                         placeholder={`+15m or ${fmt(ev.startTime)}`}
                         className="bg-transparent outline-none tabular-nums text-base font-semibold w-[14ch] h-[36px] border-b border-danger/30 focus:border-danger placeholder:font-normal placeholder:text-tertiary-label/50"
                       />
                       <span className={`text-sm text-danger/70 shrink-0 w-[10ch] tabular-nums ${resolvedStart ? "" : "invisible"}`}>→ {resolvedStart ? fmt(resolvedStart) : ""}</span>
                       <span className="text-sm text-danger font-medium shrink-0">End</span>
-                      <input value={delayEndInput} onChange={e => handleEndChange(e.target.value)} onKeyDown={delayKey}
+                      <input aria-label={`Delayed end for ${ev.title}`} value={delayEndInput} onChange={e => handleEndChange(e.target.value)} onKeyDown={delayKey}
                         placeholder={`+15m or ${fmt(ev.endTime)}`}
                         className="bg-transparent outline-none tabular-nums text-base font-semibold w-[14ch] h-[36px] border-b border-danger/30 focus:border-danger placeholder:font-normal placeholder:text-tertiary-label/50"
                       />
                       <span className={`text-sm text-danger/70 shrink-0 w-[10ch] tabular-nums ${resolvedEnd ? "" : "invisible"}`}>→ {resolvedEnd ? fmt(resolvedEnd) : ""}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <input value={delayReason} onChange={e => setDelayReason(e.target.value)} onKeyDown={delayKey}
+                      <input aria-label={`Delay reason for ${ev.title}`} value={delayReason} onChange={e => setDelayReason(e.target.value)} onKeyDown={delayKey}
                         placeholder="reason (optional)"
                         className="bg-transparent outline-none text-sm flex-1 min-w-0 h-[36px] border-b border-danger/30 focus:border-danger placeholder:text-tertiary-label/50"
                       />
                       <button onClick={submitDelay} disabled={!canSubmit} className="btn-sm text-danger min-h-[36px] disabled:opacity-30">Add</button>
-                      <button onClick={() => setDelayFor(null)} className="btn-sm min-h-[36px]"><X size={16} weight="bold" /></button>
+                      <button aria-label="Cancel delay draft" onClick={() => setDelayFor(null)} className="btn-sm min-h-[36px]"><X size={16} weight="bold" /></button>
                     </div>
                   </div>
                 );
@@ -404,18 +548,22 @@ function ScheduleSection({ events, delays, onUpdate }: {
         {adding && (
           <div className="card px-4 py-3 flex items-center gap-3 border border-dashed border-tertiary-label/30">
             <div className="flex-1 min-w-0">
-              <input ref={titleRef} value={newRow.title} onChange={e => setNewRow(r => ({ ...r, title: e.target.value }))} onKeyDown={newRowKey}
+              <input aria-label="New event title" ref={titleRef} value={newRow.title} onChange={e => setNewRow(r => ({ ...r, title: e.target.value }))} onKeyDown={newRowKey}
                 autoFocus placeholder="New event title..." className="bg-transparent outline-none font-semibold text-lg w-full placeholder:text-tertiary-label/50" />
               <div className="flex items-center gap-1 text-sm text-tertiary-label mt-0.5">
-                <input value={newRow.startTime} onChange={e => setNewRow(r => ({ ...r, startTime: e.target.value }))} onKeyDown={newRowKey}
+                <input aria-label="New event start time" value={newRow.startTime} onChange={e => setNewRow(r => ({ ...r, startTime: e.target.value }))} onKeyDown={newRowKey}
                   placeholder="start" className="bg-transparent outline-none tabular-nums w-[5ch] placeholder:text-tertiary-label/50" />
                 <span>–</span>
-                <input value={newRow.endTime} onChange={e => setNewRow(r => ({ ...r, endTime: e.target.value }))} onKeyDown={newRowKey}
+                <input aria-label="New event end time" value={newRow.endTime} onChange={e => setNewRow(r => ({ ...r, endTime: e.target.value }))} onKeyDown={newRowKey}
                   placeholder="end" className="bg-transparent outline-none tabular-nums w-[5ch] placeholder:text-tertiary-label/50" />
                 <span className="mx-0.5">·</span>
-                <input value={newRow.location} onChange={e => setNewRow(r => ({ ...r, location: e.target.value }))} onKeyDown={newRowKey}
+                <input aria-label="New event location" value={newRow.location} onChange={e => setNewRow(r => ({ ...r, location: e.target.value }))} onKeyDown={newRowKey}
                   placeholder="location" className="bg-transparent outline-none flex-1 min-w-0 placeholder:text-tertiary-label/50" />
               </div>
+              <label className="block mt-2 text-sm">Category <select aria-label="New event category" value={newRow.category} onChange={e => setNewRow(row => ({ ...row, category: e.target.value as ScheduleEvent["category"] }))}>
+                <option value="general">General</option><option value="individual">Individual</option><option value="team">Team</option><option value="ceremony">Ceremony</option>
+              </select></label>
+              <input aria-label="New event description" value={newRow.description} onChange={e => setNewRow(row => ({ ...row, description: e.target.value }))} onKeyDown={newRowKey} placeholder="Description (optional)" className="w-full mt-2 bg-transparent text-sm" />
             </div>
             <button onClick={addNew} disabled={!newRow.title || !newRow.startTime || !newRow.endTime}
               className="btn-sm opacity-60 disabled:opacity-20 transition-opacity" title="Add (Enter)"><Plus size={16} weight="bold" /></button>
@@ -428,15 +576,20 @@ function ScheduleSection({ events, delays, onUpdate }: {
 
 // ── Announcements ──
 
-function AnnouncementsSection({ announcements, onUpdate }: {
-  announcements: Announcement[]; onUpdate: () => void;
+function AnnouncementsSection({ announcements, api, undo }: {
+  announcements: Announcement[]; api: OperationApi; undo: OperationApi;
 }) {
+  const draftApi = useRef(api);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [priority, setPriority] = useState<"normal" | "urgent">("normal");
   const [scheduleInput, setScheduleInput] = useState("");
+  useDraftWarning(adding && Boolean(title || body || scheduleInput));
+  const visibleAnnouncements = [...announcements];
+  if (editingId && editingAnnouncement && !visibleAnnouncements.some(item => item.id === editingId)) visibleAnnouncements.push(editingAnnouncement);
   const titleRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -451,34 +604,25 @@ function AnnouncementsSection({ announcements, onUpdate }: {
     if (!title || !body) return;
     let scheduledAt: string | undefined;
     if (scheduleInput) {
-      const t = parseTime(scheduleInput);
-      if (!t) return;
-      const [h, m] = t.split(":").map(Number);
-      const d = new Date();
-      d.setHours(h, m, 0, 0);
-      scheduledAt = d.toISOString().replace(/\.\d{3}Z$/, "Z");
+      const date = new Date(scheduleInput);
+      if (!Number.isFinite(date.getTime())) { toast.error("Choose a valid schedule date and time. Draft kept."); return; }
+      scheduledAt = date.toISOString();
     }
-    await api("POST", "/announcements", { title, body, priority, scheduledAt });
+    if (!await draftApi.current("POST", "/announcements", { title, body, priority, scheduledAt })) return;
     setTitle(""); setBody(""); setPriority("normal"); setScheduleInput("");
-    titleRef.current?.focus();
-    onUpdate();
+    setAdding(false);
   };
-  const update = async (a: Announcement, field: string, value: string) => {
-    await api("PUT", `/announcements/${a.id}`, {
-      title: field === "title" ? value : a.title,
-      body: field === "body" ? value : a.body,
-      priority: field === "priority" ? value : a.priority,
-      pinned: a.pinned ?? false,
-      scheduledAt: a.scheduledAt,
+  const update = async (a: Announcement, field: string, value: string | boolean | null) => {
+    return api("PUT", `/announcements/${a.id}`, {
+      title: a.title, body: a.body, priority: a.priority,
+      pinned: a.pinned ?? false, scheduledAt: a.scheduledAt, [field]: value,
     });
-    onUpdate();
   };
   const remove = async (a: Announcement) => {
-    await api("DELETE", `/announcements/${a.id}`);
+    if (!await api("DELETE", `/announcements/${a.id}`)) return;
     setEditingId(null);
-    onUpdate();
     toast(`Deleted "${a.title}"`, {
-      action: { label: "Undo", onClick: async () => { await api("POST", "/announcements", { title: a.title, body: a.body, priority: a.priority, scheduledAt: a.scheduledAt }); onUpdate(); } },
+      action: { label: "Undo", onClick: async () => { await undo("POST", "/announcements", { title: a.title, body: a.body, priority: a.priority, pinned: a.pinned, scheduledAt: a.scheduledAt }); } },
     });
   };
   const onKey = (e: KeyboardEvent) => {
@@ -497,7 +641,7 @@ function AnnouncementsSection({ announcements, onUpdate }: {
     <section>
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-2xl font-bold">Announcements</h2>
-        <button onClick={() => { setAdding(!adding); if (!adding) { setTitle(""); setBody(""); setPriority("normal"); setScheduleInput(""); } }} className="btn-sm text-sm">
+        <button onClick={() => { setAdding(!adding); if (!adding) { draftApi.current = api; setTitle(""); setBody(""); setPriority("normal"); setScheduleInput(""); } }} className="btn-sm text-sm">
           {adding ? "Cancel" : "+ Add"}
         </button>
       </div>
@@ -505,16 +649,16 @@ function AnnouncementsSection({ announcements, onUpdate }: {
       {adding && (
         <div className="card px-4 py-4 mb-3 border border-dashed border-tertiary-label/30 space-y-3">
           <div className="flex gap-2">
-            <input ref={titleRef} value={title} onChange={e => setTitle(e.target.value)} onKeyDown={onKey}
+            <input aria-label="New announcement title" ref={titleRef} value={title} onChange={e => setTitle(e.target.value)} onKeyDown={onKey}
               autoFocus placeholder="Announcement title..." className="bg-transparent outline-none font-semibold text-lg flex-1 placeholder:text-tertiary-label/50" />
-            <select value={priority} onChange={e => setPriority(e.target.value as "normal" | "urgent")}
+            <select aria-label="New announcement priority" value={priority} onChange={e => setPriority(e.target.value as "normal" | "urgent")}
               className={`bg-transparent outline-none text-sm ${priority === "urgent" ? "text-danger font-semibold" : "text-tertiary-label"}`}>
               <option value="normal">normal</option>
               <option value="urgent">urgent</option>
             </select>
           </div>
           <div className="flex gap-2 items-end">
-            <textarea value={body} onChange={e => setBody(e.target.value)} onKeyDown={onKey} onInput={autoGrow}
+            <textarea aria-label="New announcement body" value={body} onChange={e => setBody(e.target.value)} onKeyDown={onKey} onInput={autoGrow}
               placeholder="Body text..." rows={1}
               className="bg-transparent outline-none text-base flex-1 resize-none placeholder:text-tertiary-label/50" />
             <button onClick={add} disabled={!title || !body}
@@ -522,41 +666,44 @@ function AnnouncementsSection({ announcements, onUpdate }: {
               {scheduleInput ? "Schedule" : "Post"}
             </button>
           </div>
-          <div className="flex items-center gap-2">
-            <p className="text-sm text-tertiary-label">{scheduleInput ? "Cmd+Enter to schedule" : "Cmd+Enter to post"}</p>
-            <span className="text-tertiary-label/30">|</span>
-            <input value={scheduleInput} onChange={e => setScheduleInput(e.target.value)} onKeyDown={onKey}
-              placeholder="Schedule for... (e.g. 2:30 PM)"
-              className="bg-transparent outline-none text-sm text-tertiary-label flex-1 placeholder:text-tertiary-label/50 tabular-nums" />
-            {scheduleInput && (() => {
-              const t = parseTime(scheduleInput);
-              return t ? <span className="text-sm text-berkeley-blue font-medium shrink-0">at {fmt(t)}</span>
-                       : <span className="text-sm text-danger/60 shrink-0">invalid time</span>;
-            })()}
-          </div>
+          <label className="block text-sm text-tertiary-label">Schedule date and time (optional, your browser's zone: {Intl.DateTimeFormat().resolvedOptions().timeZone})
+            <input type="datetime-local" value={scheduleInput} onChange={e => setScheduleInput(e.target.value)} onKeyDown={onKey}
+              className="block w-full mt-1 bg-transparent outline-none tabular-nums" />
+          </label>
+          <p className="text-sm text-secondary-label">Leave empty to post now. Ctrl/Cmd+Enter to submit. Scheduled posts stay private until due.</p>
+          <p className="text-sm text-secondary-label">Drafts keep their original revision. After a conflict, refresh and compare before <button type="button" className="underline" onClick={() => {
+            if (window.confirm("Use the refreshed publication as the base for this announcement draft?")) draftApi.current = api;
+          }}>using the reviewed revision</button>.</p>
         </div>
       )}
 
       <div className="space-y-1">
-        {announcements.map(a => (
+        {visibleAnnouncements.map(a => (
           <div key={a.id} className={`group card px-4 py-3 relative ${
             editingId === a.id ? "editing-card" :
             a.priority === "urgent" ? "border-l-4 border-danger rounded-l-none" :
             isFuture(a) ? "border-l-4 border-berkeley-blue/40 rounded-l-none opacity-70" : ""
           }`}>
             <div className="min-w-0">
+              {!announcements.some(item => item.id === a.id) && <p role="alert" className="editor-error">This announcement was removed. Its open draft is retained until you close it.</p>}
               <div className="flex items-center gap-2">
-                <Cell value={a.title} onSave={v => update(a, "title", v)} className={`font-semibold text-lg ${a.priority === "urgent" ? "text-danger" : ""}`} width="w-full" disabled={editingId !== a.id} />
-                {a.pinned && <span className="text-sm shrink-0">📌</span>}
+                <Cell label={`Title for ${a.title}`} value={a.title} onSave={v => update(a, "title", v)} className={`font-semibold text-lg ${a.priority === "urgent" ? "text-danger" : ""}`} width="w-full" disabled={editingId !== a.id} />
+                {a.pinned && <span className="text-sm shrink-0">Pinned</span>}
                 {isFuture(a) && <span className="text-xs font-medium text-berkeley-blue bg-berkeley-blue/10 px-2 py-0.5 rounded-full shrink-0">Scheduled</span>}
               </div>
-              {editingId === a.id ? (
-                <Cell value={a.body} onSave={v => update(a, "body", v)} className="text-sm text-secondary-label mt-1" width="w-full" />
-              ) : (
+              <div hidden={editingId !== a.id}>
+                <Cell label={`Body for ${a.title}`} value={a.body} onSave={v => update(a, "body", v)} className="text-sm text-secondary-label mt-1" width="w-full" />
+              </div>
+              {editingId !== a.id && (
                 <div className="text-sm text-secondary-label mt-1 prose-sm">
                   <Markdown remarkPlugins={[remarkGfm]} skipHtml>{a.body}</Markdown>
                 </div>
               )}
+              {editingId === a.id && <div className="flex flex-wrap gap-3 items-center mt-2 text-sm">
+                <ChoiceCell label={`Priority for ${a.title}`} value={a.priority} choices={["normal", "urgent"]} onSave={value => update(a, "priority", value)} />
+                <button type="button" className="btn-sm" onClick={() => { void update(a, "pinned", !a.pinned); }}>{a.pinned ? "Unpin" : "Pin"}</button>
+                {isFuture(a) && <button type="button" className="btn-sm" onClick={() => { if (window.confirm("Publish this scheduled announcement now?")) void update(a, "scheduledAt", null); }}>Publish now</button>}
+              </div>}
               <p className="text-xs text-tertiary-label mt-1.5">
                 {isFuture(a)
                   ? <>Publishes {new Date(a.scheduledAt!).toLocaleString()}</>
@@ -564,13 +711,13 @@ function AnnouncementsSection({ announcements, onUpdate }: {
                 }
               </p>
             </div>
-            <div className={`absolute -right-2 -top-2 flex items-center gap-0.5 transition-opacity ${editingId === a.id ? "" : "opacity-0 group-hover:opacity-100"}`}>
+            <div className={`absolute -right-2 -top-2 flex items-center gap-0.5 transition-opacity ${editingId === a.id ? "" : "sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"}`}>
               <button onClick={() => remove(a)} className="w-7 h-7 rounded-full bg-white shadow-md border border-danger/50 flex items-center justify-center text-danger hover:bg-red-50 transition-colors" title="Delete"><Trash size={14} /></button>
               <IconSwap id={editingId === a.id ? "editing" : "idle"}>
                 {editingId === a.id ? (
                   <button onClick={() => setEditingId(null)} className="w-7 h-7 rounded-full bg-white shadow-md border border-black/10 flex items-center justify-center text-green-600 hover:border-green-300 transition-colors" title="Done"><Check size={14} weight="bold" /></button>
                 ) : (
-                  <button onClick={() => setEditingId(a.id)} className="w-7 h-7 rounded-full bg-white shadow-md border border-black/10 flex items-center justify-center text-tertiary-label hover:text-label hover:border-black/20 transition-colors" title="Edit"><PencilSimple size={14} /></button>
+                  <button onClick={() => { setEditingAnnouncement(a); setEditingId(a.id); }} className="w-7 h-7 rounded-full bg-white shadow-md border border-black/10 flex items-center justify-center text-tertiary-label hover:text-label hover:border-black/20 transition-colors" title="Edit"><PencilSimple size={14} /></button>
                 )}
               </IconSwap>
             </div>
@@ -588,7 +735,9 @@ function AnnouncementsSection({ announcements, onUpdate }: {
 // ── Main ──
 
 export default function Admin() {
-  const { data, error, refresh } = useAdminData();
+  const { can } = useStaff();
+  const { data, error, refresh, mutate, pending } = useAdminData();
+  const scopedApi: OperationApi = (method, path, body) => mutate(method, path, body, data?.operationRevision);
 
   useEffect(() => {
     const handler = (e: globalThis.KeyboardEvent) => {
@@ -599,13 +748,11 @@ export default function Admin() {
     return () => window.removeEventListener("keydown", handler);
   }, [refresh]);
 
-  if (error) return (
+  if (error && !data) return (
     <div className="max-w-4xl mx-auto px-6 py-12 text-center">
       <h1 className="text-xl font-bold text-danger mb-2">Connection Error</h1>
       <p className="text-secondary-label mb-4">{error}</p>
-      <p className="text-sm text-tertiary-label">
-        From the repository root, run: <code className="bg-bg px-2 py-0.5 rounded">cargo run --manifest-path server/Cargo.toml</code>
-      </p>
+      <button type="button" className="btn-secondary" onClick={() => { void refresh(); }}>Retry loading staff data</button>
     </div>
   );
 
@@ -626,10 +773,19 @@ export default function Admin() {
         </div>
         <a href="/" className="btn-secondary">← Live Site</a>
       </div>
+      {error && <p role="alert" className="editor-error mb-4">{error} Existing editors and failed drafts are kept below.</p>}
+      <div className="flex flex-wrap gap-3 items-center mb-6">
+        <button type="button" className="btn-secondary" disabled={pending} onClick={() => { void refresh(); }}>Refresh published values</button>
+        <span role="status" className="text-sm text-secondary-label">{pending ? "Waiting for server confirmation…" : "Refresh does not discard open drafts."}</span>
+      </div>
       <div className="space-y-12">
-        <EventEditor onPublish={refresh} />
-        <ScheduleSection events={data.schedule} delays={data.delays} onUpdate={refresh} />
-        <AnnouncementsSection announcements={data.announcements} onUpdate={refresh} />
+        {can('publishing:write') && <PublishingPanel request={mutate} disabled={pending} revision={data.operationRevision} />}
+        {can('schedule:write') && <SchedulePlanner events={data.schedule} onPublish={refresh} />}
+        <fieldset disabled={pending} className="space-y-12 min-w-0">
+          <legend className="sr-only">Schedule, delays and announcements</legend>
+          {can('schedule:write') && <ScheduleSection events={data.schedule} delays={data.delays} api={scopedApi} undo={mutate} />}
+          <fieldset disabled={!can('updates:write')} className="min-w-0"><legend className="sr-only">Updates editor</legend><AnnouncementsSection announcements={data.announcements} api={scopedApi} undo={mutate} /></fieldset>
+        </fieldset>
       </div>
     </div>
   );
