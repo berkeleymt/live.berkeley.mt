@@ -1,0 +1,30 @@
+.staff-ui {
+  color-scheme: light;
+  --staff-bg: var(--color-bg, #f5f5f7);
+  --staff-surface: var(--color-card, #ffffff);
+  --staff-text: #1d1d1f;
+  --staff-muted: #636366;
+  --staff-line: #d2d2d7;
+  --staff-accent: var(--color-berkeley-blue, #003262);
+  --staff-on-accent: #ffffff;
+  --staff-danger: #b8001a;
+  --staff-warning: #8a5100;
+  --staff-space-1: 0.25rem;
+  --staff-space-2: 0.5rem;
+  --staff-space-3: 0.75rem;
+  --staff-space-4: 1rem;
+  --staff-space-5: 1.5rem;
+  --staff-space-6: 2rem;
+  --staff-text-xs: 0.8125rem;
+  --staff-text-sm: 0.9375rem;
+  --staff-text-md: 1.0625rem;
+  --staff-text-lg: 1.25rem;
+  --staff-text-xl: 1.75rem;
+  --staff-radius: 0.5rem;
+  --staff-target: 2.75rem;
+  --staff-sidebar: 14rem;
+  --staff-content: 87.5rem;
+  --staff-login: 36rem;
+}
+@media (pointer: coarse) { .staff-ui { --staff-target: 3rem; } }
+@media (min-width: 601px) and (max-width: 1024px) { .staff-ui { --staff-sidebar: 12rem; } }

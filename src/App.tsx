@@ -1,531 +1,503 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, LayoutGroup } from "framer-motion";
+import { useEffect, useState } from "react";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Clock,
+  MapPin,
+  Megaphone,
+  WarningCircle,
+} from "@phosphor-icons/react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useLiveData } from "./data/useLiveData";
-import type { ScheduleEvent, DelayNotice } from "./data/types";
-import { getCurrentEvent, getNextEvent } from "./data/useLiveData";
-import { formatTime, getDelayForEvent, toMins } from "./data/utils";
-import { LiveFeed } from "./components/LiveFeed";
-import { WidgetCard } from "./components/WidgetCard";
-import { staggerContainer, cardReveal } from "./components/springs";
-import { ScheduleCardExpanded } from "./components/ScheduleCard";
-import { MapCardCompact, MapCardExpanded } from "./components/MapCard";
-import { InfoCardCompact, InfoCardExpanded, EmailSubscribe } from "./components/InfoCard";
+import { eventDateLabel, scheduleState } from "./data/schedule";
+import { formatTime } from "./data/utils";
+import { EmailSubscribe } from "./components/InfoCard";
+import {
+  SafeSiteMarkdown,
+  SiteImage,
+  siteText,
+  useSite,
+} from "./features/site";
+import type { SiteConfig } from "./features/site/config";
+import type { Announcement, LiveData } from "./data/types";
+import "./today.css";
 
-const IS_DEV = import.meta.env.DEV;
-
-// ── Helpers ──
-
-function getEventProgress(ev: ScheduleEvent, delays: DelayNotice[], nowMins?: number): number {
-  const mins = nowMins ?? (() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); })();
-  const delay = delays.find(d => d.eventId === ev.id);
-  const start = toMins(delay?.newTime ?? ev.startTime);
-  const end = toMins(delay?.newEndTime ?? ev.endTime);
-  if (mins <= start) return 0;
-  if (mins >= end) return 1;
-  return (mins - start) / (end - start);
-}
-
-function getMinutesUntil(time: string, nowMins?: number): number {
-  const mins = nowMins ?? (() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); })();
-  return toMins(time) - mins;
-}
-
-/** Convert minutes-since-midnight to ms-since-epoch (today, local). */
-function minsToEpoch(mins: number): number {
-  const d = new Date();
-  d.setHours(Math.floor(mins / 60), mins % 60, 0, 0);
-  return d.getTime();
-}
-
-/** Pretty-print minutes-since-midnight as "H:MM AM/PM". */
-function minsToLabel(mins: number): string {
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  const suffix = h >= 12 ? "PM" : "AM";
-  const hour = h > 12 ? h - 12 : h === 0 ? 12 : h;
-  return `${hour}:${m.toString().padStart(2, "0")} ${suffix}`;
-}
-
-// ── Header Widget ──
-
-function HeaderWidget() {
-  return (
-    <div className="bg-berkeley-blue text-white widget-shadow overflow-hidden flex items-center rounded-2xl">
-      <div className="px-5 py-4 flex items-center gap-4 w-full">
-        <img src="/bmt-logo.svg" alt="BMT" className="h-12 w-12 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="text-[10px] text-white/50 font-medium tracking-widest uppercase">
-            Sunday, April 12
-          </p>
-          <h1 className="text-[22px] font-bold tracking-tight leading-tight text-wrap-balance">
-            BmMT 2026
-          </h1>
-        </div>
-        <div className="flex items-center gap-1.5 bg-white/10 rounded-full pl-2.5 pr-3 py-1 shrink-0">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success" />
-          </span>
-          <span className="text-[11px] font-semibold text-white/90">
-            Live
-          </span>
-        </div>
-      </div>
-    </div>
+function Updates({
+  announcements,
+  timeZone,
+  site,
+}: {
+  announcements: Announcement[];
+  timeZone: string;
+  site: SiteConfig;
+}) {
+  const [all, setAll] = useState(false);
+  const t = (key: string) => siteText(site, key);
+  const sorted = [...announcements].sort(
+    (a, b) =>
+      Number(b.priority === "urgent") - Number(a.priority === "urgent") ||
+      Number(!!b.pinned) - Number(!!a.pinned) ||
+      Date.parse(b.scheduledAt ?? b.timestamp) -
+        Date.parse(a.scheduledAt ?? a.timestamp),
   );
-}
-
-// ── Now Hero ──
-
-function NowHero({ events, delays, nowMins, showScheduleHint }: { events: ScheduleEvent[]; delays: DelayNotice[]; nowMins?: number; showScheduleHint?: boolean }) {
-  const currentId = useMemo(() => getCurrentEvent(events, nowMins, delays), [events, nowMins, delays]);
-  const nextId = useMemo(() => getNextEvent(events, nowMins, delays), [events, nowMins, delays]);
-
-  const current = currentId ? events.find((e) => e.id === currentId) : null;
-  const next = nextId ? events.find((e) => e.id === nextId) : null;
-  const progress = current ? getEventProgress(current, delays, nowMins) : 0;
-  const currentDelay = current ? getDelayForEvent(current.id, delays) : undefined;
-
-  if (!current && !next) {
-    return (
-      <div className="h-full glass-heavy widget-shadow px-5 py-6 text-center flex flex-col items-center justify-center">
-        <p className="text-[15px] font-semibold text-label">All done for today!</p>
-        <p className="text-[13px] text-tertiary-label mt-1">Thanks for coming to BmMT 2026</p>
-      </div>
-    );
-  }
-
+  const visible = all
+    ? sorted
+    : sorted.filter(
+        (item, index) => index < 5 || item.pinned || item.priority === "urgent",
+      );
   return (
-    <div className="h-full glass-heavy widget-shadow overflow-hidden flex flex-col justify-center">
-      {current ? (
-        <div className="px-5 py-5">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-california-gold opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-california-gold" />
-            </span>
-            <span className="text-[12px] font-bold uppercase tracking-wider text-california-gold">
-              Happening Now
-            </span>
+    <>
+      {!sorted.length && <p className="empty-copy">{t("updates.empty")}</p>}
+      {visible.map((item) => (
+        <article
+          key={item.id}
+          className={`update ${item.priority === "urgent" ? "update-urgent" : ""}`}
+        >
+          <div className="update-meta">
+            {item.priority === "urgent" && (
+              <strong>{t("updates.urgent")}</strong>
+            )}
+            {item.pinned && <span>{t("updates.pinned")}</span>}
+            <time dateTime={item.scheduledAt ?? item.timestamp}>
+              {new Intl.DateTimeFormat("en-US", {
+                timeZone,
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+                timeZoneName: "short",
+              }).format(new Date(item.scheduledAt ?? item.timestamp))}
+            </time>
           </div>
-
-          <h2 className="text-[22px] font-bold text-label leading-tight tracking-tight">
-            {current.title}
-          </h2>
-          {currentDelay && (currentDelay.newTime || currentDelay.newEndTime) ? (() => {
-            const newStart = currentDelay.newTime ?? current.startTime;
-            const newEnd = currentDelay.newEndTime ?? current.endTime;
-            const startChanged = newStart !== current.startTime;
-            const endChanged = newEnd !== current.endTime;
-            return <>
-              <p className="text-[15px] text-tertiary-label line-through mt-1 tabular-nums">
-                {formatTime(current.startTime)} – {formatTime(current.endTime)}
-              </p>
-              <p className="text-[15px] tabular-nums">
-                <span className={startChanged ? "text-danger" : "text-secondary-label"}>{formatTime(newStart)}</span>
-                <span className="text-secondary-label"> – </span>
-                <span className={endChanged ? "text-danger" : "text-secondary-label"}>{formatTime(newEnd)}</span>
-                <span className="text-tertiary-label"> · {current.location}</span>
-              </p>
-            </>;
-          })() : (
-            <p className="text-[15px] text-secondary-label mt-1 tabular-nums">
-              {formatTime(current.startTime)} – {formatTime(current.endTime)}
-              <span className="text-tertiary-label"> · {current.location}</span>
-            </p>
-          )}
-          {currentDelay?.reason && (
-            <p className="text-[12px] text-danger mt-1 font-medium">
-              {currentDelay.reason}
-            </p>
-          )}
-
-          {/* Progress bar */}
-          <div className="mt-4 h-1.5 bg-black/[0.06] rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-california-gold rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.round(progress * 100)}%` }}
-              transition={{ type: "spring", duration: 0.8, bounce: 0 }}
-            />
+          <h3>{item.title}</h3>
+          <div className="prose-copy">
+            <Markdown remarkPlugins={[remarkGfm]} skipHtml>
+              {item.body}
+            </Markdown>
           </div>
-          <div className="flex justify-between mt-1.5 text-[11px] text-tertiary-label tabular-nums">
-            <span>{formatTime(currentDelay?.newTime ?? current.startTime)}</span>
-            <span>{Math.round(progress * 100)}%</span>
-            <span>{formatTime(currentDelay?.newEndTime ?? current.endTime)}</span>
-          </div>
-        </div>
-      ) : next && (
-        <div className="px-5 py-5">
-          <span className="text-[12px] font-bold uppercase tracking-wider text-tertiary-label">
-            Up Next
-          </span>
-          <h2 className="text-[22px] font-bold text-label leading-tight tracking-tight mt-2">
-            {next.title}
-          </h2>
-          <p className="text-[15px] text-secondary-label mt-1 tabular-nums">
-            {formatTime(next.startTime)} – {formatTime(next.endTime)}
-            <span className="text-tertiary-label"> · {next.location}</span>
-          </p>
-          {(() => {
-            const nextDelay = getDelayForEvent(next.id, delays);
-            const mins = getMinutesUntil(nextDelay?.newTime ?? next.startTime, nowMins);
-            if (mins > 0 && mins < 120) {
-              return (
-                <p className="text-[13px] text-california-gold font-semibold mt-2 tabular-nums">
-                  Starts in {mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`}
-                </p>
-              );
-            }
-            return null;
-          })()}
-        </div>
+        </article>
+      ))}
+      {sorted.length > visible.length && (
+        <button className="text-button" onClick={() => setAll(true)}>
+          {siteText(site, "updates.older", {
+            count: sorted.length - visible.length,
+          })}
+          <ArrowRight aria-hidden size={16} />
+        </button>
       )}
-      {showScheduleHint && (
-        <div className="px-5 pb-4 pt-1 flex items-center justify-center gap-1.5 text-[12px] text-tertiary-label">
-          <span>View full schedule</span>
-          <span className="text-[10px]">›</span>
-        </div>
-      )}
-    </div>
+    </>
   );
 }
-
-// ── Schedule Timeline ──
-
-function ScheduleTimeline({ events, delays, nowMins }: { events: ScheduleEvent[]; delays: DelayNotice[]; nowMins?: number }) {
-  const currentId = useMemo(() => getCurrentEvent(events, nowMins, delays), [events, nowMins, delays]);
-
-  return (
-    <div className="space-y-0">
-      {events.map((ev, i) => {
-        const isCurrent = ev.id === currentId;
-        const delay = getDelayForEvent(ev.id, delays);
-        const isLast = i === events.length - 1;
-
-        return (
-          <div key={ev.id} className="flex gap-3">
-            {/* Timeline column */}
-            <div className="flex flex-col items-center w-10 shrink-0">
-              <div className="my-1.5">
-                {isCurrent ? (
-                  <span className="relative flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-california-gold opacity-75" />
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-california-gold" />
-                  </span>
-                ) : (
-                  <span className="h-2.5 w-2.5 rounded-full bg-quaternary-label/50 block" />
-                )}
-              </div>
-              {!isLast && (
-                <div className={`w-px flex-1 ${isCurrent ? "bg-california-gold/30" : "bg-separator"}`} />
-              )}
-            </div>
-
-            {/* Event content */}
-            <div className={`pb-4 flex-1 min-w-0 ${isLast ? "" : ""}`}>
-              <p className={`text-[14px] font-semibold leading-tight ${
-                isCurrent ? "text-label" : "text-secondary-label"
-              }`}>
-                {ev.title}
-              </p>
-              {delay && (delay.newTime || delay.newEndTime) ? (() => {
-                const newStart = delay.newTime ?? ev.startTime;
-                const newEnd = delay.newEndTime ?? ev.endTime;
-                const startChanged = newStart !== ev.startTime;
-                const endChanged = newEnd !== ev.endTime;
-                return <>
-                  <p className="text-[12px] tabular-nums mt-0.5 line-through text-tertiary-label">
-                    {formatTime(ev.startTime)} – {formatTime(ev.endTime)}
-                  </p>
-                  <p className="text-[12px] tabular-nums">
-                    <span className={startChanged ? "text-danger" : "text-tertiary-label"}>{formatTime(newStart)}</span>
-                    <span className="text-tertiary-label"> – </span>
-                    <span className={endChanged ? "text-danger" : "text-tertiary-label"}>{formatTime(newEnd)}</span>
-                    <span className="text-tertiary-label"> · {ev.location}</span>
-                  </p>
-                </>;
-              })() : (
-                <p className={`text-[12px] tabular-nums mt-0.5 ${
-                  isCurrent ? "text-secondary-label" : "text-tertiary-label"
-                }`}>
-                  {formatTime(ev.startTime)} – {formatTime(ev.endTime)}
-                  <span className="text-tertiary-label"> · {ev.location}</span>
-                </p>
-              )}
-              {delay?.reason && (
-                <p className="text-[12px] text-danger mt-0.5 font-medium">
-                  {delay.reason}
-                </p>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Dev Time Slider ──
-
-function DevTimeSlider({ value, onChange }: { value: number; onChange: (v: number | null) => void }) {
-  const [playing, setPlaying] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
-
+function Today({
+  data,
+  stale,
+  site,
+}: {
+  data: LiveData;
+  stale: boolean;
+  site: SiteConfig;
+}) {
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    if (!playing) {
-      clearInterval(intervalRef.current);
-      return;
-    }
-    // 300x speed: advance 1 min every 200ms
-    let cur = value;
-    intervalRef.current = setInterval(() => {
-      cur += 1;
-      if (cur > 1140) { setPlaying(false); onChange(1140); return; }
-      onChange(cur);
-    }, 200);
-    return () => clearInterval(intervalRef.current);
-  }, [playing, onChange, value]);
-
-  return (
-    <div className="fixed bottom-0 inset-x-0 z-50 bg-gray-900/95 text-white backdrop-blur-sm px-4 py-2 flex items-center gap-2">
-      <button
-        onClick={() => onChange(null)}
-        className="text-[11px] font-mono bg-white/10 hover:bg-white/20 rounded px-2 py-0.5 shrink-0"
-      >
-        Live
-      </button>
-      <button
-        onClick={() => { if (!playing && value >= 1140) onChange(420); setPlaying(!playing); }}
-        className="text-[13px] bg-white/10 hover:bg-white/20 rounded w-7 h-7 flex items-center justify-center shrink-0"
-        title={playing ? "Pause" : "Play 60x"}
-      >
-        {playing ? "⏸" : "▶"}
-      </button>
-      <input
-        type="range"
-        min={420} max={1140} step={1}
-        value={value}
-        onChange={(e) => { setPlaying(false); onChange(Number(e.target.value)); }}
-        className="flex-1 accent-california-gold h-1.5"
-      />
-      <span className="text-[15px] font-mono font-semibold tabular-nums w-24 text-right shrink-0">
-        {minsToLabel(value)}
-      </span>
-    </div>
+    const timer = setInterval(() => setNow(Date.now()), 10000);
+    return () => clearInterval(timer);
+  }, []);
+  const { event, schedule, delays, announcements } = data;
+  const t = (key: string) => siteText(site, key);
+  const { phase, current, next, events } = scheduleState(
+    schedule,
+    delays,
+    event,
+    now,
   );
-}
-
-// ── Main App ──
-
-/** Check if the viewport is tall enough for tall cards (row-span-3 instead of 2). */
-function useTallCards(gridRef: React.RefObject<HTMLDivElement | null>) {
-  const [tall, setTall] = useState(false);
-
+  const headline =
+    phase === "unpublished"
+      ? t("hero.unpublished")
+      : phase === "before"
+        ? t("hero.before")
+        : current
+          ? current.title
+          : next
+            ? t("hero.nextPrefix") + next.title
+            : t("hero.after");
+  const summary =
+    phase === "unpublished"
+      ? t("hero.unpublishedSummary")
+      : phase === "before"
+        ? event.subtitle
+        : current
+          ? `${formatTime(current.startTime)} – ${formatTime(current.endTime)} · ${current.location}`
+          : next
+            ? `${formatTime(next.startTime)} · ${next.location}`
+            : siteText(site, "hero.afterSummary", { eventTitle: event.title });
   useEffect(() => {
-    const check = () => {
-      const el = gridRef.current;
-      if (!el || !window.matchMedia("(min-width: 1024px)").matches) {
-        setTall(false);
-        return;
-      }
-      const w = el.clientWidth;
-      const gap = 18;
-      const rowH = (w - gap * 3) / 4;
-      const tallHeight = 60 + 50 + 12 + 4 * rowH + 3 * gap + 24 + 32;
-      setTall(window.innerHeight >= tallHeight);
-    };
-
-    // Check once the ref is available (may need a frame for layout)
-    requestAnimationFrame(check);
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  });
-
-  return tall;
-}
-
-export default function App() {
-  // Dev time slider state — null means "use real time"
-  const [devMins, setDevMins] = useState<number | null>(null);
-  const devNow = devMins != null ? minsToEpoch(devMins) : null;
-  const nowMins = devMins ?? undefined;
-
-  const { data, error, stale } = useLiveData(devNow);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
-  const tallCards = useTallCards(gridRef);
-  const tallSpan = tallCards ? "col-span-2 row-span-3 h-full" : "col-span-2 row-span-2 h-full";
-
-  if (!data) return (
-    <div className="min-h-dvh flex items-center justify-center">
-      {error
-        ? <p className="text-secondary-label text-center px-4">{error}</p>
-        : (
-          <div className="flex flex-col items-center gap-4">
-            <motion.img
-              src="/bmt-logo.svg"
-              alt=""
-              className="h-16 w-16"
-              animate={{ rotate: 360 }}
-              transition={{
-                repeat: Infinity,
-                ease: [0.25, 0.1, 0.25, 1],
-                duration: 4,
-              }}
+    document.title = `${event.title} · Live`;
+  }, [event.title]);
+  return (
+    <div className="today-page">
+      <a href="#main" className="skip-link">
+        {t("a11y.skip")}
+      </a>
+      <header className="site-header">
+        <div className="page-width header-inner">
+          <a href={site.branding.homeUrl} className="brand">
+            <img
+              src={site.branding.logoUrl}
+              width="40"
+              height="40"
+              alt={site.branding.logoAlt}
             />
-            <p className="text-secondary-label">Loading...</p>
-          </div>
+            <span>
+              {site.branding.title}
+              <span className="brand-caption">{site.branding.caption}</span>
+            </span>
+          </a>
+          <a href="/staff/sign-in" className="staff-link">
+            {t("staff.signIn")}
+            <ArrowUpRight aria-hidden size={16} />
+          </a>
+        </div>
+      </header>
+      <nav className="section-nav" aria-label={t("a11y.navigation")}>
+        <div className="page-width">
+          {site.navigation.map((link) => (
+            <a key={link.id} href={link.href}>
+              {link.label}
+            </a>
+          ))}
+        </div>
+      </nav>
+      <main id="main" className="page-width" tabIndex={-1}>
+        {event.notice && (
+          <p className="page-notice">
+            <WarningCircle size={20} aria-hidden />
+            <span>{event.notice}</span>
+          </p>
         )}
+        {stale && (
+          <p role="alert" className="connection-warning">
+            {t("status.stale")}
+          </p>
+        )}
+        <section
+          id="today"
+          className="today-hero"
+          aria-labelledby="event-heading"
+        >
+          <div className="event-heading">
+            <p className="eyebrow">
+              {eventDateLabel(event.date)} · {site.hero.location}
+            </p>
+            <h1 id="event-heading">
+              {event.title} <span>{t("brand.live")}</span>
+            </h1>
+          </div>
+          {site.hero.imageUrl && (
+            <SiteImage
+              key={site.hero.imageUrl}
+              src={site.hero.imageUrl}
+              alt={site.hero.imageAlt}
+              unavailable={t("guide.imageUnavailable")}
+            />
+          )}
+          <div className="hero-grid">
+            <div className="now-block">
+              <p className="eyebrow">
+                {t(
+                  phase === "before"
+                    ? "hero.beforeLabel"
+                    : phase === "after"
+                      ? "hero.afterLabel"
+                      : current
+                        ? "hero.nowLabel"
+                        : "hero.overviewLabel",
+                )}
+              </p>
+              <h2>{headline}</h2>
+              <p>{summary}</p>
+              {current?.delay && (
+                <p className="hero-delay">
+                  {t("status.timeUpdated")}
+                  {current.delay.reason ? ` · ${current.delay.reason}` : ""}
+                </p>
+              )}
+              <a className="primary-link" href="#schedule">
+                {t("hero.scheduleAction")}
+                <ArrowRight aria-hidden size={18} />
+              </a>
+            </div>
+            <aside className="next-block" aria-label={t("a11y.next")}>
+              <Clock size={24} aria-hidden />
+              <p className="eyebrow">
+                {t(phase === "before" ? "hero.firstLabel" : "hero.nextLabel")}
+              </p>
+              {next ? (
+                <>
+                  <h3>{next.title}</h3>
+                  <p className="next-time">
+                    {formatTime(next.startTime)}{" "}
+                    <span>{t("status.timeZone")}</span>
+                  </p>
+                  <p>{next.location}</p>
+                </>
+              ) : (
+                <>
+                  <h3>
+                    {t(
+                      phase === "unpublished"
+                        ? "hero.noDetails"
+                        : "hero.noMoreEvents",
+                    )}
+                  </h3>
+                  <p>{t("hero.nextEmpty")}</p>
+                </>
+              )}
+            </aside>
+          </div>
+        </section>
+        <div className="quick-links">
+          <a href="/rooms">
+            <MapPin size={22} aria-hidden />
+            <span>
+              <strong>{t("quick.mapTitle")}</strong>
+              <span>{t("quick.mapDescription")}</span>
+            </span>
+            <ArrowRight size={18} aria-hidden />
+          </a>
+          {event.travelUrl && (
+            <a href={event.travelUrl}>
+              <ArrowUpRight size={22} aria-hidden />
+              <span>
+                <strong>{t("quick.travelTitle")}</strong>
+                <span>{t("quick.travelDescription")}</span>
+              </span>
+              <ArrowUpRight size={18} aria-hidden />
+            </a>
+          )}
+          <a href="/lost-found">
+            <WarningCircle size={22} aria-hidden />
+            <span>
+              <strong>{t("quick.helpTitle")}</strong>
+              <span>{t("quick.helpDescription")}</span>
+            </span>
+            <ArrowRight size={18} aria-hidden />
+          </a>
+        </div>
+        <div className="day-grid">
+          <section
+            id="schedule"
+            className="content-section"
+            aria-labelledby="schedule-heading"
+          >
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">{t("schedule.eyebrow")}</p>
+                <h2 id="schedule-heading">{t("schedule.title")}</h2>
+              </div>
+              <span>{t("schedule.timeZone")}</span>
+            </div>
+            {!events.length && (
+              <p className="empty-copy">{t("schedule.empty")}</p>
+            )}
+            <ol className="agenda">
+              {events.map((item) => {
+                const original = schedule.find(
+                  (entry) => entry.id === item.id,
+                )!;
+                const changed =
+                  item.startTime !== original.startTime ||
+                  item.endTime !== original.endTime;
+                return (
+                  <li
+                    key={item.id}
+                    className={current?.id === item.id ? "agenda-current" : ""}
+                  >
+                    <div className="agenda-time">
+                      <span>{formatTime(item.startTime)}</span>
+                      <span>{formatTime(item.endTime)}</span>
+                    </div>
+                    <div className="agenda-body">
+                      <div className="agenda-title">
+                        <h3>{item.title}</h3>
+                        {current?.id === item.id && (
+                          <span className="now-label">
+                            {t("hero.nowLabel")}
+                          </span>
+                        )}
+                      </div>
+                      <p className="agenda-location">
+                        <MapPin aria-hidden size={15} />
+                        {item.location}
+                      </p>
+                      {changed && (
+                        <p className="time-change">
+                          {t("status.timeWas")}{" "}
+                          <s>
+                            {formatTime(original.startTime)} –{" "}
+                            {formatTime(original.endTime)}
+                          </s>
+                        </p>
+                      )}
+                      {item.delay?.reason && (
+                        <p className="time-change">{item.delay.reason}</p>
+                      )}
+                      {item.description && (
+                        <details className="event-details">
+                          <summary>{t("schedule.details")}</summary>
+                          <p>{item.description}</p>
+                        </details>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+          <section
+            id="updates"
+            className="content-section updates-section"
+            aria-labelledby="updates-heading"
+          >
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">{t("updates.eyebrow")}</p>
+                <h2 id="updates-heading">{t("updates.title")}</h2>
+              </div>
+              <Megaphone size={22} aria-hidden />
+            </div>
+            <p className="refresh-status">
+              {t(stale ? "status.reconnecting" : "status.refresh")}
+            </p>
+            <Updates
+              announcements={announcements}
+              timeZone={event.timeZone}
+              site={site}
+            />
+            <div className="subscribe-panel">
+              <EmailSubscribe site={site} />
+            </div>
+          </section>
+        </div>
+        <section
+          id="map"
+          className="content-section"
+          aria-labelledby="map-heading"
+        >
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">{t("map.eyebrow")}</p>
+              <h2 id="map-heading">{t("map.title")}</h2>
+            </div>
+            <a
+              href={
+                site.usefulLinks.find((l) => l.id === "campus-map")?.href ??
+                "https://www.berkeley.edu/map/"
+              }
+            >
+              {t("map.externalLabel")}
+              <ArrowUpRight aria-hidden size={16} />
+            </a>
+          </div>
+          <p className="section-intro">{t("map.intro")}</p>
+          <a className="primary-link" href="/rooms">
+            {t("quick.mapDescription")}
+            <ArrowRight aria-hidden size={18} />
+          </a>
+        </section>
+        <section
+          id="help"
+          className="content-section help-section"
+          aria-labelledby="help-heading"
+        >
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">{t("help.eyebrow")}</p>
+              <h2 id="help-heading">{t("help.title")}</h2>
+            </div>
+          </div>
+          <div className="help-grid">
+            {site.help.map((item) => (
+              <article key={item.id}>
+                <h3>{item.title}</h3>
+                <SafeSiteMarkdown
+                  imageUnavailable={t("guide.imageUnavailable")}
+                >
+                  {item.markdown}
+                </SafeSiteMarkdown>
+              </article>
+            ))}
+          </div>
+          {!!event.faqs.length && (
+            <div className="faq-section">
+              <h3>{t("help.faqTitle")}</h3>
+              {event.faqs.map((faq, index) => (
+                <details key={index}>
+                  <summary>{faq.question}</summary>
+                  <div className="prose-copy">
+                    <Markdown remarkPlugins={[remarkGfm]} skipHtml>
+                      {faq.answer}
+                    </Markdown>
+                  </div>
+                </details>
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+      <footer className="page-width site-footer">
+        <span>{t("footer.credit")}</span>
+        <div>
+          <a href={event.eventUrl}>
+            {t("footer.website")}
+            <ArrowUpRight aria-hidden size={14} />
+          </a>
+          <a href="/classic">{t("footer.classic")}</a>
+          <a href="/admin">{t("footer.staff")}</a>
+        </div>
+      </footer>
     </div>
   );
-
+}
+export default function App() {
+  const { data, stale, error, refresh } = useLiveData();
+  const site = useSite();
+  const t = (key: string) => siteText(site.content, key);
+  if (data?.event && site.document)
+    return (
+      <>
+        <Today data={data} stale={stale || site.stale} site={site.content} />
+        {site.stale && (
+          <button className="text-button" onClick={site.refresh}>
+            {t("loading.retry")}
+          </button>
+        )}
+      </>
+    );
   return (
-    <LayoutGroup>
-    <div className={`min-h-dvh lg:flex lg:flex-col lg:justify-center relative`}>
-      <div
-        className="fixed inset-0 bg-center bg-cover bg-no-repeat pointer-events-none opacity-[0.08] -z-10"
-        style={{ backgroundImage: "url(/bg-doodles.png)" }}
+    <main className="today-page loading-page">
+      <img
+        src={site.content.branding.logoUrl}
+        alt={site.content.branding.logoAlt}
+        width="56"
+        height="56"
       />
-
-      {stale && (
-        <div className="fixed top-0 inset-x-0 z-50 bg-danger/90 text-white text-center text-[13px] font-medium py-1.5 px-4 backdrop-blur-sm">
-          Not receiving updates — check your connection
-        </div>
+      <h1>{t("loading.title")}</h1>
+      <p role="status">
+        {t(error || site.error ? "loading.failure" : "loading.pending")}
+      </p>
+      {(error || site.error) && (
+        <button
+          className="primary-link"
+          onClick={() => {
+            refresh();
+            site.refresh();
+          }}
+        >
+          {t("loading.retry")}
+        </button>
       )}
-
-      <div className="max-w-lg mx-auto px-4 pt-6 pb-8 lg:max-w-7xl lg:px-6 lg:py-6 lg:w-full">
-        <div className="widget-grid-container" ref={gridRef}>
-          {/* Header strip */}
-          <motion.div
-            initial={{ opacity: 0, y: 8, filter: "blur(4px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            transition={{ duration: 0.35 }}
-            className="mb-3"
-          >
-            <HeaderWidget />
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15, duration: 0.35 }}
-            className="mb-3 glass-heavy widget-shadow rounded-2xl overflow-hidden"
-          >
-            <EmailSubscribe />
-          </motion.div>
-
-          <motion.div
-            className="widget-grid"
-            variants={staggerContainer}
-            initial="hidden"
-            animate="show"
-          >
-            {/* NowHero — on mobile: WidgetCard that expands to schedule. On desktop: plain card */}
-            <motion.div variants={cardReveal} className="col-span-2 h-full order-first lg:order-none">
-              {/* Mobile: wrapped in WidgetCard for proper expand animation */}
-              <div className="h-full lg:hidden">
-                <WidgetCard
-                  id="now-schedule"
-                  title="Schedule"
-                  icon="📅"
-                  expandedId={expandedId}
-                  onExpand={setExpandedId}
-                  onCollapse={() => setExpandedId(null)}
-                  expandedContent={<ScheduleCardExpanded events={data.schedule} delays={data.delays} nowMins={nowMins} />}
-                >
-                  <NowHero events={data.schedule} delays={data.delays} nowMins={nowMins} showScheduleHint />
-                </WidgetCard>
-              </div>
-              {/* Desktop: plain NowHero */}
-              <div className="h-full hidden lg:block">
-                <NowHero events={data.schedule} delays={data.delays} nowMins={nowMins} />
-              </div>
-            </motion.div>
-
-            {/* Live Feed — spans 2 or 3 rows depending on viewport */}
-            <motion.div variants={cardReveal} className={tallSpan}>
-              <WidgetCard
-                id="livefeed"
-                title="Live Feed"
-                icon="📣"
-                expandedId={expandedId}
-                onExpand={setExpandedId}
-                onCollapse={() => setExpandedId(null)}
-              >
-                <LiveFeed announcements={data.announcements} devNow={devNow} />
-              </WidgetCard>
-            </motion.div>
-
-            {/* Schedule — desktop only */}
-            <motion.div variants={cardReveal} className={`${tallSpan} hidden lg:block`}>
-              <WidgetCard
-                id="schedule"
-                title="Schedule"
-                icon="📅"
-                expandedId={expandedId}
-                onExpand={setExpandedId}
-                onCollapse={() => setExpandedId(null)}
-                expandedContent={
-                  <ScheduleCardExpanded events={data.schedule} delays={data.delays} nowMins={nowMins} />
-                }
-              >
-                <div className="flex flex-col h-full">
-                  <div className="px-5 py-3 border-b border-black/[0.06] shrink-0">
-                    <h2 className="text-[13px] font-semibold text-tertiary-label uppercase tracking-wider">
-                      Full Schedule
-                    </h2>
-                  </div>
-                  <div className="px-5 py-4 overflow-y-auto overscroll-contain flex-1">
-                    <ScheduleTimeline events={data.schedule} delays={data.delays} nowMins={nowMins} />
-                  </div>
-                </div>
-              </WidgetCard>
-            </motion.div>
-
-            {/* Map + Info — square pair */}
-            <motion.div variants={cardReveal} className="h-full">
-              <WidgetCard
-                id="map"
-                title="Campus Map"
-                icon="📍"
-                expandedId={expandedId}
-                onExpand={setExpandedId}
-                onCollapse={() => setExpandedId(null)}
-                expandedVariant="fullscreen"
-                expandedContent={<MapCardExpanded venues={data.venues} />}
-              >
-                <MapCardCompact venues={data.venues} />
-              </WidgetCard>
-            </motion.div>
-
-            <motion.div variants={cardReveal} className="h-full">
-              <WidgetCard
-                id="info"
-                title="Info & Help"
-                icon="📋"
-                expandedId={expandedId}
-                onExpand={setExpandedId}
-                onCollapse={() => setExpandedId(null)}
-                expandedContent={<InfoCardExpanded info={data.info} />}
-              >
-                <InfoCardCompact info={data.info} />
-              </WidgetCard>
-            </motion.div>
-          </motion.div>
-        </div>
-      </div>
-
-      {/* Dev time slider — only in dev mode */}
-      {IS_DEV && (
-        <DevTimeSlider
-          value={devMins ?? (() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); })()}
-          onChange={setDevMins}
-        />
-      )}
-
-    </div>
-    <div id="overlay-root" />
-    </LayoutGroup>
+      <a href="/classic">{t("loading.classic")}</a>
+    </main>
   );
 }

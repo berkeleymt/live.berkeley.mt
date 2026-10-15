@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use pulldown_cmark::{Parser, Options, html};
+use pulldown_cmark::{html, Options, Parser};
 
 use crate::db::Db;
 use crate::models::Announcement;
@@ -133,10 +133,7 @@ pub async fn send_announcement_emails(
             Ok(resp) => {
                 let status = resp.status();
                 let body = resp.text().await.unwrap_or_default();
-                eprintln!(
-                    "[email] Postmark error {}: {}",
-                    status, body
-                );
+                eprintln!("[email] Postmark error {}: {}", status, body);
             }
             Err(e) => {
                 eprintln!("[email] Request failed: {}", e);

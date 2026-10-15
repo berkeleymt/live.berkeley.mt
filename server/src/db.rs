@@ -1,4 +1,4 @@
-use rusqlite::{Connection, params};
+use rusqlite::{params, Connection};
 use std::sync::Mutex;
 
 use crate::models::*;
@@ -7,7 +7,6 @@ use crate::models::*;
 fn utc_now_ts() -> String {
     chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string()
 }
-
 
 pub struct Db {
     conn: Mutex<Connection>,
@@ -153,16 +152,51 @@ impl Db {
             conn.execute(
                 "INSERT INTO info (id, label, value) VALUES (?1, ?2, ?3)",
                 params![id, label, value],
-            ).unwrap();
+            )
+            .unwrap();
         }
-
     }
 
     // ── Queries ──
 
     pub fn get_live_data(&self, at: Option<&str>, include_future: bool) -> LiveData {
         let conn = self.conn.lock().unwrap();
-        let effective_now = at.map(|s| s.to_string()).unwrap_or_else(|| utc_now_ts());
+        Self::read_live(&conn, at, include_future)
+    }
+
+    pub fn apply_schedule_plan(
+        &self,
+        expected: &str,
+        input: &crate::planner::PlanInput,
+    ) -> Result<String, crate::content::ContentError> {
+        let mut conn = self.conn.lock().unwrap();
+        let current = crate::operations::Operations::from_live(Self::read_live(&conn, None, true));
+        if crate::planner::version(&current) != expected {
+            return Err((
+                axum::http::StatusCode::CONFLICT,
+                "Schedule changed. Preview again before confirming.".into(),
+            ));
+        }
+        let next = crate::planner::plan(&current, input)?;
+        let result = (|| -> rusqlite::Result<()> {
+            let tx = conn.transaction()?;
+            tx.execute("DELETE FROM delays", [])?;
+            for delay in &next.delays {
+                tx.execute("INSERT INTO delays (id,event_id,new_time,new_end_time,reason,timestamp) VALUES (?1,?2,?3,?4,?5,?6)", params![delay.id,delay.event_id,delay.new_time,delay.new_end_time,delay.reason,delay.timestamp])?;
+            }
+            tx.commit()
+        })();
+        result.map_err(|_| {
+            (
+                axum::http::StatusCode::SERVICE_UNAVAILABLE,
+                "Schedule was not committed. Refresh before retrying.".into(),
+            )
+        })?;
+        Ok(crate::planner::version(&next))
+    }
+
+    fn read_live(conn: &Connection, at: Option<&str>, include_future: bool) -> LiveData {
+        let effective_now = at.map(|s| s.to_string()).unwrap_or_else(utc_now_ts);
 
         let schedule = {
             let mut stmt = conn
@@ -303,7 +337,11 @@ impl Db {
         let conn = self.conn.lock().unwrap();
         let id = format!("s{}", chrono::Utc::now().timestamp_millis());
         let max_order: i64 = conn
-            .query_row("SELECT COALESCE(MAX(sort_order), 0) FROM schedule", [], |r| r.get(0))
+            .query_row(
+                "SELECT COALESCE(MAX(sort_order), 0) FROM schedule",
+                [],
+                |r| r.get(0),
+            )
             .unwrap_or(0);
         conn.execute(
             "INSERT INTO schedule (id, title, start_time, end_time, location, category, description, sort_order) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
@@ -322,7 +360,9 @@ impl Db {
 
     pub fn delete_schedule_event(&self, id: &str) -> bool {
         let conn = self.conn.lock().unwrap();
-        let rows = conn.execute("DELETE FROM schedule WHERE id=?1", params![id]).unwrap_or(0);
+        let rows = conn
+            .execute("DELETE FROM schedule WHERE id=?1", params![id])
+            .unwrap_or(0);
         rows > 0
     }
 
@@ -334,14 +374,24 @@ impl Db {
         let timestamp = utc_now_ts();
 
         // Remove any existing delay for this event (one delay per event)
-        conn.execute("DELETE FROM delays WHERE event_id=?1", params![input.event_id]).ok();
+        conn.execute(
+            "DELETE FROM delays WHERE event_id=?1",
+            params![input.event_id],
+        )
+        .ok();
 
         // Look up event title and original times
         let event = conn
             .query_row(
                 "SELECT title, start_time, end_time FROM schedule WHERE id=?1",
                 params![input.event_id],
-                |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, String>(2)?)),
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                    ))
+                },
             )
             .ok()?;
 
@@ -366,7 +416,9 @@ impl Db {
 
     pub fn delete_delay(&self, id: &str) -> bool {
         let conn = self.conn.lock().unwrap();
-        let rows = conn.execute("DELETE FROM delays WHERE id=?1", params![id]).unwrap_or(0);
+        let rows = conn
+            .execute("DELETE FROM delays WHERE id=?1", params![id])
+            .unwrap_or(0);
         rows > 0
     }
 
@@ -410,7 +462,9 @@ impl Db {
 
     pub fn delete_announcement(&self, id: &str) -> bool {
         let conn = self.conn.lock().unwrap();
-        let rows = conn.execute("DELETE FROM announcements WHERE id=?1", params![id]).unwrap_or(0);
+        let rows = conn
+            .execute("DELETE FROM announcements WHERE id=?1", params![id])
+            .unwrap_or(0);
         rows > 0
     }
 
@@ -426,16 +480,20 @@ impl Db {
             params![id, email, token, now],
         ).ok()?;
         // Return None if nothing was inserted (email already exists)
-        if conn.changes() == 0 { return None; }
+        if conn.changes() == 0 {
+            return None;
+        }
         Some(token)
     }
 
     pub fn remove_subscriber_by_token(&self, token: &str) -> bool {
         let conn = self.conn.lock().unwrap();
-        let rows = conn.execute(
-            "DELETE FROM email_subscribers WHERE unsubscribe_token=?1",
-            params![token],
-        ).unwrap_or(0);
+        let rows = conn
+            .execute(
+                "DELETE FROM email_subscribers WHERE unsubscribe_token=?1",
+                params![token],
+            )
+            .unwrap_or(0);
         rows > 0
     }
 
@@ -469,7 +527,8 @@ impl Db {
         conn.execute(
             "INSERT INTO email_log (id, announcement_id, sent_at) VALUES (?1, ?2, ?3)",
             params![id, announcement_id, now],
-        ).ok();
+        )
+        .ok();
     }
 
     /// Find scheduled announcements whose scheduled_at <= now and haven't been emailed yet.
@@ -482,7 +541,7 @@ impl Db {
                  FROM announcements a
                  WHERE a.scheduled_at IS NOT NULL
                    AND a.scheduled_at <= ?1
-                   AND a.id NOT IN (SELECT announcement_id FROM email_log)"
+                   AND a.id NOT IN (SELECT announcement_id FROM email_log)",
             )
             .unwrap();
         stmt.query_map(params![now], |row| {

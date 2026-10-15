@@ -45,13 +45,13 @@ function DialogContent({
   const dialogRef = useRef<HTMLDivElement>(null);
   const { dialogProps, titleProps } = useDialog({ role: "dialog" }, dialogRef);
   // Strip event-handler props that conflict between react-aria and framer-motion
-  const {
-    onAnimationStart: _a,
-    onDrag: _d,
-    onDragStart: _ds,
-    onDragEnd: _de,
-    ...safeDialogProps
-  } = dialogProps;
+  const safeDialogProps = {
+    ...dialogProps,
+    onAnimationStart: undefined,
+    onDrag: undefined,
+    onDragStart: undefined,
+    onDragEnd: undefined,
+  };
 
   usePreventScroll();
   useEscapeKey(true, onClose);

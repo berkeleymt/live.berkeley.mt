@@ -264,22 +264,23 @@ const checkInIcon = L.divIcon({
 
 function useUserLocation() {
   const [pos, setPos] = useState<LatLngTuple | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!navigator.geolocation) return;
     const id = navigator.geolocation.watchPosition(
-      (p) => setPos([p.coords.latitude, p.coords.longitude]),
-      () => {},
-      { enableHighAccuracy: true, maximumAge: 10_000 },
+      (p) => { setPos([p.coords.latitude, p.coords.longitude]); setError(""); },
+      () => setError("Location unavailable. You can still browse the campus map."),
+      { enableHighAccuracy: true, maximumAge: 10_000, timeout: 10_000 },
     );
     return () => navigator.geolocation.clearWatch(id);
   }, []);
 
-  return pos;
+  return { pos, error };
 }
 
 function UserLocationMarker() {
-  const pos = useUserLocation();
+  const { pos, error } = useUserLocation();
   const map = useMap();
 
   useEffect(() => {
@@ -287,7 +288,7 @@ function UserLocationMarker() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pos !== null]);
 
-  if (!pos) return null;
+  if (!pos) return <div role="status" className="absolute bottom-7 left-3 right-3 z-[1000] rounded bg-white p-3 text-sm text-berkeley-blue shadow-md">{error || (!navigator.geolocation ? "Location is not supported in this browser." : "Finding your location…")}</div>;
   return (
     <>
       <CircleMarker
@@ -408,19 +409,24 @@ function ZoomAwareBuildings({ parkingIcons }: { parkingIcons: L.DivIcon[] }) {
   );
 }
 
-export function MapCardExpanded(_props: MapCardProps) {
+export function MapCardExpanded() {
   const parkingIcons = useMemo(() => PARKING.map((p) => parkingIcon(p.num)), []);
+  const [locating, setLocating] = useState(false);
 
   return (
-    <div className="h-full">
+    <div className="h-full relative">
+      <button type="button" onClick={() => setLocating(!locating)} aria-pressed={locating} className="absolute top-3 right-3 z-[1000] rounded bg-white px-3 py-2 text-sm text-berkeley-blue shadow-md min-h-11">
+        {locating ? "Stop locating" : "Use my location"}
+      </button>
       <MapContainer
         center={MAP_CENTER}
         zoom={16}
         minZoom={14}
         maxZoom={19}
         className="w-full h-full"
-        zoomControl={false}
-        attributionControl={false}
+        zoomControl
+        attributionControl
+        scrollWheelZoom={false}
       >
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
@@ -431,7 +437,7 @@ export function MapCardExpanded(_props: MapCardProps) {
         <Polygon positions={CAMPUS_BOUNDARY} pathOptions={CAMPUS_STYLE} />
 
         <ZoomAwareBuildings parkingIcons={parkingIcons} />
-        <UserLocationMarker />
+        {locating && <UserLocationMarker />}
       </MapContainer>
     </div>
   );

@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "demo": "node scripts/demo.mjs",
+    "test": "node --experimental-strip-types --test tests/schedule.test.mjs",
+    "test:api": "cargo build --locked --manifest-path server/Cargo.toml && node --experimental-strip-types --test --test-concurrency=1 tests/api.test.mjs tests/git-publishing.test.mjs tests/site.test.mjs tests/staff.test.mjs tests/lost-found.test.mjs tests/wayfinding.test.mjs tests/integration.test.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",

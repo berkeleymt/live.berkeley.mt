@@ -1,0 +1,52 @@
+{
+  "title": "Find your room",
+  "intro": "Search a building or room, or use your student ID and private check-in code to find your assigned rooms.",
+  "notice": "November 14, 2026 · Demo preview. Room assignments, entrances and indoor routes below are not event-day directions. Confirm your destination with BMT staff.",
+  "helpText": "Need a step-free route or cannot find your room? Ask the BMT help desk before setting off. Do not rely on an unverified route for accessibility.",
+  "travelUrl": "https://taketransit.berkeley.mt/",
+  "buildings": [
+    {
+      "id": "demo-learning-center",
+      "name": "Demo Learning Center",
+      "aliases": ["Demo", "Sample building"],
+      "coordinates": [37.8706, -122.2607],
+      "status": "demo",
+      "verificationNote": "Fictional building placed near campus only to demonstrate the room finder. This is not Dwinelle Hall, a real floor plan, or a real entrance location.",
+      "entrances": [
+        {"id": "demo-main", "name": "Demo main entrance", "coordinates": [37.8705, -122.2607], "accessible": false, "notes": "Illustration only: this sample entrance uses steps.", "steps": ["In this demonstration, start at the entrance marked Main.", "Follow the sample lobby sign to the ground-floor corridor."]},
+        {"id": "demo-step-free", "name": "Demo step-free entrance", "coordinates": [37.8706, -122.2608], "accessible": true, "notes": "Demonstration of an accessible route, not a verified campus access point.", "steps": ["In this demonstration, use the entrance marked Step-free.", "Continue along the level sample corridor; no stairs are shown."]}
+      ],
+      "floors": [
+        {
+          "id": "demo-ground",
+          "name": "Ground floor · demonstration",
+          "image": {"url": "/demo-maps/sample-floor.svg", "alt": "Demonstration only: a fictional rectangular ground floor with rooms A101 and A102 on either side of a corridor, a main entrance and a step-free entrance.", "caption": "Illustrative layout only. Not to scale and not a real campus floor plan.", "demonstration": true},
+          "rooms": [
+            {"id": "demo-a101", "code": "A101", "name": "Sample test room", "route": {"entranceId": "demo-main", "steps": ["From the sample lobby, take the corridor to the left.", "Look for the door labeled A101, marked 1 on the demonstration plan."]}, "accessibleRoute": {"entranceId": "demo-step-free", "steps": ["Continue along the sample level corridor.", "Enter A101 through the marked door on your left."]}, "hotspot": {"x": 26, "y": 34}},
+            {"id": "demo-a102", "code": "A102", "name": "Sample team room", "route": {"entranceId": "demo-main", "steps": ["From the sample lobby, follow the corridor to the right.", "Look for A102, marked 2 on the demonstration plan."]}, "accessibleRoute": {"entranceId": "demo-step-free", "steps": ["Follow the sample level corridor past A101.", "Use the door marked A102 on the right."]}, "hotspot": {"x": 73, "y": 34}}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dwinelle",
+      "name": "Dwinelle Hall",
+      "aliases": ["Dwinelle"],
+      "coordinates": [37.8707, -122.2607],
+      "status": "unverified",
+      "verificationNote": "Approximate building location from the existing campus map. Entrances, floors and tournament room allocations have not been verified for November 14, 2026. Ask staff for directions; no indoor route is published yet.",
+      "entrances": [],
+      "floors": []
+    },
+    {
+      "id": "wheeler",
+      "name": "Wheeler Hall",
+      "aliases": ["Wheeler"],
+      "coordinates": [37.8713, -122.2592],
+      "status": "unverified",
+      "verificationNote": "Approximate building location from the existing campus map. Tournament rooms and accessible entrances await an on-site check; ask staff before traveling to a room.",
+      "entrances": [],
+      "floors": []
+    }
+  ]
+}

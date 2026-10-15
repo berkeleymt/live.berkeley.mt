@@ -1,12 +1,13 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
-    response::{Html, Redirect},
+    http::{HeaderMap, StatusCode},
+    response::{Html, IntoResponse, Redirect, Response},
     Json,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+use crate::content::{ContentDocument, ContentError, ContentStore, EventContent};
 use crate::db::Db;
 use crate::email::{self, PostmarkConfig};
 use crate::models::*;
@@ -17,6 +18,39 @@ pub struct AppState {
     pub db: Arc<Db>,
     pub postmark: Option<PostmarkConfig>,
     pub admin_password: Option<String>,
+    pub content: Arc<ContentStore>,
+    pub operations: Option<Arc<crate::operations::OperationsStore>>,
+    pub staff: Arc<crate::staff::StaffStore>,
+    pub site: Arc<crate::site::SiteStore>,
+    pub wayfinding: Arc<crate::wayfinding::WayfindingStore>,
+    pub lost_found: Arc<crate::lost_found::LostFoundStore>,
+}
+
+pub async fn feature_access(
+    mut request: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> Response {
+    if let Some(user) = request
+        .extensions()
+        .get::<crate::staff::StaffIdentity>()
+        .cloned()
+    {
+        use crate::staff::Capability::*;
+        request
+            .extensions_mut()
+            .insert(crate::lost_found::LostFoundAccess {
+                actor: user.id.clone(),
+                can_read: user.capabilities.contains(&FoundRead),
+                can_write: user.capabilities.contains(&FoundWrite),
+            });
+        request
+            .extensions_mut()
+            .insert(crate::wayfinding::WayfindingAccess {
+                can_read: user.capabilities.contains(&RoomsWrite),
+                can_write: user.capabilities.contains(&RoomsWrite),
+            });
+    }
+    next.run(request).await
 }
 
 #[derive(Deserialize)]
@@ -25,11 +59,79 @@ pub struct LiveQuery {
     include_future: Option<bool>,
 }
 
+pub async fn no_store(mut response: Response) -> Response {
+    response.headers_mut().insert(
+        axum::http::header::CACHE_CONTROL,
+        "no-store".parse().unwrap(),
+    );
+    response
+}
+
+#[derive(Serialize)]
+pub struct LiveResponse {
+    #[serde(flatten)]
+    live: LiveData,
+    event: EventContent,
+    #[serde(rename = "operationRevision", skip_serializing_if = "Option::is_none")]
+    operation_revision: Option<String>,
+}
+
 pub async fn get_live(
     State(state): State<AppState>,
     Query(query): Query<LiveQuery>,
-) -> Json<LiveData> {
-    Json(state.db.get_live_data(query.at.as_deref(), query.include_future.unwrap_or(false)))
+    headers: HeaderMap,
+) -> Response {
+    let can_preview = crate::staff::can(&state, &headers, crate::staff::Capability::UpdatesRead);
+    let at = if can_preview {
+        query.at.as_deref()
+    } else {
+        None
+    };
+    let include_future = can_preview && query.include_future.unwrap_or(false);
+    let mut live = state.db.get_live_data(at, include_future);
+    let operation_revision = state.operations.as_ref().map(|store| {
+        let snapshot = store.snapshot();
+        snapshot.content.apply(&mut live, at, include_future);
+        snapshot.revision
+    });
+    let mut response = Json(LiveResponse {
+        live,
+        event: state.content.snapshot().content,
+        operation_revision: operation_revision.clone(),
+    })
+    .into_response();
+    if let Some(revision) = operation_revision {
+        response.headers_mut().insert(
+            axum::http::header::ETAG,
+            format!("\"{revision}\"").parse().unwrap(),
+        );
+    }
+    response
+}
+
+pub async fn get_content(
+    State(state): State<AppState>,
+) -> Result<Json<ContentDocument>, ContentError> {
+    tokio::task::spawn_blocking(move || state.content.reload())
+        .await
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Cannot load content.".into()))?
+        .map(Json)
+        .map_err(|_| (StatusCode::SERVICE_UNAVAILABLE, "The content file is invalid or unreadable. Fix it on disk; the public page is still using its last valid copy.".into()))
+}
+
+pub async fn save_content(
+    State(state): State<AppState>,
+    Json(input): Json<ContentDocument>,
+) -> Result<Json<ContentDocument>, ContentError> {
+    tokio::task::spawn_blocking(move || state.content.save(input))
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Cannot save content.".into(),
+            )
+        })?
+        .map(Json)
 }
 
 // ── Schedule ──
@@ -54,10 +156,7 @@ pub async fn create_schedule(
     (StatusCode::CREATED, Json(event))
 }
 
-pub async fn delete_schedule(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> StatusCode {
+pub async fn delete_schedule(State(state): State<AppState>, Path(id): Path<String>) -> StatusCode {
     if state.db.delete_schedule_event(&id) {
         StatusCode::OK
     } else {
@@ -71,15 +170,14 @@ pub async fn create_delay(
     State(state): State<AppState>,
     Json(input): Json<DelayInput>,
 ) -> Result<(StatusCode, Json<DelayNotice>), StatusCode> {
-    state.db.create_delay(&input)
+    state
+        .db
+        .create_delay(&input)
         .map(|d| (StatusCode::CREATED, Json(d)))
         .ok_or(StatusCode::BAD_REQUEST)
 }
 
-pub async fn delete_delay(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> StatusCode {
+pub async fn delete_delay(State(state): State<AppState>, Path(id): Path<String>) -> StatusCode {
     if state.db.delete_delay(&id) {
         StatusCode::OK
     } else {
