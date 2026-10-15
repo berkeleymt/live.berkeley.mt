@@ -196,7 +196,7 @@ impl Db {
     }
 
     fn read_live(conn: &Connection, at: Option<&str>, include_future: bool) -> LiveData {
-        let effective_now = at.map(|s| s.to_string()).unwrap_or_else(|| utc_now_ts());
+        let effective_now = at.map(|s| s.to_string()).unwrap_or_else(utc_now_ts);
 
         let schedule = {
             let mut stmt = conn

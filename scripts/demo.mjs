@@ -229,7 +229,7 @@ async function run(command, args, env) {
   }
 }
 async function main() {
-  const directory = join(root, ".demo");
+  const directory = resolve(process.env.DEMO_ROOT || join(root, ".demo"));
   const env = await prepareSandbox(directory);
   if (process.argv.includes("--prepare-only")) {
     console.log(`Prepared persistent sandbox at ${directory}`);

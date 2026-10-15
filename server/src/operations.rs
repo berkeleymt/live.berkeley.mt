@@ -426,7 +426,7 @@ impl OperationsStore {
         let directory = tokio::fs::canonicalize(directory)
             .await
             .map_err(|_| unavailable("Content repository does not exist."))?;
-        if PathBuf::from(
+        if Path::new(
             git(&directory, &["rev-parse", "--show-toplevel"])
                 .await?
                 .trim(),

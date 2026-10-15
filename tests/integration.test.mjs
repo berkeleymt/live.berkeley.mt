@@ -93,6 +93,20 @@ async function expectJson(response, status = 200) {
   return response.json();
 }
 
+test("demo launcher honors an isolated DEMO_ROOT and preserves existing publications", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "bmt-launcher-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const options = { cwd: root, env: { ...process.env, DEMO_ROOT: directory }, timeout: 30000 };
+  const script = join(root, "scripts/demo.mjs");
+  const first = await exec(process.execPath, [script, "--prepare-only"], options);
+  assert.ok(first.stdout.includes(directory));
+  const content = join(directory, "content/operations.json");
+  const publication = await readFile(content, "utf8");
+  assert.equal(JSON.parse(publication).editorial.event.date, "2026-11-14");
+  await exec(process.execPath, [script, "--prepare-only"], options);
+  assert.equal(await readFile(content, "utf8"), publication);
+});
+
 test("real application demo: roles, private reports, rooms, atomic plans and complete Git publication", async (t) => {
   const app = await launch(t);
   const { api, role, directory } = app;

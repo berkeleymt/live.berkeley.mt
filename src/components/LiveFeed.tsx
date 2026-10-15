@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -27,14 +27,14 @@ const mdComponents = {
 };
 
 function useTimeAgo(timestamp: string, devNow?: number | null) {
-  const [, tick] = useState(0);
+  const [now, setNow] = useState(Date.now);
   useEffect(() => {
     if (devNow != null) return; // Don't auto-tick in dev mode
-    const id = setInterval(() => tick((n) => n + 1), 30_000);
+    const id = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(id);
   }, [devNow]);
 
-  const diff = (devNow ?? Date.now()) - new Date(timestamp).getTime();
+  const diff = (devNow ?? now) - new Date(timestamp).getTime();
   const mins = Math.floor(diff / 60_000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
@@ -109,27 +109,21 @@ export function LiveFeed({ announcements, devNow }: { announcements: Announcemen
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
   );
 
-  const prevIds = useRef(new Set<string>());
+  const [previous, setPrevious] = useState(announcements);
   const [newIds, setNewIds] = useState(new Set<string>());
 
-  // Track new announcements for highlight
+  if (announcements !== previous) {
+    setPrevious(announcements);
+    const previousIds = new Set(previous.map((a) => a.id));
+    const fresh = new Set(announcements.filter((a) => !previousIds.has(a.id)).map((a) => a.id));
+    if (previous.length > 0 && fresh.size > 0) setNewIds(fresh);
+  }
+
   useEffect(() => {
-    if (prevIds.current.size === 0) {
-      // Initial load — don't highlight
-      prevIds.current = new Set(sorted.map((a) => a.id));
-      return;
-    }
-    const fresh = new Set<string>();
-    for (const a of sorted) {
-      if (!prevIds.current.has(a.id)) fresh.add(a.id);
-    }
-    if (fresh.size > 0) {
-      setNewIds(fresh);
-      prevIds.current = new Set(sorted.map((a) => a.id));
-      const timer = setTimeout(() => setNewIds(new Set()), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [sorted]);
+    if (newIds.size === 0) return;
+    const timer = setTimeout(() => setNewIds(new Set()), 3000);
+    return () => clearTimeout(timer);
+  }, [newIds]);
 
   return (
     <div className="flex flex-col h-full">

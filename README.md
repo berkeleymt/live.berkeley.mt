@@ -64,6 +64,6 @@ cargo test --locked --manifest-path server/Cargo.toml
 cargo fmt --manifest-path server/Cargo.toml --check
 ```
 
-API suites use temporary databases/checkouts, random ports and local bare remotes. Integration tests exercise the real `main.rs` router, role/CSRF boundaries, private report flow, room lookup, complete Git publication, atomic schedule plans and restart persistence. No browser-driven E2E or real email/SSO/provider deployment is implied. Six pre-existing full-lint errors remain in `ExpandableOverlay.tsx` and `LiveFeed.tsx`; no lint rules were disabled.
+API suites use temporary databases/checkouts, random ports and local bare remotes. Integration tests exercise the real `main.rs` router, role/CSRF boundaries, private report flow, room lookup, complete Git publication, atomic schedule plans and restart persistence. No browser-driven E2E or real email/SSO/provider deployment is implied. Full-app lint is clean without disabled rules; the final demo pass also repaired the legacy feed's highlight expiry and render-time clock.
 
 Detailed contracts: [publishing](docs/git-publishing.md), [staff access](docs/staff-access.md), [editorial content](docs/site-content.md), [wayfinding](docs/wayfinding.md), [lost and found](docs/lost-found.md). Those documents retain builder-stage implementation details; [the demo guide](docs/demo.md) records the current integrated behavior.
