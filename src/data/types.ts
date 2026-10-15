@@ -46,10 +46,27 @@ export interface InfoItem {
 }
 
 export interface LiveData {
+  event: EventContent;
   schedule: ScheduleEvent[];
   announcements: Announcement[];
   delays: DelayNotice[];
   venues: VenueLocation[];
   info: InfoItem[];
   lastUpdated: string;
+}
+
+export interface EventContent {
+  title: string;
+  date: string;
+  timeZone: string;
+  subtitle: string;
+  notice: string;
+  eventUrl: string;
+  travelUrl: string;
+  faqs: { question: string; answer: string }[];
+}
+
+export interface ContentDocument {
+  revision: string;
+  content: EventContent;
 }

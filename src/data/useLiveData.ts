@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { LiveData, DelayNotice } from "./types";
 import { toMins } from "./utils";
 
-const API_URL = import.meta.env.VITE_API_URL as string;
+const API_URL = import.meta.env.VITE_API_URL || "/api/live";
 const POLL_INTERVAL = 5_000;
 /** Show "stale" banner after this many consecutive failures. */
 const STALE_THRESHOLD = 3;
@@ -17,9 +17,13 @@ export function useLiveData(devNow?: number | null) {
   /** True when we have data but haven't been able to refresh it recently. */
   const [stale, setStale] = useState(false);
   const failCount = useRef(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  const request = useRef<AbortController | null>(null);
+  const hasData = useRef(false);
 
   const fetchData = useCallback(async () => {
+    if (request.current) return;
+    const controller = new AbortController();
+    request.current = controller;
     try {
       let url = API_URL;
       if (devNow != null) {
@@ -27,29 +31,39 @@ export function useLiveData(devNow?: number | null) {
         const iso = new Date(devNow).toISOString().replace(/\.\d{3}Z$/, "Z");
         url += `?at=${encodeURIComponent(iso)}`;
       }
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8_000)]), cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setData(await res.json());
+      const nextData: LiveData = await res.json();
+      if (controller.signal.aborted) return;
+      setData(nextData);
+      hasData.current = true;
       setError(null);
       setStale(false);
       failCount.current = 0;
-    } catch (e) {
+    } catch {
+      if (controller.signal.aborted) return;
       failCount.current += 1;
-      if (failCount.current >= STALE_THRESHOLD) {
+      if (failCount.current >= STALE_THRESHOLD || !hasData.current) {
         setStale(true);
         // If we never got data, surface as a hard error too
         setError((prev) => prev ?? "Unable to connect");
       }
+    } finally {
+      if (request.current === controller) request.current = null;
     }
   }, [devNow]);
 
   useEffect(() => {
     fetchData();
-    intervalRef.current = setInterval(fetchData, POLL_INTERVAL);
-    return () => clearInterval(intervalRef.current);
+    const interval = setInterval(fetchData, POLL_INTERVAL);
+    return () => {
+      clearInterval(interval);
+      request.current?.abort();
+      request.current = null;
+    };
   }, [fetchData]);
 
-  return { data, error, stale };
+  return { data, error, stale, refresh: fetchData };
 }
 
 // ── Schedule helpers ──

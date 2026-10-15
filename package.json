@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test": "node --experimental-strip-types --test tests/schedule.test.mjs",
+    "test:api": "cargo build --manifest-path server/Cargo.toml && node --test tests/api.test.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",

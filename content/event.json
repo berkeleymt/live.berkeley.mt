@@ -1,0 +1,19 @@
+{
+  "title": "BmMT 2026",
+  "date": "2026-04-12",
+  "timeZone": "America/Los_Angeles",
+  "subtitle": "Your tournament day, all in one place.",
+  "notice": "Archived event · April 12, 2026. Visit berkeley.mt for the November tournament.",
+  "eventUrl": "https://berkeley.mt/",
+  "travelUrl": "",
+  "faqs": [
+    {
+      "question": "Where can I find my testing room?",
+      "answer": "Check your assigned room with your coach. The campus map below shows buildings, not individual room assignments."
+    },
+    {
+      "question": "Where are schedule changes posted?",
+      "answer": "Check Live updates and the schedule on this page. Adjusted times are labeled in the schedule. You can also subscribe to email notifications below."
+    }
+  ]
+}

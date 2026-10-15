@@ -1,4 +1,5 @@
 mod auth;
+mod content;
 mod db;
 mod email;
 mod models;
@@ -33,7 +34,26 @@ async fn main() {
         eprintln!("[auth] ADMIN_PASSWORD not set — admin routes are unprotected");
     }
 
-    let state = AppState { db, postmark, admin_password };
+    let content_path = std::env::var("EVENT_CONTENT_PATH").unwrap_or_else(|_| "content/event.json".into());
+    let content = Arc::new(content::ContentStore::open(content_path.into()).expect("Invalid event content; check EVENT_CONTENT_PATH"));
+    let state = AppState { db, postmark, admin_password, content };
+
+    let content = state.content.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(5));
+        let mut previous_error = None;
+        loop {
+            interval.tick().await;
+            let content = content.clone();
+            let error = tokio::task::spawn_blocking(move || content.reload()).await.unwrap().err();
+            if error != previous_error {
+                if let Some(ref message) = error {
+                    eprintln!("[content] Keeping last valid content: {message}");
+                }
+                previous_error = error;
+            }
+        }
+    });
 
     // Background task: poll for scheduled announcements that are now due and send emails
     if let Some(config) = state.postmark.clone() {
@@ -59,6 +79,7 @@ async fn main() {
     // Protected admin routes
     let admin = Router::new()
         .route("/admin", get(auth::serve_admin))
+        .route("/api/content", get(routes::get_content).put(routes::save_content).layer(middleware::map_response(routes::no_store)))
         .route("/api/schedule", post(routes::create_schedule))
         .route("/api/schedule/{id}", put(routes::update_schedule))
         .route("/api/schedule/{id}", delete(routes::delete_schedule))
@@ -70,7 +91,7 @@ async fn main() {
         .route_layer(middleware::from_fn_with_state(state.clone(), auth::require_auth));
 
     let app = Router::new()
-        .route("/api/live", get(routes::get_live))
+        .route("/api/live", get(routes::get_live).layer(middleware::map_response(routes::no_store)))
         .route("/api/email/subscribe", post(routes::subscribe))
         .route("/api/email/unsubscribe", get(routes::unsubscribe))
         .merge(admin)
@@ -78,8 +99,9 @@ async fn main() {
         .layer(CorsLayer::very_permissive())
         .with_state(state);
 
-    let addr = "[::]:3001";
-    println!("Server listening on {addr}");
+    let port: u16 = std::env::var("PORT").unwrap_or_else(|_| "3001".into()).parse().expect("PORT must be a port number");
+    let addr = format!("[::]:{port}");
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    println!("Server listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }

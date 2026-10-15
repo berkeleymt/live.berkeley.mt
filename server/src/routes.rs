@@ -1,13 +1,14 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
-    response::{Html, Redirect},
+    http::{HeaderMap, StatusCode},
+    response::{Html, Redirect, Response},
     Json,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::db::Db;
+use crate::content::{ContentDocument, ContentError, ContentStore, EventContent};
 use crate::email::{self, PostmarkConfig};
 use crate::models::*;
 
@@ -17,6 +18,7 @@ pub struct AppState {
     pub db: Arc<Db>,
     pub postmark: Option<PostmarkConfig>,
     pub admin_password: Option<String>,
+    pub content: Arc<ContentStore>,
 }
 
 #[derive(Deserialize)]
@@ -25,11 +27,49 @@ pub struct LiveQuery {
     include_future: Option<bool>,
 }
 
+pub async fn no_store(mut response: Response) -> Response {
+    response.headers_mut().insert(axum::http::header::CACHE_CONTROL, "no-store".parse().unwrap());
+    response
+}
+
+#[derive(Serialize)]
+pub struct LiveResponse {
+    #[serde(flatten)]
+    live: LiveData,
+    event: EventContent,
+}
+
 pub async fn get_live(
     State(state): State<AppState>,
     Query(query): Query<LiveQuery>,
-) -> Json<LiveData> {
-    Json(state.db.get_live_data(query.at.as_deref(), query.include_future.unwrap_or(false)))
+    headers: HeaderMap,
+) -> Json<LiveResponse> {
+    let can_preview = state.admin_password.as_ref().is_some_and(|password| !password.is_empty() && crate::auth::check_basic_auth(&headers, password));
+    Json(LiveResponse {
+        live: state.db.get_live_data(
+            if can_preview { query.at.as_deref() } else { None },
+            can_preview && query.include_future.unwrap_or(false),
+        ),
+        event: state.content.snapshot().content,
+    })
+}
+
+pub async fn get_content(State(state): State<AppState>) -> Result<Json<ContentDocument>, ContentError> {
+    tokio::task::spawn_blocking(move || state.content.reload())
+        .await
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Cannot load content.".into()))?
+        .map(Json)
+        .map_err(|_| (StatusCode::SERVICE_UNAVAILABLE, "The content file is invalid or unreadable. Fix it on disk; the public page is still using its last valid copy.".into()))
+}
+
+pub async fn save_content(State(state): State<AppState>, Json(input): Json<ContentDocument>) -> Result<Json<ContentDocument>, ContentError> {
+    if state.admin_password.as_ref().is_none_or(|password| password.is_empty()) {
+        return Err((StatusCode::FORBIDDEN, "Set ADMIN_PASSWORD before publishing event content.".into()));
+    }
+    tokio::task::spawn_blocking(move || state.content.save(input))
+        .await
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Cannot save content.".into()))?
+        .map(Json)
 }
 
 // ── Schedule ──

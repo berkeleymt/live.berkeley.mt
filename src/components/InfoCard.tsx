@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { InfoItem } from "../data/types";
 
 const API = import.meta.env.VITE_API_URL?.replace(/\/live$/, "") ?? "/api";
@@ -43,6 +43,7 @@ export function InfoCardCompact({ info }: InfoCardProps) {
 }
 
 export function EmailSubscribe() {
+  const emailId = useId();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -70,15 +71,15 @@ export function EmailSubscribe() {
     <div className="px-5 py-3">
       {status === "done" ? (
         <div className="flex items-center gap-3 min-h-[36px]">
-          <p className="text-[13px] text-tertiary-label">{message}</p>
+            <p role="status" className="text-[13px] text-secondary-label">{message}</p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-2 lg:space-y-0 lg:flex lg:items-center lg:gap-3">
-          <p className="text-[13px] font-medium text-secondary-label shrink-0">
-            📧 Get email notifications
-          </p>
+          <label htmlFor={emailId} className="text-[13px] font-medium text-secondary-label shrink-0">Get email notifications</label>
           <div className="flex items-center gap-2 flex-1 min-w-0">
           <input
+            id={emailId}
+            autoComplete="email"
             type="email"
             placeholder="you@example.com"
             value={email}
@@ -95,7 +96,7 @@ export function EmailSubscribe() {
           </button>
           </div>
           {status === "error" && (
-            <p className="text-[12px] text-danger shrink-0">{message}</p>
+            <p role="alert" className="text-[12px] text-danger shrink-0">{message}</p>
           )}
         </form>
       )}

@@ -1,531 +1,472 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, LayoutGroup } from "framer-motion";
+import { lazy, Suspense, useEffect, useState } from "react";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Clock,
+  MapPin,
+  Megaphone,
+  WarningCircle,
+} from "@phosphor-icons/react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useLiveData } from "./data/useLiveData";
-import type { ScheduleEvent, DelayNotice } from "./data/types";
-import { getCurrentEvent, getNextEvent } from "./data/useLiveData";
-import { formatTime, getDelayForEvent, toMins } from "./data/utils";
-import { LiveFeed } from "./components/LiveFeed";
-import { WidgetCard } from "./components/WidgetCard";
-import { staggerContainer, cardReveal } from "./components/springs";
-import { ScheduleCardExpanded } from "./components/ScheduleCard";
-import { MapCardCompact, MapCardExpanded } from "./components/MapCard";
-import { InfoCardCompact, InfoCardExpanded, EmailSubscribe } from "./components/InfoCard";
+import { eventDateLabel, scheduleState } from "./data/schedule";
+import { formatTime } from "./data/utils";
+import { EmailSubscribe } from "./components/InfoCard";
+import type { Announcement, LiveData } from "./data/types";
+import "./today.css";
 
-const IS_DEV = import.meta.env.DEV;
+const CampusMap = lazy(() =>
+  import("./components/MapCard").then((module) => ({
+    default: module.MapCardExpanded,
+  })),
+);
 
-// ── Helpers ──
-
-function getEventProgress(ev: ScheduleEvent, delays: DelayNotice[], nowMins?: number): number {
-  const mins = nowMins ?? (() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); })();
-  const delay = delays.find(d => d.eventId === ev.id);
-  const start = toMins(delay?.newTime ?? ev.startTime);
-  const end = toMins(delay?.newEndTime ?? ev.endTime);
-  if (mins <= start) return 0;
-  if (mins >= end) return 1;
-  return (mins - start) / (end - start);
-}
-
-function getMinutesUntil(time: string, nowMins?: number): number {
-  const mins = nowMins ?? (() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); })();
-  return toMins(time) - mins;
-}
-
-/** Convert minutes-since-midnight to ms-since-epoch (today, local). */
-function minsToEpoch(mins: number): number {
-  const d = new Date();
-  d.setHours(Math.floor(mins / 60), mins % 60, 0, 0);
-  return d.getTime();
-}
-
-/** Pretty-print minutes-since-midnight as "H:MM AM/PM". */
-function minsToLabel(mins: number): string {
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  const suffix = h >= 12 ? "PM" : "AM";
-  const hour = h > 12 ? h - 12 : h === 0 ? 12 : h;
-  return `${hour}:${m.toString().padStart(2, "0")} ${suffix}`;
-}
-
-// ── Header Widget ──
-
-function HeaderWidget() {
+function Updates({
+  announcements,
+  timeZone,
+}: {
+  announcements: Announcement[];
+  timeZone: string;
+}) {
+  const [all, setAll] = useState(false);
+  const sorted = [...announcements].sort(
+    (a, b) =>
+      Number(b.priority === "urgent") - Number(a.priority === "urgent") ||
+      Number(!!b.pinned) - Number(!!a.pinned) ||
+      Date.parse(b.scheduledAt ?? b.timestamp) -
+        Date.parse(a.scheduledAt ?? a.timestamp),
+  );
+  const visible = all
+    ? sorted
+    : sorted.filter(
+        (item, index) => index < 5 || item.pinned || item.priority === "urgent",
+      );
   return (
-    <div className="bg-berkeley-blue text-white widget-shadow overflow-hidden flex items-center rounded-2xl">
-      <div className="px-5 py-4 flex items-center gap-4 w-full">
-        <img src="/bmt-logo.svg" alt="BMT" className="h-12 w-12 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="text-[10px] text-white/50 font-medium tracking-widest uppercase">
-            Sunday, April 12
-          </p>
-          <h1 className="text-[22px] font-bold tracking-tight leading-tight text-wrap-balance">
-            BmMT 2026
-          </h1>
-        </div>
-        <div className="flex items-center gap-1.5 bg-white/10 rounded-full pl-2.5 pr-3 py-1 shrink-0">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success" />
-          </span>
-          <span className="text-[11px] font-semibold text-white/90">
-            Live
-          </span>
-        </div>
-      </div>
-    </div>
+    <>
+      {sorted.length === 0 && (
+        <p className="empty-copy">
+          No updates yet. New announcements will appear here automatically.
+        </p>
+      )}
+      {visible.map((item) => (
+        <article
+          key={item.id}
+          className={`update ${item.priority === "urgent" ? "update-urgent" : ""}`}
+        >
+          <div className="update-meta">
+            {item.priority === "urgent" && <strong>Urgent</strong>}
+            {item.pinned && <span>Pinned</span>}
+            <time dateTime={item.scheduledAt ?? item.timestamp}>
+              {new Intl.DateTimeFormat("en-US", {
+                timeZone,
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+                timeZoneName: "short",
+              }).format(new Date(item.scheduledAt ?? item.timestamp))}
+            </time>
+          </div>
+          <h3>{item.title}</h3>
+          <div className="prose-copy">
+            <Markdown remarkPlugins={[remarkGfm]} skipHtml>
+              {item.body}
+            </Markdown>
+          </div>
+        </article>
+      ))}
+      {sorted.length > visible.length && (
+        <button className="text-button" onClick={() => setAll(true)}>
+          Show {sorted.length - visible.length} older updates{" "}
+          <ArrowRight aria-hidden size={16} />
+        </button>
+      )}
+    </>
   );
 }
 
-// ── Now Hero ──
-
-function NowHero({ events, delays, nowMins, showScheduleHint }: { events: ScheduleEvent[]; delays: DelayNotice[]; nowMins?: number; showScheduleHint?: boolean }) {
-  const currentId = useMemo(() => getCurrentEvent(events, nowMins, delays), [events, nowMins, delays]);
-  const nextId = useMemo(() => getNextEvent(events, nowMins, delays), [events, nowMins, delays]);
-
-  const current = currentId ? events.find((e) => e.id === currentId) : null;
-  const next = nextId ? events.find((e) => e.id === nextId) : null;
-  const progress = current ? getEventProgress(current, delays, nowMins) : 0;
-  const currentDelay = current ? getDelayForEvent(current.id, delays) : undefined;
-
-  if (!current && !next) {
-    return (
-      <div className="h-full glass-heavy widget-shadow px-5 py-6 text-center flex flex-col items-center justify-center">
-        <p className="text-[15px] font-semibold text-label">All done for today!</p>
-        <p className="text-[13px] text-tertiary-label mt-1">Thanks for coming to BmMT 2026</p>
-      </div>
-    );
-  }
+function Today({ data, stale }: { data: LiveData; stale: boolean }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 10_000);
+    return () => clearInterval(timer);
+  }, []);
+  const { event, schedule, delays, announcements, venues, info } = data;
+  const { phase, current, next, events } = scheduleState(
+    schedule,
+    delays,
+    event,
+    now,
+  );
+  const headline =
+    phase === "unpublished"
+      ? "Schedule coming soon"
+      : phase === "before"
+        ? "See you at Berkeley."
+        : current
+          ? current.title
+          : next
+            ? "Up next: " + next.title
+            : "That’s a wrap.";
+  const summary =
+    phase === "unpublished"
+      ? "The event schedule has not been published yet. Check back for updates."
+      : phase === "before"
+        ? event.subtitle
+        : current
+          ? `${formatTime(current.startTime)} – ${formatTime(current.endTime)} · ${current.location}`
+          : next
+            ? `${formatTime(next.startTime)} · ${next.location}`
+            : `Thanks for being part of ${event.title}. The schedule and updates remain available below.`;
+  useEffect(() => {
+    document.title = `${event.title} · Live`;
+  }, [event.title]);
 
   return (
-    <div className="h-full glass-heavy widget-shadow overflow-hidden flex flex-col justify-center">
-      {current ? (
-        <div className="px-5 py-5">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-california-gold opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-california-gold" />
+    <div className="today-page">
+      <a href="#main" className="skip-link">
+        Skip to content
+      </a>
+      <header className="site-header">
+        <div className="page-width header-inner">
+          <a href={event.eventUrl} className="brand">
+            <img src="/bmt-logo.svg" width="40" height="40" alt="" />
+            <span>
+              Berkeley Math Tournament
+              <span className="brand-caption">Tournament day companion</span>
             </span>
-            <span className="text-[12px] font-bold uppercase tracking-wider text-california-gold">
-              Happening Now
-            </span>
-          </div>
-
-          <h2 className="text-[22px] font-bold text-label leading-tight tracking-tight">
-            {current.title}
-          </h2>
-          {currentDelay && (currentDelay.newTime || currentDelay.newEndTime) ? (() => {
-            const newStart = currentDelay.newTime ?? current.startTime;
-            const newEnd = currentDelay.newEndTime ?? current.endTime;
-            const startChanged = newStart !== current.startTime;
-            const endChanged = newEnd !== current.endTime;
-            return <>
-              <p className="text-[15px] text-tertiary-label line-through mt-1 tabular-nums">
-                {formatTime(current.startTime)} – {formatTime(current.endTime)}
-              </p>
-              <p className="text-[15px] tabular-nums">
-                <span className={startChanged ? "text-danger" : "text-secondary-label"}>{formatTime(newStart)}</span>
-                <span className="text-secondary-label"> – </span>
-                <span className={endChanged ? "text-danger" : "text-secondary-label"}>{formatTime(newEnd)}</span>
-                <span className="text-tertiary-label"> · {current.location}</span>
-              </p>
-            </>;
-          })() : (
-            <p className="text-[15px] text-secondary-label mt-1 tabular-nums">
-              {formatTime(current.startTime)} – {formatTime(current.endTime)}
-              <span className="text-tertiary-label"> · {current.location}</span>
-            </p>
-          )}
-          {currentDelay?.reason && (
-            <p className="text-[12px] text-danger mt-1 font-medium">
-              {currentDelay.reason}
-            </p>
-          )}
-
-          {/* Progress bar */}
-          <div className="mt-4 h-1.5 bg-black/[0.06] rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-california-gold rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.round(progress * 100)}%` }}
-              transition={{ type: "spring", duration: 0.8, bounce: 0 }}
-            />
-          </div>
-          <div className="flex justify-between mt-1.5 text-[11px] text-tertiary-label tabular-nums">
-            <span>{formatTime(currentDelay?.newTime ?? current.startTime)}</span>
-            <span>{Math.round(progress * 100)}%</span>
-            <span>{formatTime(currentDelay?.newEndTime ?? current.endTime)}</span>
-          </div>
+          </a>
+          <a href="/admin" className="staff-link">
+            Staff sign in <ArrowUpRight aria-hidden size={16} />
+          </a>
         </div>
-      ) : next && (
-        <div className="px-5 py-5">
-          <span className="text-[12px] font-bold uppercase tracking-wider text-tertiary-label">
-            Up Next
-          </span>
-          <h2 className="text-[22px] font-bold text-label leading-tight tracking-tight mt-2">
-            {next.title}
-          </h2>
-          <p className="text-[15px] text-secondary-label mt-1 tabular-nums">
-            {formatTime(next.startTime)} – {formatTime(next.endTime)}
-            <span className="text-tertiary-label"> · {next.location}</span>
+      </header>
+      <nav className="section-nav" aria-label="On this page">
+        <div className="page-width">
+          <a href="#today">Today</a>
+          <a href="#schedule">Schedule</a>
+          <a href="#updates">Live updates</a>
+          <a href="#map">Campus map</a>
+          <a href="#help">Help & FAQ</a>
+        </div>
+      </nav>
+      <main id="main" className="page-width" tabIndex={-1}>
+        {event.notice && (
+          <p className="page-notice">
+            <WarningCircle size={20} aria-hidden />
+            <span>{event.notice}</span>
           </p>
-          {(() => {
-            const nextDelay = getDelayForEvent(next.id, delays);
-            const mins = getMinutesUntil(nextDelay?.newTime ?? next.startTime, nowMins);
-            if (mins > 0 && mins < 120) {
-              return (
-                <p className="text-[13px] text-california-gold font-semibold mt-2 tabular-nums">
-                  Starts in {mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`}
+        )}
+        {stale && (
+          <p role="alert" className="connection-warning">
+            Updates are interrupted. Showing the last received information;
+            times may have changed. Reconnecting automatically.
+          </p>
+        )}
+        <section
+          id="today"
+          className="today-hero"
+          aria-labelledby="event-heading"
+        >
+          <div className="event-heading">
+            <p className="eyebrow">
+              {eventDateLabel(event.date)} · Berkeley, CA
+            </p>
+            <h1 id="event-heading">
+              {event.title} <span>Live</span>
+            </h1>
+          </div>
+          <div className="hero-grid">
+            <div className="now-block">
+              <p className="eyebrow">
+                {phase === "before"
+                  ? "Before you arrive"
+                  : phase === "after"
+                    ? "Event complete"
+                    : current
+                      ? "Scheduled now"
+                      : "Your day at a glance"}
+              </p>
+              <h2>{headline}</h2>
+              <p>{summary}</p>
+              {current?.delay && (
+                <p className="hero-delay">
+                  Time updated
+                  {current.delay.reason ? ` · ${current.delay.reason}` : ""}
                 </p>
-              );
-            }
-            return null;
-          })()}
+              )}
+              <a className="primary-link" href="#schedule">
+                View the schedule <ArrowRight aria-hidden size={18} />
+              </a>
+            </div>
+            <aside className="next-block" aria-label="Next event">
+              <Clock size={24} aria-hidden />
+              <p className="eyebrow">
+                {phase === "before" ? "First on the schedule" : "Up next"}
+              </p>
+              {next ? (
+                <>
+                  <h3>{next.title}</h3>
+                  <p className="next-time">
+                    {formatTime(next.startTime)} <span>Pacific</span>
+                  </p>
+                  <p>{next.location}</p>
+                </>
+              ) : (
+                <>
+                  <h3>
+                    {phase === "unpublished"
+                      ? "Details to follow"
+                      : "No more scheduled events"}
+                  </h3>
+                  <p>Keep an eye on live updates for announcements.</p>
+                </>
+              )}
+            </aside>
+          </div>
+        </section>
+        <div className="quick-links">
+          <a href="#map">
+            <MapPin size={22} aria-hidden />
+            <span>
+              <strong>Find your building</strong>
+              <span>Campus map & venue details</span>
+            </span>
+            <ArrowRight aria-hidden size={18} />
+          </a>
+          {event.travelUrl && (
+            <a href={event.travelUrl}>
+              <ArrowUpRight size={22} aria-hidden />
+              <span>
+                <strong>Getting here & going home</strong>
+                <span>Plan your trip with TakeTransit</span>
+              </span>
+              <ArrowUpRight aria-hidden size={18} />
+            </a>
+          )}
+          <a href="#help">
+            <WarningCircle size={22} aria-hidden />
+            <span>
+              <strong>Need a hand?</strong>
+              <span>Wi-Fi, help & common questions</span>
+            </span>
+            <ArrowRight aria-hidden size={18} />
+          </a>
         </div>
-      )}
-      {showScheduleHint && (
-        <div className="px-5 pb-4 pt-1 flex items-center justify-center gap-1.5 text-[12px] text-tertiary-label">
-          <span>View full schedule</span>
-          <span className="text-[10px]">›</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Schedule Timeline ──
-
-function ScheduleTimeline({ events, delays, nowMins }: { events: ScheduleEvent[]; delays: DelayNotice[]; nowMins?: number }) {
-  const currentId = useMemo(() => getCurrentEvent(events, nowMins, delays), [events, nowMins, delays]);
-
-  return (
-    <div className="space-y-0">
-      {events.map((ev, i) => {
-        const isCurrent = ev.id === currentId;
-        const delay = getDelayForEvent(ev.id, delays);
-        const isLast = i === events.length - 1;
-
-        return (
-          <div key={ev.id} className="flex gap-3">
-            {/* Timeline column */}
-            <div className="flex flex-col items-center w-10 shrink-0">
-              <div className="my-1.5">
-                {isCurrent ? (
-                  <span className="relative flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-california-gold opacity-75" />
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-california-gold" />
-                  </span>
-                ) : (
-                  <span className="h-2.5 w-2.5 rounded-full bg-quaternary-label/50 block" />
-                )}
+        <div className="day-grid">
+          <section
+            id="schedule"
+            className="content-section"
+            aria-labelledby="schedule-heading"
+          >
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">Plan your day</p>
+                <h2 id="schedule-heading">Schedule</h2>
               </div>
-              {!isLast && (
-                <div className={`w-px flex-1 ${isCurrent ? "bg-california-gold/30" : "bg-separator"}`} />
-              )}
+              <span>All times Pacific</span>
             </div>
-
-            {/* Event content */}
-            <div className={`pb-4 flex-1 min-w-0 ${isLast ? "" : ""}`}>
-              <p className={`text-[14px] font-semibold leading-tight ${
-                isCurrent ? "text-label" : "text-secondary-label"
-              }`}>
-                {ev.title}
+            {events.length === 0 && (
+              <p className="empty-copy">
+                The schedule will appear here when it is ready.
               </p>
-              {delay && (delay.newTime || delay.newEndTime) ? (() => {
-                const newStart = delay.newTime ?? ev.startTime;
-                const newEnd = delay.newEndTime ?? ev.endTime;
-                const startChanged = newStart !== ev.startTime;
-                const endChanged = newEnd !== ev.endTime;
-                return <>
-                  <p className="text-[12px] tabular-nums mt-0.5 line-through text-tertiary-label">
-                    {formatTime(ev.startTime)} – {formatTime(ev.endTime)}
-                  </p>
-                  <p className="text-[12px] tabular-nums">
-                    <span className={startChanged ? "text-danger" : "text-tertiary-label"}>{formatTime(newStart)}</span>
-                    <span className="text-tertiary-label"> – </span>
-                    <span className={endChanged ? "text-danger" : "text-tertiary-label"}>{formatTime(newEnd)}</span>
-                    <span className="text-tertiary-label"> · {ev.location}</span>
-                  </p>
-                </>;
-              })() : (
-                <p className={`text-[12px] tabular-nums mt-0.5 ${
-                  isCurrent ? "text-secondary-label" : "text-tertiary-label"
-                }`}>
-                  {formatTime(ev.startTime)} – {formatTime(ev.endTime)}
-                  <span className="text-tertiary-label"> · {ev.location}</span>
-                </p>
-              )}
-              {delay?.reason && (
-                <p className="text-[12px] text-danger mt-0.5 font-medium">
-                  {delay.reason}
-                </p>
-              )}
+            )}
+            <ol className="agenda">
+              {events.map((item) => {
+                const original = schedule.find(
+                  (entry) => entry.id === item.id,
+                )!;
+                const changed =
+                  item.startTime !== original.startTime ||
+                  item.endTime !== original.endTime;
+                return (
+                  <li
+                    key={item.id}
+                    className={current?.id === item.id ? "agenda-current" : ""}
+                  >
+                    <div className="agenda-time">
+                      <span>{formatTime(item.startTime)}</span>
+                      <span>{formatTime(item.endTime)}</span>
+                    </div>
+                    <div className="agenda-body">
+                      <div className="agenda-title">
+                        <h3>{item.title}</h3>
+                        {current?.id === item.id && (
+                          <span className="now-label">Scheduled now</span>
+                        )}
+                      </div>
+                      <p className="agenda-location">
+                        <MapPin aria-hidden size={15} />
+                        {item.location}
+                      </p>
+                      {changed && (
+                        <p className="time-change">
+                          Time updated · was{" "}
+                          <s>
+                            {formatTime(original.startTime)} –{" "}
+                            {formatTime(original.endTime)}
+                          </s>
+                        </p>
+                      )}
+                      {item.delay?.reason && (
+                        <p className="time-change">{item.delay.reason}</p>
+                      )}
+                      {item.description && (
+                        <details className="event-details">
+                          <summary>Event details</summary>
+                          <p>{item.description}</p>
+                        </details>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+          <section
+            id="updates"
+            className="content-section updates-section"
+            aria-labelledby="updates-heading"
+          >
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">From the organizers</p>
+                <h2 id="updates-heading">Live updates</h2>
+              </div>
+              <Megaphone size={22} aria-hidden />
+            </div>
+            <p className="refresh-status">
+              {stale
+                ? "Reconnecting · updates may be out of date"
+                : "Refreshes automatically every 5 seconds"}
+            </p>
+            <Updates announcements={announcements} timeZone={event.timeZone} />
+            <div className="subscribe-panel">
+              <EmailSubscribe />
+            </div>
+          </section>
+        </div>
+        <section
+          id="map"
+          className="content-section map-section"
+          aria-labelledby="map-heading"
+        >
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Around campus</p>
+              <h2 id="map-heading">Find your building</h2>
+            </div>
+            <a href="https://www.berkeley.edu/map/">
+              UC Berkeley map <ArrowUpRight aria-hidden size={16} />
+            </a>
+          </div>
+          <p className="section-intro">
+            Use the map for campus orientation. Room assignments come from your
+            coach; indoor and step-free routes are not yet available here.
+          </p>
+          <div className="map-layout">
+            <div className="campus-map">
+              <Suspense
+                fallback={<p className="empty-copy">Loading campus map…</p>}
+              >
+                <CampusMap />
+              </Suspense>
+            </div>
+            <div className="venue-list">
+              {venues.map((venue) => (
+                <details key={venue.id}>
+                  <summary>{venue.name}</summary>
+                  <p>{venue.description}</p>
+                  {venue.floor && <p>{venue.floor}</p>}
+                </details>
+              ))}
             </div>
           </div>
-        );
-      })}
+        </section>
+        <section
+          id="help"
+          className="content-section help-section"
+          aria-labelledby="help-heading"
+        >
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">A little help</p>
+              <h2 id="help-heading">Good to know</h2>
+            </div>
+          </div>
+          <dl className="help-grid">
+            {info.map((item) => (
+              <div key={item.id}>
+                <dt>{item.label}</dt>
+                <dd>{item.value}</dd>
+              </div>
+            ))}
+          </dl>
+          {event.faqs.length > 0 && (
+            <div className="faq-section">
+              <h3>Frequently asked questions</h3>
+              {event.faqs.map((faq, index) => (
+                <details key={index}>
+                  <summary>{faq.question}</summary>
+                  <div className="prose-copy">
+                    <Markdown remarkPlugins={[remarkGfm]} skipHtml>
+                      {faq.answer}
+                    </Markdown>
+                  </div>
+                </details>
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+      <footer className="page-width site-footer">
+        <span>Berkeley Math Tournament · Student-run at UC Berkeley</span>
+        <div>
+          <a href={event.eventUrl}>
+            BMT website <ArrowUpRight aria-hidden size={14} />
+          </a>
+          <a href="/classic">Classic view</a>
+          <a href="/admin">Staff tools</a>
+        </div>
+      </footer>
     </div>
   );
-}
-
-// ── Dev Time Slider ──
-
-function DevTimeSlider({ value, onChange }: { value: number; onChange: (v: number | null) => void }) {
-  const [playing, setPlaying] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
-
-  useEffect(() => {
-    if (!playing) {
-      clearInterval(intervalRef.current);
-      return;
-    }
-    // 300x speed: advance 1 min every 200ms
-    let cur = value;
-    intervalRef.current = setInterval(() => {
-      cur += 1;
-      if (cur > 1140) { setPlaying(false); onChange(1140); return; }
-      onChange(cur);
-    }, 200);
-    return () => clearInterval(intervalRef.current);
-  }, [playing, onChange, value]);
-
-  return (
-    <div className="fixed bottom-0 inset-x-0 z-50 bg-gray-900/95 text-white backdrop-blur-sm px-4 py-2 flex items-center gap-2">
-      <button
-        onClick={() => onChange(null)}
-        className="text-[11px] font-mono bg-white/10 hover:bg-white/20 rounded px-2 py-0.5 shrink-0"
-      >
-        Live
-      </button>
-      <button
-        onClick={() => { if (!playing && value >= 1140) onChange(420); setPlaying(!playing); }}
-        className="text-[13px] bg-white/10 hover:bg-white/20 rounded w-7 h-7 flex items-center justify-center shrink-0"
-        title={playing ? "Pause" : "Play 60x"}
-      >
-        {playing ? "⏸" : "▶"}
-      </button>
-      <input
-        type="range"
-        min={420} max={1140} step={1}
-        value={value}
-        onChange={(e) => { setPlaying(false); onChange(Number(e.target.value)); }}
-        className="flex-1 accent-california-gold h-1.5"
-      />
-      <span className="text-[15px] font-mono font-semibold tabular-nums w-24 text-right shrink-0">
-        {minsToLabel(value)}
-      </span>
-    </div>
-  );
-}
-
-// ── Main App ──
-
-/** Check if the viewport is tall enough for tall cards (row-span-3 instead of 2). */
-function useTallCards(gridRef: React.RefObject<HTMLDivElement | null>) {
-  const [tall, setTall] = useState(false);
-
-  useEffect(() => {
-    const check = () => {
-      const el = gridRef.current;
-      if (!el || !window.matchMedia("(min-width: 1024px)").matches) {
-        setTall(false);
-        return;
-      }
-      const w = el.clientWidth;
-      const gap = 18;
-      const rowH = (w - gap * 3) / 4;
-      const tallHeight = 60 + 50 + 12 + 4 * rowH + 3 * gap + 24 + 32;
-      setTall(window.innerHeight >= tallHeight);
-    };
-
-    // Check once the ref is available (may need a frame for layout)
-    requestAnimationFrame(check);
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  });
-
-  return tall;
 }
 
 export default function App() {
-  // Dev time slider state — null means "use real time"
-  const [devMins, setDevMins] = useState<number | null>(null);
-  const devNow = devMins != null ? minsToEpoch(devMins) : null;
-  const nowMins = devMins ?? undefined;
-
-  const { data, error, stale } = useLiveData(devNow);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
-  const tallCards = useTallCards(gridRef);
-  const tallSpan = tallCards ? "col-span-2 row-span-3 h-full" : "col-span-2 row-span-2 h-full";
-
-  if (!data) return (
-    <div className="min-h-dvh flex items-center justify-center">
-      {error
-        ? <p className="text-secondary-label text-center px-4">{error}</p>
-        : (
-          <div className="flex flex-col items-center gap-4">
-            <motion.img
-              src="/bmt-logo.svg"
-              alt=""
-              className="h-16 w-16"
-              animate={{ rotate: 360 }}
-              transition={{
-                repeat: Infinity,
-                ease: [0.25, 0.1, 0.25, 1],
-                duration: 4,
-              }}
-            />
-            <p className="text-secondary-label">Loading...</p>
-          </div>
-        )}
-    </div>
-  );
-
+  const { data, stale, error, refresh } = useLiveData();
+  if (data?.event) return <Today data={data} stale={stale} />;
   return (
-    <LayoutGroup>
-    <div className={`min-h-dvh lg:flex lg:flex-col lg:justify-center relative`}>
-      <div
-        className="fixed inset-0 bg-center bg-cover bg-no-repeat pointer-events-none opacity-[0.08] -z-10"
-        style={{ backgroundImage: "url(/bg-doodles.png)" }}
+    <main className="today-page loading-page">
+      <img
+        src="/bmt-logo.svg"
+        alt="Berkeley Math Tournament"
+        width="56"
+        height="56"
       />
-
-      {stale && (
-        <div className="fixed top-0 inset-x-0 z-50 bg-danger/90 text-white text-center text-[13px] font-medium py-1.5 px-4 backdrop-blur-sm">
-          Not receiving updates — check your connection
+      <h1>BMT Live</h1>
+      <p role="status">
+        {error
+          ? "We couldn’t load the live page. Check your connection and try again."
+          : data
+            ? "Event details are not available. The server needs the matching content update."
+            : "Loading your tournament day…"}
+      </p>
+      {error || data ? (
+        <>
+          <button className="primary-link" onClick={refresh}>
+            Try again
+          </button>
+          <a href="/classic">Open classic view</a>
+        </>
+      ) : (
+        <div className="loading-skeleton" aria-hidden>
+          <div />
+          <div />
+          <div />
         </div>
       )}
-
-      <div className="max-w-lg mx-auto px-4 pt-6 pb-8 lg:max-w-7xl lg:px-6 lg:py-6 lg:w-full">
-        <div className="widget-grid-container" ref={gridRef}>
-          {/* Header strip */}
-          <motion.div
-            initial={{ opacity: 0, y: 8, filter: "blur(4px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            transition={{ duration: 0.35 }}
-            className="mb-3"
-          >
-            <HeaderWidget />
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15, duration: 0.35 }}
-            className="mb-3 glass-heavy widget-shadow rounded-2xl overflow-hidden"
-          >
-            <EmailSubscribe />
-          </motion.div>
-
-          <motion.div
-            className="widget-grid"
-            variants={staggerContainer}
-            initial="hidden"
-            animate="show"
-          >
-            {/* NowHero — on mobile: WidgetCard that expands to schedule. On desktop: plain card */}
-            <motion.div variants={cardReveal} className="col-span-2 h-full order-first lg:order-none">
-              {/* Mobile: wrapped in WidgetCard for proper expand animation */}
-              <div className="h-full lg:hidden">
-                <WidgetCard
-                  id="now-schedule"
-                  title="Schedule"
-                  icon="📅"
-                  expandedId={expandedId}
-                  onExpand={setExpandedId}
-                  onCollapse={() => setExpandedId(null)}
-                  expandedContent={<ScheduleCardExpanded events={data.schedule} delays={data.delays} nowMins={nowMins} />}
-                >
-                  <NowHero events={data.schedule} delays={data.delays} nowMins={nowMins} showScheduleHint />
-                </WidgetCard>
-              </div>
-              {/* Desktop: plain NowHero */}
-              <div className="h-full hidden lg:block">
-                <NowHero events={data.schedule} delays={data.delays} nowMins={nowMins} />
-              </div>
-            </motion.div>
-
-            {/* Live Feed — spans 2 or 3 rows depending on viewport */}
-            <motion.div variants={cardReveal} className={tallSpan}>
-              <WidgetCard
-                id="livefeed"
-                title="Live Feed"
-                icon="📣"
-                expandedId={expandedId}
-                onExpand={setExpandedId}
-                onCollapse={() => setExpandedId(null)}
-              >
-                <LiveFeed announcements={data.announcements} devNow={devNow} />
-              </WidgetCard>
-            </motion.div>
-
-            {/* Schedule — desktop only */}
-            <motion.div variants={cardReveal} className={`${tallSpan} hidden lg:block`}>
-              <WidgetCard
-                id="schedule"
-                title="Schedule"
-                icon="📅"
-                expandedId={expandedId}
-                onExpand={setExpandedId}
-                onCollapse={() => setExpandedId(null)}
-                expandedContent={
-                  <ScheduleCardExpanded events={data.schedule} delays={data.delays} nowMins={nowMins} />
-                }
-              >
-                <div className="flex flex-col h-full">
-                  <div className="px-5 py-3 border-b border-black/[0.06] shrink-0">
-                    <h2 className="text-[13px] font-semibold text-tertiary-label uppercase tracking-wider">
-                      Full Schedule
-                    </h2>
-                  </div>
-                  <div className="px-5 py-4 overflow-y-auto overscroll-contain flex-1">
-                    <ScheduleTimeline events={data.schedule} delays={data.delays} nowMins={nowMins} />
-                  </div>
-                </div>
-              </WidgetCard>
-            </motion.div>
-
-            {/* Map + Info — square pair */}
-            <motion.div variants={cardReveal} className="h-full">
-              <WidgetCard
-                id="map"
-                title="Campus Map"
-                icon="📍"
-                expandedId={expandedId}
-                onExpand={setExpandedId}
-                onCollapse={() => setExpandedId(null)}
-                expandedVariant="fullscreen"
-                expandedContent={<MapCardExpanded venues={data.venues} />}
-              >
-                <MapCardCompact venues={data.venues} />
-              </WidgetCard>
-            </motion.div>
-
-            <motion.div variants={cardReveal} className="h-full">
-              <WidgetCard
-                id="info"
-                title="Info & Help"
-                icon="📋"
-                expandedId={expandedId}
-                onExpand={setExpandedId}
-                onCollapse={() => setExpandedId(null)}
-                expandedContent={<InfoCardExpanded info={data.info} />}
-              >
-                <InfoCardCompact info={data.info} />
-              </WidgetCard>
-            </motion.div>
-          </motion.div>
-        </div>
-      </div>
-
-      {/* Dev time slider — only in dev mode */}
-      {IS_DEV && (
-        <DevTimeSlider
-          value={devMins ?? (() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); })()}
-          onChange={setDevMins}
-        />
-      )}
-
-    </div>
-    <div id="overlay-root" />
-    </LayoutGroup>
+    </main>
   );
 }

@@ -8,7 +8,7 @@ use base64::Engine;
 
 use crate::routes::AppState;
 
-fn check_basic_auth(headers: &header::HeaderMap, expected_password: &str) -> bool {
+pub(crate) fn check_basic_auth(headers: &header::HeaderMap, expected_password: &str) -> bool {
     headers
         .get(header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())

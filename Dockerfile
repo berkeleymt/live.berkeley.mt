@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/
 WORKDIR /app
 COPY --from=backend /app/server/target/release/server ./server
 COPY --from=frontend /app/dist ./dist
+COPY content/ ./content/
 ENV STATIC_DIR=dist
 EXPOSE 3001
 CMD ["/app/server"]

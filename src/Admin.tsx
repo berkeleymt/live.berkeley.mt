@@ -5,6 +5,7 @@ import { PencilSimple, Trash, Timer, Plus, X, Check } from "@phosphor-icons/reac
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { LiveData, ScheduleEvent, Announcement, DelayNotice } from "./data/types";
+import { EventEditor } from "./components/EventEditor";
 
 const API = import.meta.env.VITE_API_URL?.replace(/\/live$/, "") ?? "/api";
 
@@ -603,7 +604,7 @@ export default function Admin() {
       <h1 className="text-xl font-bold text-danger mb-2">Connection Error</h1>
       <p className="text-secondary-label mb-4">{error}</p>
       <p className="text-sm text-tertiary-label">
-        Make sure the server is running: <code className="bg-bg px-2 py-0.5 rounded">cd server && cargo run</code>
+        From the repository root, run: <code className="bg-bg px-2 py-0.5 rounded">cargo run --manifest-path server/Cargo.toml</code>
       </p>
     </div>
   );
@@ -618,7 +619,7 @@ export default function Admin() {
     <div className="max-w-4xl mx-auto px-6 py-10 pb-24 text-base">
       <div className="flex items-center justify-between mb-10">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">BmMT Admin</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{data.event?.title ?? "Live"} Admin</h1>
           <p className="text-sm text-tertiary-label mt-1">
             Press Edit to modify · <kbd>.</kbd> to refresh
           </p>
@@ -626,6 +627,7 @@ export default function Admin() {
         <a href="/" className="btn-secondary">← Live Site</a>
       </div>
       <div className="space-y-12">
+        <EventEditor onPublish={refresh} />
         <ScheduleSection events={data.schedule} delays={data.delays} onUpdate={refresh} />
         <AnnouncementsSection announcements={data.announcements} onUpdate={refresh} />
       </div>
