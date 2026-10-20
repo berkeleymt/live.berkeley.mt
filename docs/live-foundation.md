@@ -1,5 +1,7 @@
 # Live foundation — October 15, 2026
 
+> **Historical milestone.** Decisions and test results below describe the October 15 foundation, not current launch requirements. See [the handbook](README.md), [accepted direction](adr/0001-product-direction.md) and [status](status/STATUS.md). Old staging TODOs and old lint results are not the current backlog.
+
 **Integration update:** the Git publisher, complete public editorial bundle, named staff roles, private inbox, wayfinding/lookup and atomic schedule planner are now wired into the real application. `npm run demo` runs an isolated persistent synthetic November sandbox. See [demo.md](demo.md) for current decisions, test evidence, workflow and remaining launch gates. The notes below are the historical foundation milestone, not the current feature checklist.
 
 ## Decisions and scope

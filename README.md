@@ -1,69 +1,78 @@
 # BMT Live
 
-A public tournament-day companion and role-aware staff workspace: React 19 / TypeScript / Vite, Rust / Axum, SQLite, and an optional dedicated Git content checkout. Lemon timers and TakeTransit remain separate applications.
+A tournament-day companion for [Berkeley Math Tournament](https://berkeley.mt): schedules, updates, maps, visitor guidance and a private staff workspace.
 
-## One-command local demo
+> **Contributors and agents:** start with [the working rules](docs/CLAUDE.md) and [current status](docs/status/STATUS.md). The runnable demo is not the finished product.
 
-Use Node 22.18+, Git, a current stable Rust toolchain and the native build prerequisites for the Rust dependencies. From the repository root:
+## Main pages
+
+| Page | What it does |
+| --- | --- |
+| `/` | Today, schedule, live updates and practical help |
+| `/guide` | Searchable tournament guide |
+| `/rooms` | Maps, room directions and demo student lookup |
+| `/lost-found` | Submit a private lost-and-found report |
+| `/staff/sign-in` → `/admin` | Staff editing, publishing and private inbox |
+| `/classic` | Previous public layout, retained during migration |
+
+## Repository layout
+
+| Directory | Contents |
+| --- | --- |
+| `src/` | React public pages and staff workspace |
+| `server/` | Rust API, validation and persistence |
+| `content/` | Public event, site and wayfinding files |
+| `scripts/`, `tests/` | Demo launcher and automated checks |
+| `docs/` | Requirements, design, architecture, guides, ADRs and status |
+
+## Local testing
+
+Requires **Node.js 22.18+ with npm**, **stable Rust/Cargo**, **Git**, and native C/C++ build tools, CMake and pkg-config. No Docker, production credentials or external service accounts are needed for the demo.
+
+On Windows, use WSL; the native Windows launcher has not been verified. These steps were tested on Linux.
 
 ```sh
+git clone https://github.com/berkeleymt/live.berkeley.mt.git
+cd live.berkeley.mt
 npm ci
 npm run demo
 ```
 
-Open **http://127.0.0.1:3091/**. At `/staff/sign-in`, choose a synthetic demo role; no password or production credentials are needed. `DEMO_PORT=3092 npm run demo` selects another port without stopping any existing process. Ctrl-C stops only the launched server. Restarting preserves edits and private reports in ignored `.demo/`.
+If you already cloned the repo, run the last two commands from its root. Open **http://127.0.0.1:3091/** on your computer once the terminal prints **BMT local demo**. The first run builds both frontend and server and may take a few minutes.
 
-The launcher builds the frontend/server, sets literal `DEMO_MODE=true`, disables email sending, seeds a clearly fictional **November 14, 2026** schedule and guide, enables synthetic room lookup/reports, and creates a dedicated local Git checkout plus local bare backup. It does not deploy, open network Git remotes, connect to Lemon/ContestDojo, or change the application checkout's branch.
+| Try | How |
+| --- | --- |
+| Staff workspace | Open `/staff/sign-in` and choose **Administrator**; no password |
+| Student lookup | On `/rooms`, use ID **DEMO-1001** and code **DEMO-CHECKIN-2026** |
+| Publishing and reports | Use synthetic data only; email is disabled and the Git remote is local |
 
-See **[docs/demo.md](docs/demo.md)** for the guided walkthrough, feature matrix, persistence, recovery and honest launch limitations.
+**Ctrl-C stops the demo.** Run `npm run demo` again after code changes; it rebuilds and preserves your edits/reports in ignored `.demo/`. For a restart without code changes, use `npm run demo -- --no-build`. If the port is occupied or you want a fresh sandbox, see [demo options and walkthrough](docs/demo.md#run-and-restart)—do not delete data or stop an unrelated server.
 
-## Public and staff routes
-
-- `/`: Today, schedule, updates, help and FAQ, with automatic refresh and last-good/stale states.
-- `/guide`: searchable Markdown visitor guide, images, links and print layout.
-- `/rooms`: searchable campus/building/floor/room directions, sample floor image, private student assignment lookup.
-- `/lost-found`: private lost/found report submission. `/lost-and-found` is an alias.
-- `/classic`: previous public UI retained, including its original map and development time controls.
-- `/staff/sign-in`: local named-account login or explicitly enabled synthetic demo role selection.
-- `/admin`: staff Today and navigation aligned with Lemon. Operations, content, rooms, private inbox and access screens are capability-gated; the API independently enforces permissions and CSRF.
-
-## Non-demo local development
-
-```sh
-# Set a local owner password in your shell, or configure a private named-account file.
-export ADMIN_PASSWORD='<your-local-password>'
-cargo run --locked --manifest-path server/Cargo.toml
-# In another terminal:
-npm run dev
-```
-
-Vite proxies `/api` to port 3001. For a single production-style local process, run `npm run build` and open port 3001 instead. `STATIC_DIR`, `HOST`, `PORT` and the storage paths are configurable; see `.env.example`. Normal staff cookies require HTTPS; use the isolated demo for plain-HTTP sessions. The legacy owner login/Basic API fallback remains available. **No credentials means staff APIs deny access**; there is no longer a no-password development bypass.
-
-Non-demo defaults deliberately retain archived April data in `content/event.json` and the existing SQLite seed. Do not relabel it as November tournament information. Only `npm run demo` creates the synthetic November dataset. Never point a development server at production storage.
-
-## Public content and publishing
-
-- File mode: `content/event.json` holds event metadata/FAQ; `content/site.json` holds public branding, copy, guide/help, navigation and image references; `content/wayfinding.json` holds public directions. Staff editors write these same validated documents atomically. Valid direct file edits reload; invalid edits retain the last valid in-memory publication and block conflicting saves.
-- SQLite remains the default for schedule, delays and updates. Subscription/email delivery records stay in SQLite in both modes. The private inbox uses a separate private database.
-- Git mode: `LIVE_CONTENT_REPO` points to a **dedicated content repository**, not the application repository. Its committed `operations.json` contains schedule/delays/updates and, in the full demo, an `editorial` bundle with event/site/wayfinding documents. Staff saves validate and commit before public snapshots change. Direct edits require a valid commit to become public.
-- Older operations-only Git files still work without adding keys to their exports. Their separate editorial files remain file-backed until explicitly migrated to a complete bundle.
-- Publishing offers revision/status diagnostics, download, a separately confirmed forward restore commit, and explicit push plus remote verification. A local save is not a remote backup. Images uploaded to `SITE_MEDIA_DIR` need a separate durable backup; Git versions their references, not their bytes.
-- Private inbox reports, student records, account hashes, subscriptions and secrets must never enter the public checkout or static directory. Store any Git remote with future announcements privately until those drafts can be disclosed.
-
-One server writer per content checkout. Persist **directories**, not individual mounted JSON files, because saves use atomic rename. In containers persist all configured databases, content checkout/documents and media separately from `dist/`. The Dockerfile includes the public files needed by both builds and Git in the runtime image; this work does not change or run production deployment.
+The demo still uses the old roles and check-in code. **Lemon-equivalent Google sign-in, two roles and ID-only lookup are approved requirements, not implemented features.** The demo does not connect to ContestDojo or send confirmation emails. `npm run dev` alone starts only the frontend, not this complete sandbox.
 
 ## Checks
 
 ```sh
 npm test
 npm run test:api
-npm run build
-npx tsc -b --pretty false
 npm run lint
-cargo test --locked --manifest-path server/Cargo.toml
-cargo fmt --manifest-path server/Cargo.toml --check
+npm run build
 ```
 
-API suites use temporary databases/checkouts, random ports and local bare remotes. Integration tests exercise the real `main.rs` router, role/CSRF boundaries, private report flow, room lookup, complete Git publication, atomic schedule plans and restart persistence. No browser-driven E2E or real email/SSO/provider deployment is implied. Full-app lint is clean without disabled rules; the final demo pass also repaired the legacy feed's highlight expiry and render-time clock.
+The build includes TypeScript checking. API tests use isolated synthetic storage. See [verification](docs/testing.md) for Rust checks and browser/accessibility coverage.
 
-Detailed contracts: [publishing](docs/git-publishing.md), [staff access](docs/staff-access.md), [editorial content](docs/site-content.md), [wayfinding](docs/wayfinding.md), [lost and found](docs/lost-found.md). Those documents retain builder-stage implementation details; [the demo guide](docs/demo.md) records the current integrated behavior.
+## Deployment
+
+Pushes to main build/publish the container and restart the Kubernetes deployment. This is separate from the local demo. See [the runbook](docs/runbook.md) for storage precautions and post-deploy checks; a green build does not verify tournament content.
+
+## Documentation
+
+| Read | For |
+| --- | --- |
+| [Handbook](docs/README.md) | Full documentation index |
+| [Status](docs/status/STATUS.md) | Implemented, verified and outstanding work |
+| [Requirements](docs/specs.md) / [plan](docs/development-plan.md) | Approved scope and next vertical slices |
+| [Public UX](docs/public-ux.md) / [design system](docs/design-system.md) | Journeys, accessibility and visual standards |
+| [Architecture](docs/architecture.md) / [API contracts](docs/protocol.md) | Content, private-data and integration boundaries |
+| [Staff permissions](docs/permissions.md) / [staff guide](docs/guide.md) | Accepted Lemon parity and operational workflows |
+| [Demo](docs/demo.md) / [ContestDojo](docs/setup-contestdojo.md) | Current walkthrough versus target import setup |

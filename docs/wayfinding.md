@@ -1,5 +1,7 @@
 # Rooms, entrances and private student lookup
 
+> **Current implementation, superseded lookup policy.** Code-gated synthetic/private-file lookup below is the existing behavior, not the approved requirement. Ian explicitly chose student ID only, revealing assigned rooms joined to public schedule/maps, with no check-in code. See [ContestDojo parity](setup-contestdojo.md), [public routing target](public-ux.md#wayfinding-target-interactive-campus-and-indoor-guidance) and [status](status/STATUS.md). Do not use this old code-issuance process as the production design.
+
 **Integrated:** public/staff routes, private lookup and capability checks are now wired. The complete demo publishes public directions through the Git editorial bundle; private assignments never enter it. The wiring instructions below are retained builder-stage notes, not outstanding work. See [demo.md](demo.md) for current operation and verification.
 
 This slice is a self-contained Rust module plus React screens. It does not change schedule, delay, announcement, subscription or email code. The builder has **not wired the shared application routes**; the integration owner must complete the wiring below. No new dependency was required.

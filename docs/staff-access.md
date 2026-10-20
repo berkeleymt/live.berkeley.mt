@@ -1,5 +1,7 @@
 # BMT Live staff access
 
+> **Current implementation, superseded target policy.** Four roles/local password accounts still exist in code; the approved production target is Google-only sign-in with only Admin and Super admin, behaving like Lemon. See [permissions](permissions.md) and [accepted parity](adr/0003-lemon-staff-parity.md); implementation remains outstanding. Separate Lemon navigation is approved and shared SSO is **not required**. Do not remove existing working access merely because this document records a new target.
+
 **Integrated:** the actual server router and all staff editors now use these sessions/capabilities/CSRF checks. Demo role selection is available only in literal demo mode. The adaptation instructions below are retained builder-stage notes, not outstanding work. See [demo.md](demo.md) for current operation and verification; shared Lemon SSO remains intentionally unimplemented.
 
 This module provides BMT Live's own named staff accounts and sessions. It does **not** connect to Lemon authentication, set Lemon cookies, or control Lemon timers. The Lemon link opens `https://lemon.berkeley.mt` in a new tab and requires a separate sign-in. Shared SSO remains an unimplemented, credential-dependent integration requiring an agreed identity provider and cross-application authorization design.

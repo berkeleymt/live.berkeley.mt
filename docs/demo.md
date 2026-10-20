@@ -1,5 +1,7 @@
 # Integrated BMT Live demo
 
+> **Runnable demo, not the approved production design.** Start with the [handbook](README.md), [requirements](specs.md) and [current status](status/STATUS.md). The existing demo still has four staff roles and ID + check-in-code lookup; the approved target has only Admin/Super admin and ID-only room lookup. It also requires GitHub-authoritative publication and Berkeley confirmation email, neither implied by this walkthrough. No code changed in the documentation pass.
+
 This is a local, synthetic rehearsal for **November 14, 2026**, not a live tournament publication. All five feature slices are wired through the actual Rust router and React application. The earlier feature documents describe their individual contracts; this guide supersedes their “integration still required” notes.
 
 ## Run and restart
@@ -49,19 +51,19 @@ Open `http://127.0.0.1:3091/`. The launcher builds `dist/` and the server, probe
 
 Non-demo file mode keeps the original three JSON files editable and polled; existing operations-only Git repositories remain supported without an editorial bundle. Never mix public and private data in either mode. Do not use real reports, passwords, roster identifiers or production tokens in a demo.
 
-## Verification and remaining launch work
+## Historical demo verification and limitations
 
 Integration verification passed: **36 Rust unit tests, 61 Node API/feature/integration tests, 9 schedule/date tests**, TypeScript, production Vite build, full-app ESLint, strict Clippy and Rust formatting. `npm run demo` built and started the real sandbox on loopback; HTTP checks returned 200 for public pages/data and 401 for anonymous publishing. `--prepare-only` also preserved the existing sandbox, including a separately configured `DEMO_ROOT`. No browser automation or container/production deployment was run.
 
 Automated verification includes the real application (not only builder harnesses): SPA fallback, all role boundaries, CSRF/session lifecycle, private report/idempotency/audit behavior, synthetic and private-import room lookup, stale content/publication rejection, complete editorial Git publication, local push/verification, restart persistence, SQLite atomic apply, and preserving legacy CRUD/subscriptions. Commands are in the root README. Feature SSR/render tests are not browser E2E.
 
-Not claimed complete:
+Not claimed complete in that demo pass (use [current status](status/STATUS.md) and [requirements](specs.md) for today's scope):
 
 - Dependency upgrades remain a launch gate: `npm audit --omit=dev` reports six high-severity package entries in the existing lockfile (React Router, Vite and transitive build dependencies). This sandbox uses the Rust static server rather than exposing Vite; that does not replace an advisory/reachability review and tested upgrades before deployment.
 - No browser/mobile/keyboard end-to-end rehearsal was authorized or run. It still requires an approved human/browser pass before event deployment.
 - No real November timetable, campus room allocations, emergency contacts or official map accuracy has been approved. Replace the labeled examples through the content workflow and obtain editorial review.
-- No Lemon shared session, ContestDojo import/synchronization, TakeTransit API, Postmark delivery, network Git-host deployment or production rollout was exercised. The room lookup offers a documented private-import boundary, not a live provider connection.
-- Public image bytes are outside Git. Rehearse durable content/media/private-database backup and restore, HTTPS cookie/origin configuration and named-account onboarding/credential rotation with the deployment owner.
+- No Lemon shared session, ContestDojo import/synchronization, TakeTransit API, Postmark delivery, network Git-host deployment or production rollout was exercised in the demo pass. Shared Lemon sessions and a TakeTransit API are not current requirements; deployment was checked separately later. The room lookup offers a documented private-import boundary, not a live provider connection.
+- Public image bytes are outside Git. Current production still needs correct durable storage and HTTPS cookie/origin configuration. The target will version approved public media; a larger backup/restore program is deferred per Ian's latest scope, not a blocking demo requirement.
 - The guide schema supports sections/Markdown/images; richer WYSIWYG editing and shared identity management are not implied. The legacy `/classic` presentation keeps historical hardcoded map/copy rather than being a second editorial site.
 
 ## Integration decisions and progress

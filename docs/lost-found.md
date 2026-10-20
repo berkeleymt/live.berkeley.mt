@@ -1,5 +1,7 @@
 # Private lost-and-found slice
 
+> **Current implementation reference.** The private inbox/receipt exist, but the approved target additionally requires a confirmation email from a berkeley.mt sender. That mail path is not implemented by this module. See [staff/email workflow](guide.md#target-lost-and-found-workflow), [data boundaries](architecture.md) and [open sender/retention decisions](status/decisions.md). Builder wiring notes below are historical.
+
 **Integrated:** the public form, capability-protected private inbox and audit workflow are now wired into the real application with separate private storage. The wiring instructions below are retained builder-stage notes, not outstanding work. See [demo.md](demo.md) for current operation and verification.
 
 Requested scope: a public lost/found report form and a private staff processing inbox for the November 14, 2026 tournament. This module does not touch Lemon, timers, email subscriptions, announcements, schedule/delays, or Git publishing. No new dependencies are required; SHA-256 uses the already-declared `sha2 = "0.10"`.

@@ -1,5 +1,7 @@
 # Public site content and visitor guide
 
+> **Current implementation reference.** This describes the existing schema/editor, not completion of the all-public-copy/images requirement. [Architecture](architecture.md) specifies the proposed canonical GitHub files/media pipeline; [localization](localization.md) specifies English-source automatic translation. Both need implementation. Use [status](status/STATUS.md) rather than builder-stage TODOs below.
+
 **Integrated:** shared state/routes and session/CSRF editor transport are now wired. The complete demo stores this document in the Git editorial bundle; file mode remains supported. The wiring instructions below are retained builder-stage notes, not outstanding work. See [demo.md](demo.md) for current operation and verification.
 
 This slice owns `server/src/site.rs`, `content/site.json`, `src/features/site/`, and `tests/site.test.mjs`. It does **not** wire shared application files, change schedules, connect Lemon, deploy, or operate Git. The shipped public guide explicitly labels all unconfirmed November information as a **demo**. It contains no accounts, roster, private contacts, credentials, invented check-in times, or Wi-Fi credentials. November 14, 2026 is the event date; the existing event/schedule data still needs the integration stage's November configuration.
