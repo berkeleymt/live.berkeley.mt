@@ -28,5 +28,9 @@ COPY --from=backend /app/server/target/release/server ./server
 COPY --from=frontend /app/dist ./dist
 COPY content/ ./content/
 ENV STATIC_DIR=dist
+# Absolute so they still resolve when the container's workingDir is the data volume (/app/data)
+ENV SITE_CONTENT_PATH=/app/content/site.json \
+    EVENT_CONTENT_PATH=/app/content/event.json \
+    WAYFINDING_CONTENT_PATH=/app/content/wayfinding.json
 EXPOSE 3001
 CMD ["/app/server"]
