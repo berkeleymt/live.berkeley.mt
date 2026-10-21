@@ -11,8 +11,8 @@
 {% endif %}
 
 <form id="rooms-form" class="flex flex-col sm:flex-row gap-3" autocomplete="off">
-  <label class="sr-only" for="rooms-id">Student ID or team number</label>
-  <input id="rooms-id" name="id" inputmode="text" autocapitalize="characters" spellcheck="false" placeholder="e.g. 302A or 302" required
+  <label class="sr-only" for="rooms-id">Student ID</label>
+  <input id="rooms-id" name="id" inputmode="text" autocapitalize="characters" spellcheck="false" placeholder="e.g. 302A" required
     class="flex-1 text-lg px-4 py-3 rounded-xl border border-gray-300 bg-white uppercase placeholder:normal-case focus:outline-none focus:ring-2 focus:ring-teal-400">
   <button type="submit" class="text-lg bg-teal-500 text-white py-3 px-6 rounded-xl shadow hover:-translate-y-0.5 hover:shadow-lg transition-all">Find rooms</button>
 </form>
@@ -21,7 +21,7 @@
 
 
 <div class="prose">
-  <p>Can't find your ID? Ask your coach, or visit the information desk in Dwinelle Hall. The <a href="/map/">map</a> has floor plans for every building.</p>
+  <p>Can't find your ID? Ask your coach, or visit the information desk in Dwinelle Hall. The <a href="/map/">map</a> has floor plans for every building, and the <a href="/schedule/">schedule</a> says where each round is held.</p>
 </div>
 
 {% raw %}
@@ -36,22 +36,27 @@
 
   function roomHtml(room) {
     const slug = MAP[room.split(" ")[0].toUpperCase()];
-    const link = slug ? ` <a class="text-sm font-medium text-teal-700 hover:underline whitespace-nowrap" href="/map/#${slug}">Floor plan <i class="bi bi-arrow-right"></i></a>` : "";
-    return `<span class="text-xl font-semibold">${esc(room)}</span>${link}`;
+    const href = slug ? `/map/#${slug}` : "/map/";
+    return `<span class="text-xl font-semibold">${esc(room)}</span> <a class="text-sm font-medium text-teal-700 hover:underline whitespace-nowrap" href="${href}">View maps &amp; floor plan <i class="bi bi-arrow-right"></i></a>`;
   }
 
-  function render(id, kind, columns, rooms, source) {
+  function notice(title, text) {
     result.classList.remove("hidden");
-    if (!rooms) {
-      result.innerHTML = `<div class="bg-orange-50 border border-orange-200 rounded-xl p-5 flex flex-col gap-1">
-        <p class="font-semibold">No rooms found for ${esc(id)}</p>
-        <p class="text-sm text-gray-700">Student IDs look like <b>302A</b>, team numbers like <b>302</b>. Rooms appear once your coach has checked in; if you have checked in, ask the information desk.</p></div>`;
-      return;
-    }
+    result.innerHTML = `<div class="bg-orange-50 border border-orange-200 rounded-xl p-5 flex flex-col gap-1">
+      <p class="font-semibold">${title}</p><p class="text-sm text-gray-700">${text}</p></div>`;
+  }
+
+  function render(id, columns, rooms) {
+    result.classList.remove("hidden");
     const rows = columns.map((label, i) => rooms[i] ? `<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3 border-t border-teal-100 first:border-0">
         <span class="text-sm uppercase text-gray-500">${esc(label)}</span>${roomHtml(rooms[i])}</div>` : "").join("");
+    if (!rows) {
+      notice(`No room assigned yet for ${esc(id)}`, "Rooms appear once your coach has checked in. If you have checked in, ask the information desk in Dwinelle Hall.");
+      return;
+    }
     result.innerHTML = `<div class="bg-teal-50 border border-teal-200 rounded-xl p-5">
-      <p class="uppercase text-xs text-gray-500 flex gap-2 items-center mb-2"><i class="bi bi-person-badge"></i><span>${kind === "team" ? "Team" : "Student"} ${esc(id)}</span><span class="ml-auto normal-case">${source}</span></p>${rows}</div>`;
+      <p class="uppercase text-xs text-gray-500 flex gap-2 items-center mb-2"><i class="bi bi-person-badge"></i><span>Student ${esc(id)}</span></p>${rows}
+      <p class="text-sm text-gray-600 pt-3 border-t border-teal-100">Rooms can differ by round; see the <a class="font-medium text-teal-700 hover:underline" href="/schedule/">schedule</a>.</p></div>`;
   }
 
   async function lookup(raw, fromMemory) {
@@ -59,24 +64,27 @@
     if (!id) return;
     result.classList.remove("hidden");
     result.innerHTML = `<p class="text-gray-500">Looking up ${esc(id)}…</p>`;
-    let found = false;
+    let found = false, definitive = false;
     try {
       const res = await fetch(`/api/rooms?id=${encodeURIComponent(id)}`, { cache: "no-store" });
+      const d = res.status === 200 || res.status === 400 || res.status === 404 ? await res.json() : null;
+      definitive = d !== null;
       if (res.status === 200) {
-        const d = await res.json();
-        render(d.id, d.kind, d.columns, d.rooms, "live from check-in");
-        found = true;
+        render(d.id, d.columns, d.rooms);
+        found = d.rooms.some(Boolean);
+      } else if (res.status === 400 && d.error === "team_id") {
+        notice(`${esc(id)} looks like a team number`, "Please enter a student ID, which ends in a letter, like <b>302A</b>. Each student may have a different room.");
+      } else if (res.status === 400) {
+        notice("That doesn't look like a student ID", "Student IDs look like <b>302A</b>: the number on your name tag followed by a letter.");
       } else if (res.status === 404) {
-        render(id, "", [], null, "");
+        notice(`No student found for ${esc(id)}`, "Check the ID on your name tag, or ask your coach or the information desk in Dwinelle Hall.");
       } else {
         throw new Error(`api ${res.status}`);
       }
     } catch (_) {
-      result.innerHTML = `<div class="bg-orange-50 border border-orange-200 rounded-xl p-5 flex flex-col gap-1">
-        <p class="font-semibold">Room lookup isn't available right now</p>
-        <p class="text-sm text-gray-700">Please try again in a moment, or ask your coach or the information desk in Dwinelle Hall.</p></div>`;
+      notice("Room lookup isn't available right now", "Please try again in a moment, or ask your coach or the information desk in Dwinelle Hall.");
     }
-    if (found) localStorage.setItem("rooms-id", id); else if (!fromMemory) localStorage.removeItem("rooms-id");
+    if (found) localStorage.setItem("rooms-id", id); else if (definitive && !fromMemory) localStorage.removeItem("rooms-id");
   }
 
   form.addEventListener("submit", (e) => { e.preventDefault(); lookup(input.value, false); });

@@ -3,8 +3,8 @@
 
 GET /api/rooms?id=302A  ->  {"id": "302A", "kind": "student", "columns": ["Testing Room"], "rooms": ["Wheeler 222"]}
 
-Looks the ID up live on ContestDojo (students if it ends in a letter, otherwise
-teams) and returns room names only — never names or emails. Answers are cached
+Looks a student ID up live on ContestDojo and returns room names only — never
+names or emails. Team numbers are rejected (400 team_id). Answers are cached
 for CACHE_SECONDS. The token is read from TOKEN_FILE (written into the data
 volume by the deploy workflow); until it exists every request gets 503.
 """
@@ -44,10 +44,7 @@ def token():
 
 
 def clean_room(s):
-    s = " ".join(str(s).split())
-    while s.endswith(")") and "(" in s:
-        s = s[: s.rfind("(")].rstrip()
-    return s
+    return " ".join(str(s).split())
 
 
 def fetch(kind, number, tok):
@@ -61,6 +58,8 @@ def lookup(raw):
     number = "".join(raw.split()).upper()
     if not re.fullmatch(r"[A-Z0-9-]{1,12}", number):
         return 400, {"error": "bad_id"}
+    if not number[-1].isalpha():
+        return 400, {"error": "team_id"}
     with _lock:
         hit = _cache.get(number)
         if hit and hit[0] > time.time():
@@ -68,9 +67,9 @@ def lookup(raw):
     tok = token()
     if not tok:
         return 503, {"error": "not_configured"}
-    kind = "students" if number[-1].isalpha() else "teams"
+    kind = "students"
     candidates = [number]
-    if re.fullmatch(r"\d{1,2}[A-Z]?", number):
+    if re.fullmatch(r"\d{1,2}[A-Z]", number):
         candidates.append(re.sub(r"^\d+", lambda m: m.group().zfill(3), number))
     try:
         rows = []
@@ -80,7 +79,8 @@ def lookup(raw):
                 number = n
                 break
     except (urllib.error.URLError, json.JSONDecodeError, TimeoutError) as e:
-        return 502, {"error": "upstream", "detail": str(e)[:200]}
+        print(f"upstream error for lookup: {e}", flush=True)
+        return 502, {"error": "upstream"}
     if not rows:
         status, body = 404, {"error": "not_found", "id": number}
     else:
@@ -89,12 +89,15 @@ def lookup(raw):
         labels = {c["key"]: c.get("label", c["key"]) for c in CFG["columns"]}
         status, body = 200, {
             "id": number,
-            "kind": kind[:-1],
-            "columns": [labels.get(k, k) for k in keys],
+                        "columns": [labels.get(k, k) for k in keys],
             "rooms": [clean_room(ra[k]) if ra.get(k) else "" for k in keys],
         }
     with _lock:
-        _cache[number] = (time.time() + CACHE_SECONDS, status, body)
+        now = time.time()
+        if len(_cache) > 2000:
+            for k in [k for k, v in _cache.items() if v[0] <= now]:
+                del _cache[k]
+        _cache[number] = (now + CACHE_SECONDS, status, body)
     return status, body
 
 
