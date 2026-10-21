@@ -1,0 +1,81 @@
+# Tournament-day schedule. Times are 24-hour Pacific. Edit, commit to main, and the
+# site redeploys in about two minutes. To change a time, edit `start`/`end` and put the
+# original in `was_start`/`was_end` (plus an optional `note`) so visitors see what moved.
+
+title = "BmMT 2026"
+date = "2026-04-12"
+timezone = "America/Los_Angeles"
+
+[[events]]
+title = "Check-in (Coaches Only)"
+start = "07:45"
+end = "09:15"
+was_start = "07:45"
+was_end = "09:00"
+note = "Check-in is running late."
+location = "Dwinelle 145 / Dwinelle 155"
+description = "Coaches check in at Dwinelle 145, or pick up materials at Dwinelle 155 if checked in online. Check-in closes promptly at 9:00 AM."
+
+[[events]]
+title = "Puzzle Round"
+start = "09:15"
+end = "10:45"
+was_start = "09:00"
+was_end = "10:30"
+note = "Check-in is running late."
+location = "Pauley Ballroom, VLSB, Dwinelle & Wheeler"
+description = "75-minute team-based round with a variety of mathematical puzzles. Report to your assigned classroom."
+
+[[events]]
+title = "Individual Round"
+start = "10:30"
+end = "12:30"
+was_start = "10:30"
+was_end = "12:00"
+location = "Pauley Ballroom, VLSB, Dwinelle & Wheeler"
+description = "60-minute individual test, 20 questions. No calculators. Remain in your assigned classroom."
+
+[[events]]
+title = "Lunch"
+start = "12:30"
+end = "13:45"
+was_start = "12:00"
+was_end = "13:15"
+location = "Kerr Lobby (MLK Student Union)"
+description = "Pre-ordered lunches (Crave Subs) available for pick-up inside Kerr Lobby. T-shirt & tote bag sales and free sponsor merch also in Kerr Lobby. Restaurants nearby on south side of campus and in Downtown Berkeley."
+
+[[events]]
+title = "Team Round"
+start = "13:45"
+end = "15:00"
+was_start = "13:15"
+was_end = "14:30"
+location = "Pauley Ballroom, VLSB, Dwinelle & Wheeler"
+description = "60-minute team test, 20 questions. Work with your team of up to 5 in your assigned classroom."
+
+[[events]]
+title = "Relay Round"
+start = "15:20"
+end = "16:20"
+was_start = "14:30"
+was_end = "15:30"
+location = "Pauley Ballroom, VLSB, Dwinelle & Wheeler"
+description = "40-minute relay-style round. Some questions depend on answers from prior questions. Stay in your assigned classroom."
+
+[[events]]
+title = "Activities & Tiebreaker"
+start = "16:20"
+end = "18:00"
+was_start = "15:30"
+was_end = "17:00"
+location = "Various Locations"
+description = "Student activities in Dwinelle Hall and Pauley Ballroom. Tiebreaker (by invite) in Dwinelle 229. Problem disputes (Team, Relay) in Dwinelle 234 from 3:30\u20134:00 PM."
+
+[[events]]
+title = "Awards Ceremony"
+start = "18:00"
+end = "18:45"
+was_start = "17:00"
+was_end = "18:00"
+location = "Multiple Auditoriums"
+description = "Awards presented simultaneously in multiple auditoriums. Report to your assigned awards room \u2014 going to a different room may delay your award."
