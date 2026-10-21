@@ -124,13 +124,19 @@ def commit_message(body):
     return "chore: live admin update" + (f"\n\n{note}" if note else "")
 
 
+def who(author):
+    """Author = the name typed in the publish dialog (else Admin); committer is always Admin,
+    so commits never show up as the token's owner."""
+    return {"author": {"name": author.strip() or "Admin", "email": "live@berkeley.mt"},
+            "committer": {"name": "Admin", "email": "live@berkeley.mt"}}
+
+
 def gh_put(path, raw, sha, message, author):
     if not sha:  # creating, or uploading over a file the client did not open
         status, cur = gh("GET", f"/repos/{REPO}/contents/{urllib.parse.quote(path)}?ref={BRANCH}")
         if status == 200:
             sha = cur.get("sha")
-    body = {"message": message, "content": base64.b64encode(raw).decode(), "branch": BRANCH,
-            "committer": {"name": author or "Live staff", "email": "live@berkeley.mt"}}
+    body = {"message": message, "content": base64.b64encode(raw).decode(), "branch": BRANCH, **who(author)}
     if sha:
         body["sha"] = sha
     return gh("PUT", f"/repos/{REPO}/contents/{urllib.parse.quote(path)}", body)
@@ -138,8 +144,7 @@ def gh_put(path, raw, sha, message, author):
 
 def gh_delete(path, sha, message, author):
     return gh("DELETE", f"/repos/{REPO}/contents/{urllib.parse.quote(path)}",
-              {"message": message, "sha": sha, "branch": BRANCH,
-               "committer": {"name": author or "Live staff", "email": "live@berkeley.mt"}})
+              {"message": message, "sha": sha, "branch": BRANCH, **who(author)})
 
 
 # ---------------------------------------------------------------- building
