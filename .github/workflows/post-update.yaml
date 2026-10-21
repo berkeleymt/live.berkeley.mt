@@ -45,7 +45,7 @@ jobs:
           file="content/updates/$(date +%Y-%m-%d_%H%M)_${slug:-update}.md"
           {
             echo '+++'
-            printf 'title = %s\n' "$(printf '%s' "$TITLE" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')"
+            printf 'title = %s\n' "$(printf '%s' "$TITLE" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read(), ensure_ascii=False))')"
             echo "date = $(date +%Y-%m-%dT%H:%M:%S%:z)"
             if [ "$URGENT" = "true" ]; then printf '\n[extra]\nurgent = true\n'; fi
             echo '+++'
