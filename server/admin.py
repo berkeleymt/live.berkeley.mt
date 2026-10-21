@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Password-protected editor for the files under content/, data/ and static/.
+"""Password-protected editor for config.toml and the files under content/, data/ and static/.
 
 Runs next to nginx in the live.berkeley.mt image (see start.sh). Files are read
 from and saved to GitHub (Contents API, branch BRANCH) so the repository stays
@@ -26,7 +26,7 @@ TOKEN_FILE = os.environ.get("GITHUB_TOKEN_FILE", "/app/data/github.token")
 BASE_URL = os.environ.get("ADMIN_BASE_URL", "https://live.berkeley.mt")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-EDITABLE = re.compile(r"^(?:content|data|static)/(?:[A-Za-z0-9_][A-Za-z0-9._-]*/)*[A-Za-z0-9_][A-Za-z0-9._ -]*$")
+EDITABLE = re.compile(r"^(?:config\.toml|(?:content|data|static)/(?:[A-Za-z0-9_][A-Za-z0-9._-]*/)*[A-Za-z0-9_][A-Za-z0-9._ -]*)$")
 TEXT_EXT = {".md", ".toml", ".txt", ".css", ".js", ".json", ".html", ".xml", ".csv", ".yaml", ".yml"}
 SESSION_HOURS = 24
 
@@ -233,6 +233,8 @@ def page_for(path):
         return "/schedule/"
     if path == "data/rooms.toml":
         return "/rooms/"
+    if path == "config.toml":
+        return "/"
     if path.startswith("static/"):
         return "/" + path[len("static/"):]
     return "/"
@@ -243,6 +245,8 @@ def page_for(path):
 PAGE_LABELS = {"content/_index.md": "Home page", "content/faq.md": "FAQ", "content/guide.md": "Tournament guide",
                "content/help.md": "Help", "content/map.md": "Map & rooms", "content/rooms.md": "Find my rooms",
                "content/lost-found.md": "Lost & found", "content/schedule.md": "Schedule page"}
+DATA_ITEMS = [("data/schedule.toml", "Tournament schedule", "calendar3"), ("data/rooms.toml", "Rooms", "door-open"),
+              ("config.toml", "Settings", "gear")]
 HIDDEN_STATIC = re.compile(r"^static/(fonts/|input\.css|style\.css|live\.js|site\.webmanifest|browserconfig\.xml|favicon|android-chrome|apple-touch|mstile|safari-pinned)")
 IMAGE_EXT = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
 MANAGED = {"title", "description", "date", "urgent"}
@@ -310,16 +314,64 @@ def compose_front(fields, kept, body):
 EVENT_KEYS = ["title", "start", "end", "was_start", "was_end", "note", "location", "description"]
 
 
-def parse_schedule(text):
-    header, events, cur = {}, [], None
+def parse_simple(text, array):
+    """Header keys plus the rows of one [[array]] table; good enough for our flat data files."""
+    header, rows, cur = {}, [], None
     for line in text.splitlines():
         st = line.split("#", 1)[0].strip() if not line.strip().startswith("#") else ""
-        if st == "[[events]]":
+        if st == f"[[{array}]]":
             cur = {}
-            events.append(cur)
+            rows.append(cur)
         elif m := re.match(r"(\w+)\s*=\s*(.+)$", st):
             (cur if cur is not None else header)[m.group(1)] = parse_value(m.group(2))
-    return header, events
+    return header, rows
+
+
+def parse_schedule(text):
+    return parse_simple(text, "events")
+
+
+def compose_rooms(event_id, columns):
+    out = ["# Room lookup (/rooms). server/rooms_api.py looks IDs up live on this",
+           "# ContestDojo event and returns room names only. Edit here or at /admin.", "",
+           f"event_id = {toml_str(event_id)}", "",
+           "# Optional: ContestDojo's roomAssignments keys are used as the round labels,",
+           "# in order of first appearance. List them here to rename or reorder them."]
+    for c in columns:
+        if (c.get("key") or "").strip():
+            out += ["", "[[columns]]", f"key = {toml_str(c['key'].strip())}"]
+            if (c.get("label") or "").strip():
+                out.append(f"label = {toml_str(c['label'].strip())}")
+    return "\n".join(out) + "\n"
+
+
+ADVISORY_KEYS = ["status", "title", "timestamp", "body"]
+
+
+def parse_settings(text):
+    """config.toml: only the site-wide banner ([extra.advisory]) is editable; everything else is kept."""
+    adv, inside = {}, False
+    for line in text.splitlines():
+        st = line.split("#", 1)[0].strip() if not line.strip().startswith("#") else ""
+        if st.startswith("["):
+            inside = st == "[extra.advisory]"
+        elif inside and (m := re.match(r"(\w+)\s*=\s*(.+)$", st)):
+            adv[m.group(1)] = parse_value(m.group(2))
+    return {"enabled": bool(adv), **{k: str(adv.get(k, "")) for k in ADVISORY_KEYS}}
+
+
+def compose_settings(advisory, current_text):
+    kept, inside = [], False
+    for line in (current_text or "").splitlines():
+        st = line.strip()
+        if st.startswith("["):
+            inside = st.split("#", 1)[0].strip() == "[extra.advisory]"
+        if not inside:
+            kept.append(line)
+    text = "\n".join(kept).rstrip() + "\n"
+    if advisory.get("enabled"):
+        text += "\n[extra.advisory]\n" + "".join(f"{k} = {toml_str(advisory.get(k, ''))}\n" for k in ADVISORY_KEYS)
+    return text
 
 
 def compose_schedule(header, events):
@@ -342,6 +394,11 @@ def doc_from_text(path, text):
     if path == "data/schedule.toml":
         header, events = parse_schedule(text)
         return {"kind": "schedule", "header": header, "events": events}
+    if path == "data/rooms.toml":
+        header, columns = parse_simple(text, "columns")
+        return {"kind": "rooms", "event_id": str(header.get("event_id", "")), "columns": columns}
+    if path == "config.toml":
+        return {"kind": "settings", "advisory": parse_settings(text)}
     if path.endswith(".md"):
         fields, kept, body = parse_front(text)
         kind = "update" if path.startswith("content/updates/") and not path.endswith("_index.md") else "page"
@@ -356,6 +413,10 @@ def text_from_doc(path, doc, current_text=None):
     if kind == "schedule":
         header = doc.get("header") or (parse_schedule(current_text)[0] if current_text else {})
         return compose_schedule(header, doc.get("events") or [])
+    if kind == "rooms":
+        return compose_rooms(str(doc.get("event_id", "")), doc.get("columns") or [])
+    if kind == "settings":
+        return compose_settings(doc.get("advisory") or {}, current_text)
     if kind in ("update", "page"):
         kept = [tuple(k) for k in doc.get("kept") or []]
         if current_text is not None and not doc.get("kept"):
@@ -377,7 +438,9 @@ def list_items():
     status, data = gh_tree()
     if status != 200:
         return status, data
-    items = {"updates": [], "pages": [], "images": [], "schedule": "data/schedule.toml"}
+    paths = {f["path"] for f in data["files"]}
+    items = {"updates": [], "pages": [], "images": [],
+             "data": [{"path": p, "title": t, "icon": i} for p, t, i in DATA_ITEMS if p in paths]}
     for f in data["files"]:
         p = f["path"]
         if p.startswith("content/updates/") and p.endswith(".md") and not p.endswith("_index.md"):
