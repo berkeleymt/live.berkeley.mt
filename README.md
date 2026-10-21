@@ -30,7 +30,9 @@ urgent = true   # optional; shows the red urgent style
 Please finish eating at 1:30 PM and return to your classrooms.
 ```
 
-**No Git needed for announcements:** Actions → **Post an update** → Run workflow, fill in title, text and urgent, run. It writes the file, commits and deploys.
+**No Git needed: the staff editor at [live.berkeley.mt/admin](https://live.berkeley.mt/admin).** Sign in with the shared staff password, pick any file under `content/`, `data/` or `static/`, edit, **Preview** (a real build of the site with your change), **Save & publish**. Each save is a commit to `main` by the GitHub token (so the history shows who changed what — fill in your name), the page goes live in the pod within seconds, and the normal build-and-deploy follows. New update and image upload buttons included. If two people edit the same file the second save is refused with a reload hint.
+
+Also available: Actions → **Post an update** → Run workflow (title, text, urgent) writes an update file from a form.
 
 You can do all of this in the GitHub web editor — open the file, press `.` or the pencil icon, commit to `main`. Pages refresh themselves in visitors' browsers every minute, so a push is all it takes.
 
@@ -39,6 +41,12 @@ Markdown plus the shortcodes from berkeley.mt: `{% alert(status="info", title="�
 ## Room lookup
 
 `/rooms/` asks `/api/rooms?id=302A` (student IDs only), answered live from ContestDojo by `server/rooms_api.py`, a 100-line stdlib Python service that runs next to nginx in the same container (`start.sh`). It returns room names only, caches each ID for 5 s, and reads the token from `/app/data/contestdojo.token` — the deploy job writes that file into the pod's existing data volume with `kubectl exec`, so no cluster configuration changes. If the file is missing the API answers 503 and the page says lookup is unavailable. `data/rooms.toml` names the ContestDojo event. Whatever `roomAssignments` keys ContestDojo returns become the round columns, so nothing is hard-coded per tournament; rename or reorder them in `rooms.toml` if needed. The file holds only `sha256(ID) → rooms`; no names or emails. Needs the `CONTESTDOJO_API_TOKEN` repository secret. Locally: `ROOMS_TOKEN_FILE=/path/to/token ROOMS_CONFIG=data/rooms.toml python3 server/rooms_api.py` (port 3002).
+
+## Staff editor
+
+`server/admin.py` (stdlib Python, same container as nginx) serves `/admin`. It reads and writes files through the GitHub Contents API on `main`, previews by copying the site source shipped in the image (`/site`) into a scratch dir and running `zola build`, and after a save applies the file to `/site` and rebuilds the live pages in place. Secrets are files in the pod's data volume written by the deploy job: `admin.password` (repo secret `LIVE_ADMIN_PASSWORD`) and `github.token` (`LIVE_GITHUB_TOKEN`: a fine-grained PAT with **Contents: read & write** on this repository only). Sessions are 24 h cookies and reset on redeploy. Templates, `config.toml` and code are intentionally not editable there — change those through Git.
+
+Locally: `ADMIN_SITE_DIR=$PWD ADMIN_LIVE_DIR=$PWD/public ADMIN_PASSWORD_FILE=… GITHUB_TOKEN_FILE=… ADMIN_BRANCH=some-branch ADMIN_BASE_URL=http://127.0.0.1:3003 python3 server/admin.py`, then open http://127.0.0.1:3003/admin.
 
 ## Running locally
 
@@ -62,6 +70,7 @@ config.toml          site config + site-wide advisory banner
 data/schedule.toml   the schedule
 data/rooms.toml      ContestDojo event for the room lookup
 server/rooms_api.py  live room lookup API (same container as nginx)
+server/admin.py      staff editor at /admin (+ admin.html, admin_login.html)
 .github/workflows/   build-and-push (deploy), post-update
 content/             Markdown pages; content/updates/ holds announcements
 templates/           Tera templates (base.html, index.html, schedule.html, updates.html, page.html)

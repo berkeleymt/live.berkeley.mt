@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live admin</title>
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+  :root{--teal:#14b8a6;--border:#e5e7eb;--muted:#6b7280}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"IBM Plex Sans",system-ui,sans-serif;color:#111;background:#f8fafc;height:100vh;display:grid;grid-template-rows:48px 1fr;grid-template-columns:260px 1fr;grid-template-areas:"top top" "side main"}
+  header{grid-area:top;display:flex;align-items:center;gap:12px;padding:0 14px;background:#fff;border-bottom:1px solid var(--border)}
+  header b span{color:var(--teal)}
+  header .path{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  button{font:inherit;font-size:14px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+  button:hover{background:#f3f4f6}button:disabled{opacity:.5;cursor:default}
+  button.primary{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600}button.primary:hover{background:#0d9488}
+  aside{grid-area:side;background:#fff;border-right:1px solid var(--border);overflow:auto;padding:8px 0}
+  aside h3{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:12px 14px 4px}
+  aside a{display:block;padding:4px 14px 4px 22px;font-size:13px;font-family:"IBM Plex Mono",ui-monospace,monospace;color:#111;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  aside a:hover{background:#f3f4f6}aside a.active{background:#ccfbf1}
+  aside .actions{padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap}
+  main{grid-area:main;display:grid;grid-template-columns:1fr;min-height:0}
+  main.split{grid-template-columns:1fr 1fr}
+  .editor{min-height:0;display:flex;flex-direction:column}
+  .CodeMirror{flex:1;height:auto;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:14px;line-height:1.5}
+  .preview{border-left:1px solid var(--border);background:#fff;display:none;flex-direction:column;min-height:0}
+  main.split .preview{display:flex}
+  .preview iframe{flex:1;border:0;width:100%}
+  .preview .bar{padding:6px 10px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center}
+  .empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);text-align:center;padding:40px;line-height:1.6}
+  .image{display:flex;align-items:center;justify-content:center;height:100%;background:repeating-conic-gradient(#f3f4f6 0 25%,#fff 0 50%) 0 0/24px 24px}
+  .image img{max-width:90%;max-height:90%;box-shadow:0 1px 6px rgba(0,0,0,.15)}
+  .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;max-width:90vw;display:none;z-index:9}
+  .toast.err{background:#b91c1c}.toast a{color:#99f6e4}
+  dialog{border:1px solid var(--border);border-radius:14px;padding:20px;width:420px;max-width:92vw;font:inherit}
+  dialog label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+  dialog input{font:inherit;width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px}
+  dialog menu{display:flex;justify-content:flex-end;gap:8px;margin:16px 0 0;padding:0}
+  pre.log{white-space:pre-wrap;font-size:12px;background:#fef2f2;color:#991b1b;padding:10px;border-radius:8px;max-height:200px;overflow:auto}
+  @media (max-width:800px){body{grid-template-columns:1fr;grid-template-areas:"top" "main"}aside{display:none}aside.open{display:block;position:fixed;inset:48px 0 0;z-index:5}main.split{grid-template-columns:1fr}main.split .editor{display:none}}
+</style></head><body>
+<header>
+  <button id="menu" title="Files" style="display:none"><i class="bi bi-list"></i></button>
+  <b>BMT <span>Live</span> admin</b>
+  <span class="path" id="path">Pick a file on the left</span>
+  <button id="preview" disabled><i class="bi bi-eye"></i> Preview</button>
+  <button id="save" class="primary" disabled><i class="bi bi-cloud-upload"></i> Save &amp; publish</button>
+  <button id="logout" title="Sign out"><i class="bi bi-box-arrow-right"></i></button>
+</header>
+<aside id="side"><div class="actions"><button id="new"><i class="bi bi-file-earmark-plus"></i> New update</button><button id="upload"><i class="bi bi-image"></i> Upload</button><input id="file" type="file" hidden></div><div id="tree"></div></aside>
+<main id="main">
+  <div class="editor" id="editor"><div class="empty">Choose a file to edit.<br>Changes go live a few seconds after <b>Save &amp; publish</b> and are committed to GitHub.</div></div>
+  <div class="preview"><div class="bar"><i class="bi bi-eye"></i> Preview of your unsaved edit <span style="flex:1"></span><button id="closePreview" style="padding:2px 8px">Close</button></div><iframe id="frame"></iframe></div>
+</main>
+<div class="toast" id="toast"></div>
+<dialog id="saveDialog"><form method="dialog"><b>Save &amp; publish</b>
+  <label>What changed (commit message)</label><input id="msg" required>
+  <label>Your name (shown in the history)</label><input id="author" placeholder="e.g. Info desk — Ian">
+  <menu><button value="cancel">Cancel</button><button value="ok" class="primary">Publish</button></menu></form></dialog>
+<dialog id="newDialog"><form method="dialog"><b>New file</b>
+  <label>Path</label><input id="newPath" required pattern="(content|data|static)/.+">
+  <menu><button value="cancel">Cancel</button><button value="ok" class="primary">Create</button></menu></form></dialog>
+<dialog id="errDialog"><form method="dialog"><b id="errTitle">Build failed</b><p style="font-size:14px;color:var(--muted)">The site could not be built with this change. Nothing was published.</p><pre class="log" id="errLog"></pre><menu><button value="ok" class="primary">OK</button></menu></form></dialog>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/toml/toml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const api = async (method, path, body) => {
+  const res = await fetch(path, { method, headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined });
+  if (res.status === 401) { location.reload(); throw new Error("login"); }
+  return [res.status, await res.json().catch(() => ({}))];
+};
+let cm = null, current = null, dirty = false, binary = null;
+const toast = (html, err) => { const t = $("toast"); t.innerHTML = html; t.className = "toast" + (err ? " err" : ""); t.style.display = "block"; clearTimeout(t._t); t._t = setTimeout(() => (t.style.display = "none"), err ? 8000 : 5000); };
+const modeFor = (p) => /\.md$/.test(p) ? "markdown" : /\.toml$/.test(p) ? "toml" : /\.css$/.test(p) ? "css" : /\.js(on)?$/.test(p) ? "javascript" : null;
+const isImage = (p) => /\.(png|jpe?g|gif|webp|svg|ico)$/i.test(p);
+const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+
+async function loadTree() {
+  const [status, data] = await api("GET", "/admin/api/tree");
+  if (status !== 200) return toast("Could not list files: " + (data.error || status), true);
+  const groups = {};
+  for (const f of data.files) { const top = f.path.split("/")[0]; (groups[top] ||= []).push(f); }
+  const order = { content: "Pages & updates", data: "Schedule & settings", static: "Images & files" };
+  $("tree").innerHTML = Object.keys(order).filter((k) => groups[k]).map((k) => `<h3>${order[k]}</h3>` + groups[k].map((f) => `<a href="#${encodeURIComponent(f.path)}" data-path="${f.path}" class="${current === f.path ? "active" : ""}">${f.path.slice(k.length + 1)}</a>`).join("")).join("");
+}
+
+function setEditor(text, path) {
+  $("editor").innerHTML = "";
+  binary = null;
+  cm = CodeMirror($("editor"), { value: text, mode: modeFor(path), lineWrapping: true, lineNumbers: true, viewportMargin: 50 });
+  cm.on("change", () => { dirty = true; $("save").disabled = false; $("preview").disabled = false; });
+}
+
+async function openFile(path) {
+  if (dirty && !confirm("Discard unsaved changes to " + current + "?")) return;
+  const [status, data] = await api("GET", "/admin/api/file?path=" + encodeURIComponent(path));
+  if (status !== 200) return toast("Could not open " + path + ": " + (data.error || status), true);
+  current = path; dirty = false;
+  $("path").textContent = path;
+  $("main").classList.remove("split");
+  document.querySelectorAll("#tree a").forEach((a) => a.classList.toggle("active", a.dataset.path === path));
+  $("side").classList.remove("open");
+  if ("text" in data) { setEditor(data.text, path); $("preview").disabled = false; $("save").disabled = true; }
+  else { cm = null; binary = data.base64; $("editor").innerHTML = isImage(path) ? `<div class="image"><img src="data:image/${path.split(".").pop()};base64,${data.base64}"></div>` : `<div class="empty">Binary file (${Math.round(data.base64.length * 3 / 4 / 1024)} KB). Upload a replacement with the same name to change it.</div>`; $("preview").disabled = true; $("save").disabled = true; }
+  current = { path, sha: data.sha };
+  $("path").textContent = path;
+}
+
+$("tree").addEventListener("click", (e) => { const a = e.target.closest("a"); if (a) { e.preventDefault(); openFile(a.dataset.path); } });
+
+$("preview").addEventListener("click", async () => {
+  if (!current || !cm) return;
+  $("preview").disabled = true;
+  const [status, data] = await api("POST", "/admin/api/preview", { path: current.path, text: cm.getValue() });
+  $("preview").disabled = false;
+  if (status !== 200) { $("errTitle").textContent = "Preview failed"; $("errLog").textContent = data.log || data.error || status; return $("errDialog").showModal(); }
+  $("frame").src = data.url; $("main").classList.add("split");
+});
+$("closePreview").addEventListener("click", () => $("main").classList.remove("split"));
+
+async function publish(payload) {
+  $("save").disabled = true;
+  const [status, data] = await api("POST", "/admin/api/save", payload);
+  if (status === 409) { $("save").disabled = false; return toast("Someone else changed this file since you opened it. Copy your text, reopen the file, and paste it in.", true); }
+  if (status === 422) { $("save").disabled = false; $("errLog").textContent = data.log; return $("errDialog").showModal(); }
+  if (status !== 200) { $("save").disabled = false; return toast("Save failed: " + (data.detail || data.error || status), true); }
+  dirty = false; current.sha = data.sha;
+  toast(`Published. ${data.live ? "Live now; " : "Live after the redeploy (~2 min); "}<a href="${data.commit}" target="_blank">view commit</a>.` + (data.live ? "" : ` <br><small>${(data.log || "").slice(0, 300)}</small>`));
+  loadTree();
+}
+
+$("save").addEventListener("click", () => {
+  if (!current || !cm) return;
+  $("msg").value = "Update " + current.path.split("/").pop();
+  $("author").value = localStorage.getItem("admin-author") || "";
+  $("saveDialog").showModal();
+});
+$("saveDialog").addEventListener("close", () => {
+  if ($("saveDialog").returnValue !== "ok") return;
+  localStorage.setItem("admin-author", $("author").value);
+  publish({ path: current.path, text: cm.getValue(), sha: current.sha, message: $("msg").value, author: $("author").value });
+});
+
+$("new").addEventListener("click", () => {
+  const d = new Date(); const pad = (n) => String(n).padStart(2, "0");
+  const pt = new Date(d.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+  $("newPath").value = `content/updates/${pt.getFullYear()}-${pad(pt.getMonth() + 1)}-${pad(pt.getDate())}_${pad(pt.getHours())}${pad(pt.getMinutes())}_new-update.md`;
+  $("newDialog").showModal();
+});
+$("newDialog").addEventListener("close", () => {
+  if ($("newDialog").returnValue !== "ok") return;
+  const path = $("newPath").value.trim();
+  if (dirty && !confirm("Discard unsaved changes?")) return;
+  const d = new Date(); const off = -d.getTimezoneOffset();
+  const iso = new Date(d.getTime() + off * 60000).toISOString().slice(0, 19) + (off >= 0 ? "+" : "-") + String(Math.floor(Math.abs(off) / 60)).padStart(2, "0") + ":" + String(Math.abs(off) % 60).padStart(2, "0");
+  const template = path.startsWith("content/updates/") ? `+++\ntitle = "New update"\ndate = ${iso}\n\n[extra]\nurgent = false\n+++\n\nWrite the announcement here.\n` : "";
+  current = { path, sha: null }; dirty = true;
+  $("path").textContent = path + " (new)";
+  setEditor(template, path);
+  $("save").disabled = false; $("preview").disabled = false;
+});
+
+$("upload").addEventListener("click", () => $("file").click());
+$("file").addEventListener("change", async () => {
+  const f = $("file").files[0]; if (!f) return;
+  const name = prompt("Save as (under static/):", "static/" + f.name.replace(/[^A-Za-z0-9._-]/g, "-"));
+  if (!name) return;
+  const buf = await f.arrayBuffer();
+  const existing = [...document.querySelectorAll("#tree a")].find((a) => a.dataset.path === name);
+  let sha = null;
+  if (existing) { const [, d] = await api("GET", "/admin/api/file?path=" + encodeURIComponent(name)); sha = d.sha || null; }
+  await publish({ path: name, base64: b64(buf), sha, message: (sha ? "Replace " : "Add ") + name, author: localStorage.getItem("admin-author") || "" });
+  $("file").value = "";
+});
+
+$("logout").addEventListener("click", async () => { await api("POST", "/admin/api/logout", {}); location.reload(); });
+$("menu").addEventListener("click", () => $("side").classList.toggle("open"));
+if (matchMedia("(max-width:800px)").matches) $("menu").style.display = "";
+window.addEventListener("beforeunload", (e) => { if (dirty) e.preventDefault(); });
+loadTree().then(() => { const h = decodeURIComponent(location.hash.slice(1)); if (h) openFile(h); });
+</script></body></html>

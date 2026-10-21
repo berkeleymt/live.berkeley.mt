@@ -53,12 +53,20 @@ jobs:
           kubectl -n bmt rollout restart deployment/live
           kubectl -n bmt rollout status deployment/live --timeout=300s
 
-      - name: Give the pod the ContestDojo token (room lookup)
+      - name: Give the pod its secrets (room lookup token, staff editor)
         env:
           KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
           CONTESTDOJO_API_TOKEN: ${{ secrets.CONTESTDOJO_API_TOKEN }}
+          LIVE_ADMIN_PASSWORD: ${{ secrets.LIVE_ADMIN_PASSWORD }}
+          LIVE_GITHUB_TOKEN: ${{ secrets.LIVE_GITHUB_TOKEN }}
         run: |
-          if [ -z "$CONTESTDOJO_API_TOKEN" ]; then echo "CONTESTDOJO_API_TOKEN secret not set; /rooms lookup stays unavailable."; exit 0; fi
           export KUBECONFIG="$RUNNER_TEMP/kubeconfig"
-          printf '%s' "$CONTESTDOJO_API_TOKEN" | kubectl -n bmt exec -i deployment/live -- sh -c 'umask 077 && cat > /app/data/contestdojo.token'
+          put() { # put NAME FILE: write secret $NAME into /app/data/$FILE in the pod, if set
+            if [ -z "${!1}" ]; then echo "$1 secret not set; skipping $2."; return; fi
+            printf '%s' "${!1}" | kubectl -n bmt exec -i deployment/live -- sh -c "umask 077 && cat > /app/data/$2"
+          }
+          put CONTESTDOJO_API_TOKEN contestdojo.token
+          put LIVE_ADMIN_PASSWORD admin.password
+          put LIVE_GITHUB_TOKEN github.token
           kubectl -n bmt exec deployment/live -- wget -qO- http://127.0.0.1:3001/api/health
+          kubectl -n bmt exec deployment/live -- wget -qO- http://127.0.0.1:3001/admin/api/status

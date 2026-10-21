@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live admin — sign in</title>
+<link rel="icon" href="/favicon.svg">
+<style>
+  body{margin:0;font-family:"IBM Plex Sans",system-ui,sans-serif;background:#f8fafc;color:#111;display:flex;min-height:100vh;align-items:center;justify-content:center}
+  form{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;width:320px;display:flex;flex-direction:column;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  h1{font-size:20px;margin:0 0 4px}h1 span{color:#14b8a6}
+  p{margin:0;color:#6b7280;font-size:14px}
+  input{font:inherit;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px}
+  button{font:inherit;padding:10px;border:0;border-radius:10px;background:#14b8a6;color:#fff;font-weight:600;cursor:pointer}
+  .err{color:#b91c1c;font-size:14px;min-height:18px}
+</style></head><body>
+<form id="f"><h1>Berkeley Math Tournament <span>Live</span></h1><p>Staff editor. Enter the shared staff password.</p>
+<input id="pw" type="password" placeholder="Password" autofocus required autocomplete="current-password">
+<button>Sign in</button><div class="err" id="err"></div></form>
+<script>
+document.getElementById("f").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const err = document.getElementById("err"); err.textContent = "";
+  const res = await fetch("/admin/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: document.getElementById("pw").value }) });
+  if (res.ok) location.reload();
+  else err.textContent = res.status === 503 ? "The editor isn't configured yet (missing password or GitHub token)." : "Wrong password.";
+});
+</script></body></html>

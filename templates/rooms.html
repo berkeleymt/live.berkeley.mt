@@ -55,8 +55,7 @@
       return;
     }
     result.innerHTML = `<div class="bg-teal-50 border border-teal-200 rounded-xl p-5">
-      <p class="uppercase text-xs text-gray-500 flex gap-2 items-center mb-2"><i class="bi bi-person-badge"></i><span>Student ${esc(id)}</span></p>${rows}
-      <p class="text-sm text-gray-600 pt-3 border-t border-teal-100">Rooms can differ by round; see the <a class="font-medium text-teal-700 hover:underline" href="/schedule/">schedule</a>.</p></div>`;
+      <p class="uppercase text-xs text-gray-500 flex gap-2 items-center mb-2"><i class="bi bi-person-badge"></i><span>Student ${esc(id)}</span></p>${rows}</div>`;
   }
 
   async function lookup(raw, fromMemory) {
