@@ -118,6 +118,12 @@ def gh_get(path):
     return 200, {"path": path, "sha": data["sha"], "base64": base64.b64encode(raw).decode()}
 
 
+def commit_message(body):
+    """Every staff commit is the same conventional-commit subject; a typed note goes in the body."""
+    note = str(body.get("note") or "").strip()[:200]
+    return "chore: live admin update" + (f"\n\n{note}" if note else "")
+
+
 def gh_put(path, raw, sha, message, author):
     if not sha:  # creating, or uploading over a file the client did not open
         status, cur = gh("GET", f"/repos/{REPO}/contents/{urllib.parse.quote(path)}?ref={BRANCH}")
@@ -544,7 +550,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(422, {"error": "build_failed", "log": log})
             return self.send_json(200, {"url": f"/admin/preview/{token}{page_for(path)}", "log": log})
         if p == "/admin/api/save":
-            message = str(body.get("message") or f"Update {path}")[:200]
+            message = commit_message(body)
             if "base64" not in body:  # make sure the site still builds before anything is committed
                 ok, log = build_preview(path, raw, keep=False)
                 if not ok:
@@ -556,7 +562,7 @@ class Handler(BaseHTTPRequestHandler):
             ok, log = rebuild_live()
             return self.send_json(200, {"sha": data["content"]["sha"], "commit": data["commit"]["html_url"], "url": page_for(path), "live": ok, "log": "" if ok else log})
         if p == "/admin/api/delete":
-            status, data = gh_delete(path, body.get("sha"), str(body.get("message") or f"Delete {path}")[:200], str(body.get("author", ""))[:60])
+            status, data = gh_delete(path, body.get("sha"), commit_message(body), str(body.get("author", ""))[:60])
             if status != 200:
                 return self.send_json(409 if status in (409, 422) else status, {"error": "github", "detail": data.get("error", ""), "status": status})
             try:

@@ -153,7 +153,7 @@ const isoToLocal = (iso) => (iso || "").slice(0, 16);
 const localToIso = (local, prevIso) => { if (!local) return ""; const off = (prevIso && /[+-]\d{2}:\d{2}$/.exec(prevIso)?.[0]) || nowPT().off; return `${local}:00${off}`; };
 
 let items = null, cur = null, dirty = false, cm = null, previewTimer = null, previewSeq = 0;
-const setDirty = (v) => { dirty = v; $("publish").disabled = !v || !cur || cur.kind === "image" || (cur.kind === "update" && !($("fTitle")?.value || "").trim()); $("title").innerHTML = cur ? `<b>${esc(cur.label)}</b>${dirty ? "<small>Edited</small>" : ""}` : "<span>Pick something to edit</span>"; };
+const setDirty = (v) => { dirty = v; $("publish").disabled = !v || !cur || cur.kind === "image" || (cur.kind === "update" && !($("fTitle")?.value || "").trim()); $("title").innerHTML = cur ? `<b>${esc(cur.label)}</b>${dirty ? "<small>Unsaved changes</small>" : ""}` : "<span>Pick something to edit</span>"; };
 const toast = (html, cls, ms) => { const t = $("toast"); t.innerHTML = html; t.className = "toast " + (cls || ""); t.style.display = "block"; clearTimeout(t._t); t._t = setTimeout(() => (t.style.display = "none"), ms || 6000); };
 
 /* ---------- sidebar ---------- */
@@ -318,9 +318,7 @@ $("publish").onclick = () => {
 $("pubDialog").onclose = () => { if ($("pubDialog").returnValue === "ok") { localStorage.setItem("admin-author", $("author").value); doPublish($("author").value, $("msg").value); } };
 async function doPublish(author, note) {
   $("publish").disabled = true; toast(`<span class="spin"></span> Publishing…`, "", 60000);
-  const what = cur.kind === "update" ? `update: ${cur.doc.title || cur.label}` : cur.kind === "schedule" ? "schedule" : cur.label;
-  const message = note ? `${what} (${note})` : `Update ${what}`;
-  const [status, d] = await api("POST", "/admin/api/save", { path: cur.path, sha: cur.sha, message, author, ...collect() });
+  const [status, d] = await api("POST", "/admin/api/save", { path: cur.path, sha: cur.sha, note, author, ...collect() });
   if (status === 409) return toast(`Someone else published a change to this since you opened it. <button onclick="openItem(cur.path, cur.kind==='raw')">Reload theirs</button> and then make your change again.`, "err", 15000);
   if (status === 422) return toast(`Not published. The site can't be built with this change. ${esc(friendlyBuildError(d.log || "").split("\n")[0])}`, "err", 12000);
   if (status !== 200) return toast(`Not published. ${esc(d.detail || d.error || ("Error " + status))}. Try again in a moment.`, "err", 12000);
@@ -332,12 +330,12 @@ async function doPublish(author, note) {
 }
 async function removeUpdate() {
   if (!(await confirmDlg("Remove this update?", "It disappears from the site right away. You can't undo this here (it stays in the site's history).", "Remove"))) return;
-  doDelete(`Remove update: ${cur.doc.title || cur.label}`);
+  doDelete();
 }
-async function doDelete(message) {
+async function doDelete() {
   if (!cur.sha) { cur = null; dirty = false; $("editor").innerHTML = `<div class="empty">Discarded.</div>`; setDirty(false); return; }
   toast(`<span class="spin"></span> Removing…`, "", 60000);
-  const [status, d] = await api("POST", "/admin/api/delete", { path: cur.path, sha: cur.sha, message, author: localStorage.getItem("admin-author") || "" });
+  const [status, d] = await api("POST", "/admin/api/delete", { path: cur.path, sha: cur.sha, author: localStorage.getItem("admin-author") || "" });
   if (status !== 200) return toast(`Couldn't remove it. ${esc(d.detail || d.error || status)}.`, "err", 10000);
   toast(`<i class="bi bi-check-circle-fill"></i> Removed.`, "ok", 4000);
   cur = null; dirty = false; setDirty(false); $("editor").innerHTML = `<div class="empty"><i class="bi bi-check2-circle"></i>Removed.</div>`; $("main").classList.remove("split"); loadItems();
@@ -361,7 +359,7 @@ $("file").onchange = async () => {
   if (f.size > 20 * 1024 * 1024) return toast("That file is too big (over 20 MB). Please shrink it first.", "err", 8000);
   const b64 = await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(String(fr.result).split(",")[1]); fr.readAsDataURL(f); });
   toast(`<span class="spin"></span> Uploading…`, "", 60000);
-  const [status, d] = await api("POST", "/admin/api/save", { path, base64: b64, sha: null, message: (replace ? "Replace image " : "Add image ") + path, author: localStorage.getItem("admin-author") || "" });
+  const [status, d] = await api("POST", "/admin/api/save", { path, base64: b64, sha: null, author: localStorage.getItem("admin-author") || "" });
   if (status !== 200) return toast(`Upload failed. ${esc(d.detail || d.error || status)}.`, "err", 10000);
   toast(`<i class="bi bi-check-circle-fill"></i> Uploaded.`, "ok", 4000);
   await loadItems(); openItem(path);
