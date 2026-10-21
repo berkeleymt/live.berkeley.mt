@@ -14,6 +14,8 @@ It is a static [Zola](https://www.getzola.org/) site built the same way as [berk
 | Edit a page | `content/*.md` (map, guide, faq, help, lost-found, home) |
 | Swap a floor plan | `static/maps/*.png`, referenced from `content/map.md` |
 | Link the lost & found form | `form_url` in `content/lost-found.md` |
+| Refresh room assignments | Actions → **Sync rooms** → Run workflow (also runs hourly) |
+| Point room lookup at another event | `event_id` in `data/rooms.toml` |
 
 An update looks like this:
 
@@ -29,9 +31,15 @@ urgent = true   # optional; shows the red urgent style
 Please finish eating at 1:30 PM and return to your classrooms.
 ```
 
+**No Git needed for announcements:** Actions → **Post an update** → Run workflow, fill in title, text and urgent, run. It writes the file, commits and deploys.
+
 You can do all of this in the GitHub web editor — open the file, press `.` or the pencil icon, commit to `main`. Pages refresh themselves in visitors' browsers every minute, so a push is all it takes.
 
 Markdown plus the shortcodes from berkeley.mt: `{% alert(status="info", title="…") %}…{% end %}`, `{% details(title="…") %}…{% end %}`, `{% button_link(href="…") %}…{% end %}`.
+
+## Room lookup
+
+`/rooms/` looks up a student ID or team number in `static/rooms.json`, which `scripts/sync_rooms.py` builds from the ContestDojo API (`data/rooms.toml` names the event). Whatever `roomAssignments` keys ContestDojo returns become the round columns, so nothing is hard-coded per tournament; rename or reorder them in `rooms.toml` if needed. The file holds only `sha256(ID) → rooms`; no names or emails. The **Sync rooms** workflow needs the `CONTESTDOJO_API_TOKEN` repository secret. Locally: `CONTESTDOJO_API_TOKEN=… python3 scripts/sync_rooms.py`.
 
 ## Running locally
 
@@ -53,6 +61,9 @@ Open http://127.0.0.1:1111/. Add `?at=2026-04-12T10:00` to any page to preview i
 ```
 config.toml          site config + site-wide advisory banner
 data/schedule.toml   the schedule
+data/rooms.toml      ContestDojo event for the room lookup
+scripts/             sync_rooms.py
+.github/workflows/   build-and-push (deploy), sync-rooms, post-update
 content/             Markdown pages; content/updates/ holds announcements
 templates/           Tera templates (base.html, index.html, schedule.html, updates.html, page.html)
 static/              live.js (now/next + auto-refresh), input.css, fonts, logo, maps

@@ -1,4 +1,4 @@
-<details class="group border border-gray-200 rounded-xl overflow-hidden my-2">
+<details{% if id %} id="{{ id }}"{% endif %} class="group border border-gray-200 rounded-xl overflow-hidden my-2 scroll-mt-20 md:scroll-mt-4">
   <summary class="cursor-pointer select-none px-4 py-3 bg-gray-100 hover:bg-gray-200 transition-colors font-medium flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
     <i class="bi bi-chevron-right text-sm transition-transform group-open:rotate-90"></i>
     {{ title }}

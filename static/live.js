@@ -75,6 +75,14 @@
     } catch (_) { /* offline; try again next minute */ }
   }
 
+  // /map/#wheeler opens that building's floor plan.
+  function openHash() {
+    const el = location.hash && document.querySelector("details" + location.hash);
+    if (el) el.open = true;
+  }
+  openHash();
+  window.addEventListener("hashchange", openHash);
+
   render();
   refresh();
   setInterval(render, 30 * 1000);

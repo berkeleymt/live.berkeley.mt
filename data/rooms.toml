@@ -1,0 +1,12 @@
+# Room lookup (/rooms). scripts/sync_rooms.py pulls room assignments for this
+# ContestDojo event and writes static/rooms.json; the sync-rooms GitHub Action
+# runs it (Actions → Sync rooms → Run workflow, also every 30 minutes).
+# Nothing but hashed ID → room names is published.
+
+event_id = "9hJZTzftFdrZswSyerPy"   # BmMT 2026
+
+# Optional: ContestDojo's roomAssignments keys are used as the round labels,
+# in order of first appearance. To rename or reorder them, list them here:
+# [[columns]]
+# key = "Testing Room"      # exactly as ContestDojo names it
+# label = "All rounds"      # what visitors see
