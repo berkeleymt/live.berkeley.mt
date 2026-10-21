@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Password-protected editor for config.toml and the files under content/, data/ and static/.
+"""Password-protected editor for the files under content/, data/ and static/.
 
 Runs next to nginx in the live.berkeley.mt image (see start.sh). Files are read
 from and saved to GitHub (Contents API, branch BRANCH) so the repository stays
@@ -26,7 +26,7 @@ TOKEN_FILE = os.environ.get("GITHUB_TOKEN_FILE", "/app/data/github.token")
 BASE_URL = os.environ.get("ADMIN_BASE_URL", "https://live.berkeley.mt")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-EDITABLE = re.compile(r"^(?:config\.toml|(?:content|data|static)/(?:[A-Za-z0-9_][A-Za-z0-9._-]*/)*[A-Za-z0-9_][A-Za-z0-9._ -]*)$")
+EDITABLE = re.compile(r"^(?:content|data|static)/(?:[A-Za-z0-9_][A-Za-z0-9._-]*/)*[A-Za-z0-9_][A-Za-z0-9._ -]*$")
 TEXT_EXT = {".md", ".toml", ".txt", ".css", ".js", ".json", ".html", ".xml", ".csv", ".yaml", ".yml"}
 SESSION_HOURS = 24
 
@@ -348,7 +348,7 @@ def doc_from_text(path, text):
         return {"kind": kind, "title": fields.get("title", ""), "description": fields.get("description", ""),
                 "date": str(fields.get("date", "")), "urgent": bool(fields.get("urgent", False)), "body": body,
                 "kept": kept}
-    return {"kind": "raw", "text": text}
+    return None
 
 
 def text_from_doc(path, doc, current_text=None):
@@ -363,7 +363,7 @@ def text_from_doc(path, doc, current_text=None):
         fields = {"title": doc.get("title", ""), "description": doc.get("description", ""),
                   "date": doc.get("date", ""), "urgent": bool(doc.get("urgent"))}
         return compose_front(fields, kept, doc.get("body", ""))
-    return str(doc.get("text", ""))
+    return ""
 
 
 def local_text(path):
@@ -377,7 +377,7 @@ def list_items():
     status, data = gh_tree()
     if status != 200:
         return status, data
-    items = {"updates": [], "pages": [], "images": [], "schedule": "data/schedule.toml", "advanced": data["files"]}
+    items = {"updates": [], "pages": [], "images": [], "schedule": "data/schedule.toml"}
     for f in data["files"]:
         p = f["path"]
         if p.startswith("content/updates/") and p.endswith(".md") and not p.endswith("_index.md"):
@@ -505,16 +505,14 @@ class Handler(BaseHTTPRequestHandler):
             if status != 200:
                 return self.send_json(status, data)
             if "text" in data:
-                data.update(doc_from_text(path, data["text"]))
+                doc = doc_from_text(path, data["text"])
+                if doc is None:
+                    return self.send_json(400, {"error": "unsupported", "detail": "This file can't be edited here."})
+                data.update(doc)
             else:
                 data["kind"] = "image" if os.path.splitext(path)[1].lower() in IMAGE_EXT else "binary"
             data["url"] = page_for(path)
             return self.send_json(200, data)
-        if p == "/admin/api/file":
-            path = qs.get("path", [""])[0]
-            if not editable(path):
-                return self.send_json(400, {"error": "bad_path"})
-            return self.send_json(*gh_get(path))
         return self.send_json(404, {"error": "not_found"})
 
     def do_POST(self):
@@ -549,6 +547,8 @@ class Handler(BaseHTTPRequestHandler):
         if not editable(path):
             return self.send_json(400, {"error": "bad_path"})
         raw = decode_content(body, path)
+        if raw is None:
+            return self.send_json(400, {"error": "bad_body"})
         if p == "/admin/api/preview":
             token, log = build_preview(path, raw)
             if not token:
@@ -585,10 +585,9 @@ class Handler(BaseHTTPRequestHandler):
 def decode_content(body, path=""):
     if "base64" in body:
         return base64.b64decode(body["base64"])
-    if isinstance(body.get("doc"), dict):
-        text = text_from_doc(path, body["doc"], local_text(path))
-    else:
-        text = str(body.get("text", ""))
+    if not isinstance(body.get("doc"), dict):
+        return None
+    text = text_from_doc(path, body["doc"], local_text(path))
     if text and not text.endswith("\n"):
         text += "\n"
     return text.encode()

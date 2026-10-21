@@ -30,7 +30,7 @@ urgent = true   # optional; shows the red urgent style
 Please finish eating at 1:30 PM and return to your classrooms.
 ```
 
-**No Git needed: the staff editor at [live.berkeley.mt/admin](https://live.berkeley.mt/admin).** Sign in with the shared staff password. The sidebar lists live updates (newest first), the schedule, the pages and the images. Updates and pages are edited as Title / Posted at / Urgent / Text — no file syntax to learn; the schedule is a list of events with time pickers (change a time and the old one is shown crossed out on the site, add a note to say why). The right half is a live preview that updates as you type. **Publish** asks for your name, commits to `main` and the change is on the site within seconds (the normal build-and-deploy follows). If someone else published the same thing in the meantime you are asked to reload first. **Advanced** at the bottom edits any file as text.
+**No Git needed: the staff editor at [live.berkeley.mt/admin](https://live.berkeley.mt/admin).** Sign in with the shared staff password. The sidebar lists live updates (newest first), the schedule, the pages and the images. Updates and pages are edited as Title / Posted at / Urgent / Text — no file syntax to learn; the schedule is a list of events with time pickers (change a time and the old one is shown crossed out on the site, add a note to say why). The right half is a live preview that updates as you type. **Publish** asks for your name, commits to `main` and the change is on the site within seconds (the normal build-and-deploy follows). If someone else published the same thing in the meantime you are asked to reload first.
 
 Also available: Actions → **Post an update** → Run workflow (title, text, urgent) writes an update file from a form.
 
