@@ -28,8 +28,30 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 EDITABLE = re.compile(r"^(content|data|static)/(?:[A-Za-z0-9_][A-Za-z0-9._-]*/)*[A-Za-z0-9_][A-Za-z0-9._ -]*$")
 TEXT_EXT = {".md", ".toml", ".txt", ".css", ".js", ".json", ".svg", ".html", ".xml", ".csv", ".yaml", ".yml"}
-SESSION_SECRET = secrets.token_bytes(32)
 SESSION_HOURS = 24
+
+
+def session_secret():
+    """Random key kept next to the secrets so logins survive redeploys."""
+    path = os.path.join(os.path.dirname(PASSWORD_FILE), "admin.session-key")
+    try:
+        key = open(path, "rb").read()
+        if len(key) >= 32:
+            return key
+    except OSError:
+        pass
+    key = secrets.token_bytes(32)
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "wb") as f:
+            f.write(key)
+    except OSError:
+        pass
+    return key
+
+
+SESSION_SECRET = session_secret()
 _previews, _build_lock = {}, threading.Lock()
 
 
@@ -173,7 +195,11 @@ def build_preview(path, raw, delete=False):
 def page_for(path):
     """Best-guess public URL for a file, for the preview iframe."""
     if path.startswith("content/updates/"):
-        return "/updates/"
+        if path.endswith("_index.md"):
+            return "/updates/"
+        name = os.path.splitext(os.path.basename(path))[0]
+        name = re.sub(r"^\d{4}-\d{2}-\d{2}[_-]", "", name)  # zola drops the date prefix from slugs
+        return "/updates/" + re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") + "/"
     if path.startswith("content/"):
         name = os.path.splitext(os.path.basename(path))[0]
         return "/" if name == "_index" else f"/{name}/"
@@ -184,6 +210,166 @@ def page_for(path):
     if path.startswith("static/"):
         return "/" + path[len("static/"):]
     return "/"
+
+
+
+# ---------------------------------------------------------------- documents
+PAGE_LABELS = {"content/_index.md": "Home page", "content/faq.md": "FAQ", "content/guide.md": "Tournament guide",
+               "content/help.md": "Help", "content/map.md": "Map & rooms", "content/rooms.md": "Find my rooms",
+               "content/lost-found.md": "Lost & found", "content/schedule.md": "Schedule page"}
+HIDDEN_STATIC = re.compile(r"^static/(fonts/|input\.css|style\.css|live\.js|site\.webmanifest|browserconfig\.xml|favicon|android-chrome|apple-touch|mstile|safari-pinned)")
+IMAGE_EXT = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
+MANAGED = {"title", "description", "date", "urgent"}
+
+
+def toml_str(v):
+    return json.dumps(str(v), ensure_ascii=False)
+
+
+def parse_value(raw):
+    raw = raw.strip()
+    if raw.startswith('"') and raw.endswith('"'):
+        try:
+            return json.loads(raw)
+        except ValueError:
+            return raw[1:-1]
+    if raw in ("true", "false"):
+        return raw == "true"
+    return raw  # bare date-times etc.
+
+
+def parse_front(text):
+    """Split '+++ ... +++' front matter. Returns (fields, kept_lines, body).
+    fields has the managed keys; kept_lines are other front-matter lines, as
+    [(section, line)] so they survive a round trip (form_url, template, ...)."""
+    fields, kept, body = {}, [], text
+    if text.startswith("+++"):
+        end = text.find("\n+++", 3)
+        if end != -1:
+            fm = text[3:end].strip("\n")
+            body = text[end + 4:].lstrip("\n")
+            section = ""
+            for line in fm.splitlines():
+                st = line.strip()
+                if st.startswith("[") and st.endswith("]"):
+                    section = st[1:-1]
+                    continue
+                m = re.match(r"(\w+)\s*=\s*(.+)$", st)
+                if m and ((section == "" and m.group(1) in MANAGED - {"urgent"}) or (section == "extra" and m.group(1) == "urgent")):
+                    fields[m.group(1)] = parse_value(m.group(2))
+                elif st:
+                    kept.append((section, line))
+    return fields, kept, body
+
+
+def compose_front(fields, kept, body):
+    out = ["+++"]
+    for k in ("title", "description"):
+        if fields.get(k) not in (None, ""):
+            out.append(f"{k} = {toml_str(fields[k])}")
+    if fields.get("date"):
+        out.append(f"date = {fields['date']}")
+    out += [line for sec, line in kept if sec == ""]
+    extra = [line for sec, line in kept if sec == "extra"]
+    if fields.get("urgent") or extra:
+        out.append("")
+        out.append("[extra]")
+        if fields.get("urgent"):
+            out.append("urgent = true")
+        out += extra
+    out.append("+++")
+    return "\n".join(out) + "\n\n" + body.strip("\n") + "\n"
+
+
+EVENT_KEYS = ["title", "start", "end", "was_start", "was_end", "note", "location", "description"]
+
+
+def parse_schedule(text):
+    header, events, cur = {}, [], None
+    for line in text.splitlines():
+        st = line.split("#", 1)[0].strip() if not line.strip().startswith("#") else ""
+        if st == "[[events]]":
+            cur = {}
+            events.append(cur)
+        elif m := re.match(r"(\w+)\s*=\s*(.+)$", st):
+            (cur if cur is not None else header)[m.group(1)] = parse_value(m.group(2))
+    return header, events
+
+
+def compose_schedule(header, events):
+    out = ["# Tournament-day schedule. Times are 24-hour Pacific. Edit here or at /admin.",
+           "# To change a time, set `start`/`end` and keep the original in `was_start`/`was_end`",
+           "# (plus an optional `note`) so visitors see what moved.", ""]
+    for k in ("title", "date", "timezone"):
+        if header.get(k):
+            out.append(f"{k} = {toml_str(header[k])}")
+    for e in events:
+        out.append("")
+        out.append("[[events]]")
+        for k in EVENT_KEYS:
+            if e.get(k) not in (None, ""):
+                out.append(f"{k} = {toml_str(e[k])}")
+    return "\n".join(out) + "\n"
+
+
+def doc_from_text(path, text):
+    if path == "data/schedule.toml":
+        header, events = parse_schedule(text)
+        return {"kind": "schedule", "header": header, "events": events}
+    if path.endswith(".md"):
+        fields, kept, body = parse_front(text)
+        kind = "update" if path.startswith("content/updates/") and not path.endswith("_index.md") else "page"
+        return {"kind": kind, "title": fields.get("title", ""), "description": fields.get("description", ""),
+                "date": str(fields.get("date", "")), "urgent": bool(fields.get("urgent", False)), "body": body,
+                "kept": kept}
+    return {"kind": "raw", "text": text}
+
+
+def text_from_doc(path, doc, current_text=None):
+    kind = doc.get("kind")
+    if kind == "schedule":
+        header = doc.get("header") or (parse_schedule(current_text)[0] if current_text else {})
+        return compose_schedule(header, doc.get("events") or [])
+    if kind in ("update", "page"):
+        kept = [tuple(k) for k in doc.get("kept") or []]
+        if current_text is not None and not doc.get("kept"):
+            kept = parse_front(current_text)[1]
+        fields = {"title": doc.get("title", ""), "description": doc.get("description", ""),
+                  "date": doc.get("date", ""), "urgent": bool(doc.get("urgent"))}
+        return compose_front(fields, kept, doc.get("body", ""))
+    return str(doc.get("text", ""))
+
+
+def local_text(path):
+    try:
+        return open(os.path.join(SITE_DIR, path), encoding="utf-8").read()
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
+def list_items():
+    status, data = gh_tree()
+    if status != 200:
+        return status, data
+    items = {"updates": [], "pages": [], "images": [], "schedule": "data/schedule.toml", "advanced": data["files"]}
+    for f in data["files"]:
+        p = f["path"]
+        if p.startswith("content/updates/") and p.endswith(".md") and not p.endswith("_index.md"):
+            text = local_text(p)
+            fields = parse_front(text)[0] if text else {}
+            m = re.match(r"content/updates/(\d{4}-\d{2}-\d{2})_(\d{2})(\d{2})", p)
+            items["updates"].append({"path": p, "title": fields.get("title") or os.path.basename(p)[16:-3].replace("-", " "),
+                                     "date": str(fields.get("date", "")) or (f"{m.group(1)}T{m.group(2)}:{m.group(3)}:00" if m else ""),
+                                     "urgent": bool(fields.get("urgent", False))})
+        elif p.startswith("content/") and p.endswith(".md") and "/updates/" not in p:
+            text = local_text(p)
+            fields = parse_front(text)[0] if text else {}
+            items["pages"].append({"path": p, "title": PAGE_LABELS.get(p) or fields.get("title") or os.path.basename(p)})
+        elif p.startswith("static/") and os.path.splitext(p)[1].lower() in IMAGE_EXT and not HIDDEN_STATIC.match(p):
+            items["images"].append({"path": p, "size": f["size"]})
+    items["updates"].sort(key=lambda u: u["date"], reverse=True)
+    items["pages"].sort(key=lambda u: list(PAGE_LABELS).index(u["path"]) if u["path"] in PAGE_LABELS else 99)
+    return 200, items
 
 
 # ---------------------------------------------------------------- sessions
@@ -268,6 +454,11 @@ class Handler(BaseHTTPRequestHandler):
             if os.path.isdir(full):
                 full = os.path.join(full, "index.html")
             return self.send_file(full)
+        if not p.startswith("/admin"):  # local development without nginx: serve the built site
+            full = os.path.normpath(os.path.join(LIVE_DIR, url.path.lstrip("/")))
+            if os.path.isdir(full):
+                full = os.path.join(full, "index.html")
+            return self.send_file(full) if full.startswith(LIVE_DIR) else self.send_json(404, {"error": "not_found"})
         if not p.startswith("/admin/api/"):
             return self.send_json(404, {"error": "not_found"})
         if p == "/admin/api/status":
@@ -278,6 +469,19 @@ class Handler(BaseHTTPRequestHandler):
         qs = urllib.parse.parse_qs(url.query)
         if p == "/admin/api/tree":
             return self.send_json(*gh_tree())
+        if p == "/admin/api/items":
+            return self.send_json(*list_items())
+        if p == "/admin/api/doc":
+            path = qs.get("path", [""])[0]
+            if not editable(path):
+                return self.send_json(400, {"error": "bad_path"})
+            status, data = gh_get(path)
+            if status != 200:
+                return self.send_json(status, data)
+            if "text" in data:
+                data.update(doc_from_text(path, data["text"]))
+                data["url"] = page_for(path)
+            return self.send_json(200, data)
         if p == "/admin/api/file":
             path = qs.get("path", [""])[0]
             if not editable(path):
@@ -316,7 +520,7 @@ class Handler(BaseHTTPRequestHandler):
         path = str(body.get("path", ""))
         if not editable(path):
             return self.send_json(400, {"error": "bad_path"})
-        raw = decode_content(body)
+        raw = decode_content(body, path)
         if p == "/admin/api/preview":
             token, log = build_preview(path, raw)
             if not token:
@@ -329,7 +533,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(409 if status in (409, 422) else status, {"error": "github", "detail": data.get("error", ""), "status": status})
             write_local(SITE_DIR, path, raw)
             ok, log = rebuild_live()
-            return self.send_json(200, {"sha": data["content"]["sha"], "commit": data["commit"]["html_url"], "live": ok, "log": "" if ok else log})
+            return self.send_json(200, {"sha": data["content"]["sha"], "commit": data["commit"]["html_url"], "url": page_for(path), "live": ok, "log": "" if ok else log})
         if p == "/admin/api/delete":
             status, data = gh_delete(path, body.get("sha"), str(body.get("message") or f"Delete {path}")[:200], str(body.get("author", ""))[:60])
             if status != 200:
@@ -346,10 +550,13 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 
-def decode_content(body):
+def decode_content(body, path=""):
     if "base64" in body:
         return base64.b64decode(body["base64"])
-    text = str(body.get("text", ""))
+    if isinstance(body.get("doc"), dict):
+        text = text_from_doc(path, body["doc"], local_text(path))
+    else:
+        text = str(body.get("text", ""))
     if text and not text.endswith("\n"):
         text += "\n"
     return text.encode()
