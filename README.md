@@ -39,7 +39,7 @@ Markdown plus the shortcodes from berkeley.mt: `{% alert(status="info", title="�
 
 ## Room lookup
 
-`/rooms/` looks up a student ID or team number in `static/rooms.json`, which `scripts/sync_rooms.py` builds from the ContestDojo API (`data/rooms.toml` names the event). Whatever `roomAssignments` keys ContestDojo returns become the round columns, so nothing is hard-coded per tournament; rename or reorder them in `rooms.toml` if needed. The file holds only `sha256(ID) → rooms`; no names or emails. The **Sync rooms** workflow needs the `CONTESTDOJO_API_TOKEN` repository secret. Locally: `CONTESTDOJO_API_TOKEN=… python3 scripts/sync_rooms.py`.
+`/rooms/` asks `/api/rooms?id=302A`, answered live from ContestDojo by `server/rooms_api.py`, a 100-line stdlib Python service that runs next to nginx in the same container (`start.sh`). It returns room names only, caches each ID for 5 s, and reads the token from `/app/data/contestdojo.token` — the deploy job writes that file into the pod's existing data volume with `kubectl exec`, so no cluster configuration changes. If the file is missing the API answers 503 and the page falls back to `static/rooms.json`, which `scripts/sync_rooms.py` builds from the same API (`data/rooms.toml` names the event). Whatever `roomAssignments` keys ContestDojo returns become the round columns, so nothing is hard-coded per tournament; rename or reorder them in `rooms.toml` if needed. The file holds only `sha256(ID) → rooms`; no names or emails. Both need the `CONTESTDOJO_API_TOKEN` repository secret. Locally: `ROOMS_TOKEN_FILE=/path/to/token ROOMS_CONFIG=data/rooms.toml python3 server/rooms_api.py` (port 3002) or `CONTESTDOJO_API_TOKEN=… python3 scripts/sync_rooms.py`.
 
 ## Running locally
 
@@ -54,7 +54,7 @@ Open http://127.0.0.1:1111/. Add `?at=2026-04-12T10:00` to any page to preview i
 
 ## Deploying
 
-`.github/workflows/build-and-push.yaml` builds the `Dockerfile` (Zola + Tailwind → nginx on port 3001), pushes `ghcr.io/berkeleymt/live.berkeley.mt:latest`, and restarts the `live` deployment in the `bmt` namespace. No configuration lives outside this repo and the existing Kubernetes manifest.
+`.github/workflows/build-and-push.yaml` builds the `Dockerfile` (Zola + Tailwind → nginx + rooms API on port 3001), pushes `ghcr.io/berkeleymt/live.berkeley.mt:latest`, restarts the `live` deployment in the `bmt` namespace, and writes the ContestDojo token into the pod's data volume. No configuration lives outside this repo and the existing Kubernetes manifest.
 
 ## Layout
 
@@ -62,7 +62,8 @@ Open http://127.0.0.1:1111/. Add `?at=2026-04-12T10:00` to any page to preview i
 config.toml          site config + site-wide advisory banner
 data/schedule.toml   the schedule
 data/rooms.toml      ContestDojo event for the room lookup
-scripts/             sync_rooms.py
+server/rooms_api.py  live room lookup API (same container as nginx)
+scripts/             sync_rooms.py (static fallback)
 .github/workflows/   build-and-push (deploy), sync-rooms, post-update
 content/             Markdown pages; content/updates/ holds announcements
 templates/           Tera templates (base.html, index.html, schedule.html, updates.html, page.html)
