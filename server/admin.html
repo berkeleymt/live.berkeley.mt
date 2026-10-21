@@ -211,6 +211,13 @@ function render() {
   } else if (k === "schedule") {
     e.innerHTML = `<div class="hint" style="margin-top:4px">Times are Pacific. When you change a time, visitors see the old time crossed out next to the new one. Add a short note to say why.</div><div id="events"></div><div style="margin-top:14px"><button id="addEv"><i class="bi bi-plus-lg"></i> Add an event</button></div>`;
     renderEvents();
+    const d0 = d;
+    $("events").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return; const box = b.closest(".ev"); if (!box) return; const i = +box.dataset.i, ev = d0.events[i];
+    if (b.dataset.undo) { const k = b.dataset.undo; ev[k] = ev["was_" + k]; delete ev["was_" + k]; renderEvents(); onChange(); }
+    else if (b.dataset.mv) { const j = i + +b.dataset.mv; [d0.events[i], d0.events[j]] = [d0.events[j], d0.events[i]]; renderEvents(); onChange(); }
+    else if (b.dataset.rm) { confirmDlg(`Remove “${ev.title || "this event"}”?`, "It disappears from the schedule when you publish.", "Remove").then((ok) => { if (ok) { d0.events.splice(i, 1); renderEvents(); onChange(); } }); }
+  });
     $("addEv").onclick = () => { d.events.push({ title: "", start: "", end: "", location: "", description: "" }); renderEvents(); onChange(); };
   } else if (k === "image") {
     const ext = cur.path.split(".").pop().toLowerCase(), mime = ext === "svg" ? "svg+xml" : ext === "jpg" ? "jpeg" : ext;
@@ -249,12 +256,6 @@ function renderEvents() {
     if (k === "start" || k === "end") { const was = inp.closest("div").parentElement; const label = was.querySelector(".was"); const w = ev["was_" + k]; if (w && w !== ev[k]) { (label || was.appendChild(Object.assign(document.createElement("div"), { className: "was" }))).innerHTML = `<s>was ${to12(w)}</s><button type="button" data-undo="${k}">undo</button>`; } else if (label) label.remove(); }
     onChange();
   }));
-  $("events").addEventListener("click", (e) => {
-    const b = e.target.closest("button"); if (!b) return; const box = b.closest(".ev"); if (!box) return; const i = +box.dataset.i, ev = d.events[i];
-    if (b.dataset.undo) { const k = b.dataset.undo; ev[k] = ev["was_" + k]; delete ev["was_" + k]; renderEvents(); onChange(); }
-    else if (b.dataset.mv) { const j = i + +b.dataset.mv; [d.events[i], d.events[j]] = [d.events[j], d.events[i]]; renderEvents(); onChange(); }
-    else if (b.dataset.rm) { confirmDlg(`Remove “${ev.title || "this event"}”?`, "It disappears from the schedule when you publish.", "Remove").then((ok) => { if (ok) { d.events.splice(i, 1); renderEvents(); onChange(); } }); }
-  }, { once: true });
 }
 function mdInsert(kind) {
   const ta = $("fBody"); const s = ta.selectionStart, e = ta.selectionEnd, sel = ta.value.slice(s, e) || "text";
