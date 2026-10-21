@@ -6,8 +6,7 @@ GET /api/rooms?id=302A  ->  {"id": "302A", "kind": "student", "columns": ["Testi
 Looks the ID up live on ContestDojo (students if it ends in a letter, otherwise
 teams) and returns room names only — never names or emails. Answers are cached
 for CACHE_SECONDS. The token is read from TOKEN_FILE (written into the data
-volume by the deploy workflow); until it exists every request gets 503 and the
-page falls back to the static rooms.json.
+volume by the deploy workflow); until it exists every request gets 503.
 """
 import json, os, re, threading, time, urllib.error, urllib.parse, urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
