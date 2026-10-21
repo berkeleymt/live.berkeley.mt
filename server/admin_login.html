@@ -1,18 +1,21 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BMT Live sign in</title>
-<link rel="icon" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <style>
   body{margin:0;font-family:"IBM Plex Sans",system-ui,sans-serif;background:#f8fafc;color:#111;display:flex;min-height:100vh;align-items:center;justify-content:center}
-  form{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;width:320px;display:flex;flex-direction:column;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-  h1{font-size:20px;margin:0 0 4px}h1 span{color:#14b8a6}
-  p{margin:0;color:#6b7280;font-size:14px}
+  form{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:28px 32px 32px;width:360px;max-width:92vw;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .logo{display:block;width:64px;margin:0 auto 6px}
+  h1{font-size:20px;margin:0;text-align:center}h1 span{color:#14b8a6}
+  h2{font-size:16px;margin:16px 0 0;text-align:center}
+  p{margin:0 0 10px;color:#6b7280;font-size:14px;text-align:center}
+  label{font-size:13px;font-weight:500;color:#374151;margin-bottom:-4px}
   input{font:inherit;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px}
   button{font:inherit;padding:10px;border:0;border-radius:10px;background:#14b8a6;color:#fff;font-weight:600;cursor:pointer}
   .err{color:#b91c1c;font-size:14px;min-height:18px}
 </style></head><body>
-<form id="f"><h1>Berkeley Math Tournament <span>Live</span></h1><p>Enter the shared staff password to edit the live site.</p>
-<input id="pw" type="password" placeholder="Password" autofocus required autocomplete="current-password">
+<form id="f"><img class="logo" src="/images/logo.svg" alt=""><h1>BMT <span>Live</span></h1><h2>Staff sign in</h2><p>Enter the shared staff password to edit the live site.</p>
+<label for="pw">Password</label><input id="pw" type="password" autofocus required autocomplete="current-password">
 <button>Sign in</button><div class="err" id="err"></div></form>
 <script>
 document.getElementById("f").addEventListener("submit", async (e) => {

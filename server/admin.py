@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Password-protected editor for the files under content/, data/ and static/.
+"""Password-protected editor for config.toml and the files under content/, data/ and static/.
 
 Runs next to nginx in the live.berkeley.mt image (see start.sh). Files are read
 from and saved to GitHub (Contents API, branch BRANCH) so the repository stays
@@ -26,7 +26,7 @@ TOKEN_FILE = os.environ.get("GITHUB_TOKEN_FILE", "/app/data/github.token")
 BASE_URL = os.environ.get("ADMIN_BASE_URL", "https://live.berkeley.mt")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-EDITABLE = re.compile(r"^(content|data|static)/(?:[A-Za-z0-9_][A-Za-z0-9._-]*/)*[A-Za-z0-9_][A-Za-z0-9._ -]*$")
+EDITABLE = re.compile(r"^(?:config\.toml|(?:content|data|static)/(?:[A-Za-z0-9_][A-Za-z0-9._-]*/)*[A-Za-z0-9_][A-Za-z0-9._ -]*)$")
 TEXT_EXT = {".md", ".toml", ".txt", ".css", ".js", ".json", ".html", ".xml", ".csv", ".yaml", ".yml"}
 SESSION_HOURS = 24
 

@@ -5,7 +5,7 @@ description = "Campus map, tournament buildings and floor plans for the Berkeley
 
 Rounds take place in four buildings on the south side of campus. Check-in is at Dwinelle Hall. Your coach has your room assignment; the floor plans below show where each room is.
 
-![Campus map showing Dwinelle, Wheeler, VLSB and Pauley Ballroom](/assets/campus-map.png)
+![Campus map showing Dwinelle, Wheeler, VLSB and Pauley Ballroom](/images/campus-map.png)
 
 | Building | Used for | Directions |
 | --- | --- | --- |
@@ -21,15 +21,15 @@ Green rooms are classrooms, blue are auditoriums, yellow are stairs, and elevato
 {% details(title="Dwinelle Hall (floors C, D and E)", id="dwinelle") %}
 Dwinelle's room numbers tell you the floor: 1xx is floor D (main entrance), 2xx is floor E, and 7x to 8x is floor C below.
 
-![Dwinelle Hall floor plans](/maps/dwinelle.png)
+![Dwinelle Hall floor plans](/images/dwinelle.png)
 {% end %}
 
 {% details(title="Wheeler Hall (basement, floors 1 and 2)", id="wheeler") %}
-![Wheeler Hall floor plans](/maps/wheeler.png)
+![Wheeler Hall floor plans](/images/wheeler.png)
 {% end %}
 
 {% details(title="Valley Life Sciences Building (floor 2)", id="vlsb") %}
-![VLSB floor 2 plan](/maps/vlsb.png)
+![VLSB floor 2 plan](/images/vlsb.png)
 {% end %}
 
 ## Getting here
