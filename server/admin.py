@@ -225,7 +225,8 @@ def page_for(path):
             return "/updates/"
         name = os.path.splitext(os.path.basename(path))[0]
         name = re.sub(r"^\d{4}-\d{2}-\d{2}[_-]", "", name)  # zola drops the date prefix from slugs
-        return "/updates/" + re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") + "/"
+        # visitors only ever see updates in the list, scrolled to and highlighted by the hash
+        return "/updates/#" + re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
     if path.startswith("content/"):
         name = os.path.splitext(os.path.basename(path))[0]
         return "/" if name == "_index" else f"/{name}/"
