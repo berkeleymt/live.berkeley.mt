@@ -78,7 +78,7 @@
   <p class="uppercase text-xs text-gray-500 flex gap-2 items-center">
     <i class="bi {% if urgent %}bi-exclamation-triangle-fill text-rose-500{% else %}bi-megaphone-fill{% endif %}"></i>
     <span>{% if urgent %}Urgent{% else %}Update{% endif %}</span>
-    <a class="ml-auto normal-case hover:underline" href="{{ page.permalink | safe }}">{{ page.date | date(format="%b %-d · %-I:%M %p", timezone="America/Los_Angeles") }}</a>
+    <a class="ml-auto normal-case hover:underline" href="{{ page.permalink | safe }}">{{ page.date | date(format="%b %-d, %-I:%M %p", timezone="America/Los_Angeles") }}</a>
   </p>
   <h2 class="text-xl font-semibold">{{ page.title }}</h2>
   <div class="prose">{{ page.content | safe }}</div>
@@ -116,7 +116,7 @@
     {% if e.was_start %}
     <p class="text-sm text-rose-700 font-medium flex items-center gap-1.5">
       <i class="bi bi-clock-history"></i>
-      <span>Time changed from {{ self::t12(t=e.was_start) }}–{{ self::t12(t=e.was_end | default(value=e.end)) }}{% if e.note %} · {{ e.note }}{% endif %}</span>
+      <span>Time changed from {{ self::t12(t=e.was_start) }} to {{ self::t12(t=e.was_end | default(value=e.end)) }}{% if e.note %}. {{ e.note }}{% endif %}</span>
     </p>
     {% endif %}
     {% if e.description %}

@@ -19,7 +19,7 @@ Rounds take place in four buildings on the south side of campus. Check-in is at 
 Green rooms are classrooms, blue are auditoriums, yellow are stairs, and elevators are marked ☒. Feel free to ask a volunteer if you need further guidance or accessibility needs.
 
 {% details(title="Dwinelle Hall (floors C, D and E)", id="dwinelle") %}
-Dwinelle's room numbers tell you the floor: 1xx is floor D (main entrance), 2xx is floor E, and 7x–8x is floor C below.
+Dwinelle's room numbers tell you the floor: 1xx is floor D (main entrance), 2xx is floor E, and 7x to 8x is floor C below.
 
 ![Dwinelle Hall floor plans](/maps/dwinelle.png)
 {% end %}
@@ -34,5 +34,5 @@ Dwinelle's room numbers tell you the floor: 1xx is floor D (main entrance), 2xx 
 
 ## Getting here
 
-- [TakeTransit](https://taketransit.berkeley.mt/) — BART, bus and driving directions, with parking garages.
-- [UC Berkeley campus map](https://www.berkeley.edu/map/) — every building on campus.
+- [TakeTransit](https://taketransit.berkeley.mt/) for BART, bus and driving directions, with parking garages.
+- [UC Berkeley campus map](https://www.berkeley.edu/map/) for every building on campus.
