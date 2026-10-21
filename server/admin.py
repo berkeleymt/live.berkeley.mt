@@ -611,7 +611,7 @@ class Handler(BaseHTTPRequestHandler):
         if not editable(path):
             return self.send_json(400, {"error": "bad_path"})
         raw = decode_content(body, path)
-        if raw is None:
+        if raw is None and p != "/admin/api/delete":
             return self.send_json(400, {"error": "bad_body"})
         if p == "/admin/api/preview":
             token, log = build_preview(path, raw)
