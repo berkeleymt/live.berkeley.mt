@@ -149,17 +149,28 @@ def zola_build(root, out, base_url):
     return r.returncode == 0, (r.stderr or r.stdout).strip()[-2000:]
 
 
+def sync_dir(src, dst):
+    """Make dst mirror src in place (the nginx root is an image layer, so it
+    cannot be renamed away; copying into it works on overlayfs)."""
+    shutil.copytree(src, dst, dirs_exist_ok=True)
+    keep = {os.path.relpath(os.path.join(r, n), src) for r, ds, fs in os.walk(src) for n in ds + fs}
+    for r, ds, fs in os.walk(dst, topdown=False):
+        for n in fs + ds:
+            full = os.path.join(r, n)
+            if os.path.relpath(full, dst) not in keep:
+                shutil.rmtree(full, ignore_errors=True) if os.path.isdir(full) else os.remove(full)
+
+
 def rebuild_live():
     with _build_lock:
-        tmp = LIVE_DIR + ".new"
-        ok, log = zola_build(SITE_DIR, tmp, BASE_URL)
-        if ok:
-            old = LIVE_DIR + ".old"
-            shutil.rmtree(old, ignore_errors=True)
-            os.rename(LIVE_DIR, old)
-            os.rename(tmp, LIVE_DIR)
-            shutil.rmtree(old, ignore_errors=True)
-        else:
+        tmp = tempfile.mkdtemp(prefix="live-")
+        try:
+            ok, log = zola_build(SITE_DIR, tmp, BASE_URL)
+            if ok:
+                sync_dir(tmp, LIVE_DIR)
+        except OSError as e:
+            ok, log = False, f"could not update the live pages: {e}"
+        finally:
             shutil.rmtree(tmp, ignore_errors=True)
         return ok, log
 
