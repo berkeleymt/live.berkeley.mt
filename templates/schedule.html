@@ -1,0 +1,22 @@
+{% import "macros.html" as macros %}
+{% extends "base.html" %}
+
+{% block content %}
+{% set s = load_data(path="data/schedule.toml") %}
+<script type="application/json" id="schedule-data">{{ s | json_encode | safe }}</script>
+
+<div class="flex flex-col gap-1">
+  <h1 class="text-3xl font-semibold">{{ page.title }}</h1>
+  <p class="text-gray-500">{{ s.title }} · {{ s.date | date(format="%A, %B %-d, %Y") }} · all times Pacific</p>
+</div>
+
+{% if page.content %}
+<div class="prose">{{ page.content | safe }}</div>
+{% endif %}
+
+<div class="flex flex-col">
+  {% for e in s.events %}
+  {{ macros::schedule_row(e=e, i=loop.index0) }}
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,40 +1,13 @@
-# ── Stage 1: Build frontend ──
-FROM node:22-slim AS frontend
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
-COPY index.html tsconfig*.json vite.config.ts eslint.config.js ./
-COPY public/ public/
-COPY src/ src/
-COPY content/ content/
-ENV VITE_API_URL=/api/live
-RUN npm run build
+FROM debian:bookworm-slim AS build
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/* \
+ && curl -fsSL -o /usr/local/bin/tailwindcss https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.1/tailwindcss-linux-x64 \
+ && chmod +x /usr/local/bin/tailwindcss
+COPY --from=ghcr.io/getzola/zola:v0.21.0 /bin/zola /usr/local/bin/zola
+WORKDIR /site
+COPY . .
+RUN tailwindcss -i static/input.css -o static/style.css --minify && zola build --base-url https://live.berkeley.mt
 
-# ── Stage 2: Build Rust server ──
-FROM rust:1.87-slim AS backend
-RUN apt-get update && apt-get install -y pkg-config cmake && rm -rf /var/lib/apt/lists/*
-WORKDIR /app/server
-COPY server/Cargo.toml server/Cargo.lock ./
-# Cache dependencies
-RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release && rm -rf src
-COPY server/src/ src/
-RUN touch src/main.rs && cargo build --release
-
-# ── Stage 3: Final image ──
-FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y ca-certificates git openssh-client && rm -rf /var/lib/apt/lists/*
-WORKDIR /app
-COPY --from=backend /app/server/target/release/server ./server
-COPY --from=frontend /app/dist ./dist
-COPY content/ ./content/
-ENV STATIC_DIR=dist
-# content/pages/*.md is included above for fresh installs. Existing mounted content
-# without pages stays on legacy views; no startup migration copies these defaults.
-# PAGES_CONTENT_DIR defaults to the SITE_CONTENT_PATH sibling pages/ (file mode).
-# Git modes use their own pages/ tree instead, never this bundled directory.
-# Absolute so they still resolve when the container's workingDir is the data volume (/app/data)
-ENV SITE_CONTENT_PATH=/app/content/site.json \
-    EVENT_CONTENT_PATH=/app/content/event.json \
-    WAYFINDING_CONTENT_PATH=/app/content/wayfinding.json
+FROM nginxinc/nginx-unprivileged:alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /site/public /usr/share/nginx/html
 EXPOSE 3001
-CMD ["/app/server"]

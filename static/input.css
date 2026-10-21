@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  src: url('/fonts/IBMPlexSansVar-Roman.woff2') format('woff2-variations');
+  font-family: 'IBM Plex Sans Variable';
+  font-style: normal;
+  font-weight: 200 700;
+}
+
+@font-face {
+  src: url('/fonts/IBMPlexSansVar-Italic.woff2') format('woff2-variations');
+  font-family: 'IBM Plex Sans Variable';
+  font-style: italic;
+  font-weight: 200 700;
+}
+
+:root {
+  font-family: "IBM Plex Sans Variable", sans-serif;
+}
+
+/* Schedule rows; classes toggled by live.js */
+.sched.is-now {
+  @apply bg-teal-50 ring-2 ring-teal-400 border-transparent;
+}
+
+.sched.is-past {
+  @apply opacity-60;
+}
+
+.prose details {
+  @apply border border-gray-200 rounded-xl px-4 transition-colors duration-150;
+}
+
+.prose details:hover {
+  @apply border-gray-300 bg-gray-50/50;
+}
+
+.prose details[open] {
+  @apply bg-transparent pb-4;
+}
+
+.prose details > :last-child {
+  @apply mb-0;
+}
+
+.prose details + details {
+  @apply mt-3;
+}
+
+.prose details summary {
+  @apply -mx-4 cursor-pointer select-none list-none font-medium p-4;
+  @apply flex items-center justify-between;
+  @apply transition-colors duration-150 rounded-xl;
+}
+
+.prose details summary:hover {
+  @apply bg-gray-50;
+}
+
+.prose details[open] summary {
+  @apply rounded-b-none;
+}
+
+.prose details summary::-webkit-details-marker {
+  display: none;
+}
+
+.prose details summary::after {
+  content: "";
+  @apply inline-block transition-transform duration-200;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid theme("colors.gray.400");
+}
+
+.prose details[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.prose details[open] > summary {
+  @apply border-b border-gray-200 bg-gray-50;
+}
+
+#text-404 {
+  @apply bg-gradient-to-br from-teal-400 to-emerald-300 bg-clip-text text-transparent;
+  font-size: 12rem;
+  font-weight: bold;
+  position: relative;
+  --text-shadow: 1px 1px theme("colors.emerald.500"), 2px 2px theme("colors.emerald.500"), 3px 3px theme("colors.emerald.500"), 4px 4px theme("colors.emerald.500"), 5px 5px theme("colors.emerald.500");
+}
+
+#text-404::after {
+  @apply inset-0;
+  @apply transition-all;
+  transition-duration: 25ms;
+  position: absolute;
+  content: "404";
+  z-index: -1;
+  font-size: 12rem;
+  font-weight: bold;
+  text-shadow: var(--text-shadow);
+}

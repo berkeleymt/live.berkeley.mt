@@ -1,0 +1,127 @@
+{% macro nav_link(path, label) %}
+{% set href = get_url(path=path) %}
+{% set active = current_url | default(value='') == href %}
+
+<p class="first:hidden text-gray-400">⁄</p>
+<div class="relative">
+  <span class="invisible font-semibold">{{ label }}</span>
+  <a href="{{ href }}"
+    class="absolute inset-0 text-center text-gray-600 {% if active %} !text-black font-semibold {% endif %}">
+    {{ label }}
+  </a>
+</div>
+{% endmacro nav_link %}
+
+{% macro mobile_nav_link(path, label) %}
+{% set href = get_url(path=path) %}
+{% set active = current_url | default(value='') == href %}
+
+<a href="{{ href }}" class="py-2 px-3 rounded-lg {% if active %} bg-gray-100 font-semibold {% endif %}">
+  {{ label }}
+</a>
+{% endmacro mobile_nav_link %}
+
+{% macro advisory(advisory) %}
+{% if advisory.status == "info" %}
+{% set class = "bg-blue-50 border-blue-200" %}
+{% set icon_class = "bi bi-info-circle-fill" %}
+{% elif advisory.status == "warning" %}
+{% set class = "bg-orange-50 border-orange-200" %}
+{% set icon_class = "bi bi-exclamation-circle-fill" %}
+{% else %}
+{% set class = "bg-rose-50 border-rose-200" %}
+{% set icon_class = "bi bi-exclamation-triangle-fill" %}
+{% endif %}
+
+<div class="{{ class }} border p-4 rounded-xl flex flex-col gap-2">
+  <div class="not-prose uppercase text-xs text-gray-500 flex gap-2 items-center">
+    <i class="{{ icon_class }}"></i>
+    <span>{{ advisory.title }}</span>
+    {% if advisory.timestamp %}
+    <span class="ml-auto text-right normal-case">{{ advisory.timestamp }}</span>
+    {% endif %}
+  </div>
+  <div class="prose text-base font-medium">
+    {{ advisory.body | markdown | safe }}
+  </div>
+</div>
+{% endmacro advisory %}
+
+{# "09:15" -> "9:15 AM" #}
+{% macro t12(t) %}
+{%- set parts = t | split(pat=":") -%}
+{%- set h = parts[0] | int -%}
+{%- if h == 0 %}12{% elif h > 12 %}{{ h - 12 }}{% else %}{{ h }}{% endif %}:{{ parts[1] }} {% if h < 12 %}AM{% else %}PM{% endif -%}
+{% endmacro t12 %}
+
+{# Compact card for one update, used on the home page #}
+{% macro update_card(page) %}
+{% set urgent = page.extra.urgent | default(value=false) %}
+<a class="{% if urgent %}bg-rose-50 hover:bg-rose-100 border-rose-200{% else %}bg-sky-50 hover:bg-sky-100 border-sky-200{% endif %} hover:-translate-y-1 transition-all border p-4 rounded-xl flex items-center gap-2"
+  href="{{ get_url(path='@/updates/_index.md') }}#{{ page.slug }}">
+  <div class="flex-1 flex flex-col gap-2">
+    <p class="uppercase text-xs text-gray-500 flex gap-2 items-center">
+      <i class="bi {% if urgent %}bi-exclamation-triangle-fill text-rose-500{% else %}bi-megaphone-fill{% endif %}"></i>
+      <span>{% if urgent %}Urgent{% else %}Update{% endif %}</span>
+      <span class="ml-auto normal-case">{{ page.date | date(format="%-I:%M %p", timezone="America/Los_Angeles") }}</span>
+    </p>
+    <p class="text-base font-medium">{{ page.title }}</p>
+  </div>
+  <i class="bi bi-chevron-right"></i>
+</a>
+{% endmacro update_card %}
+
+{# Full article for one update, used on the updates page #}
+{% macro update_article(page) %}
+{% set urgent = page.extra.urgent | default(value=false) %}
+<article id="{{ page.slug }}" class="{% if urgent %}bg-rose-50 border-rose-200{% else %}bg-white border-gray-200{% endif %} border rounded-xl p-5 flex flex-col gap-3 scroll-mt-4 target:ring-2 target:ring-teal-400">
+  <p class="uppercase text-xs text-gray-500 flex gap-2 items-center">
+    <i class="bi {% if urgent %}bi-exclamation-triangle-fill text-rose-500{% else %}bi-megaphone-fill{% endif %}"></i>
+    <span>{% if urgent %}Urgent{% else %}Update{% endif %}</span>
+    <a class="ml-auto normal-case hover:underline" href="{{ page.permalink | safe }}">{{ page.date | date(format="%b %-d · %-I:%M %p", timezone="America/Los_Angeles") }}</a>
+  </p>
+  <h2 class="text-xl font-semibold">{{ page.title }}</h2>
+  <div class="prose">{{ page.content | safe }}</div>
+</article>
+{% endmacro update_article %}
+
+{# Big coloured link tile, same style as event cards on berkeley.mt #}
+{% macro tile(name, description, href, icon, class="") %}
+<a href="{{ href }}" class="group rounded-xl {{ class }} transition-all hover:-translate-y-1 p-5 md:p-6 flex flex-col gap-2">
+  <h3 class="font-bold text-lg md:text-xl flex items-center gap-2">
+    <i class="bi {{ icon }} text-base opacity-75"></i>
+    <span>{{ name }}</span>
+    <i class="bi bi-chevron-right text-sm ml-auto transition-transform group-hover:translate-x-1"></i>
+  </h3>
+  <p class="text-sm opacity-90">{{ description }}</p>
+</a>
+{% endmacro tile %}
+
+{# One schedule row. `i` is the event's index into data/schedule.toml; live.js uses it. #}
+{% macro schedule_row(e, i) %}
+<div data-event="{{ i }}" class="sched grid grid-cols-[5.5rem_1fr] md:grid-cols-[8rem_1fr] gap-x-4 gap-y-1 py-4 px-3 -mx-3 rounded-xl border-b border-gray-200 last:border-0 transition-colors">
+  <div class="text-sm leading-6">
+    <p class="font-semibold">{{ self::t12(t=e.start) }}</p>
+    <p class="text-gray-500">{{ self::t12(t=e.end) }}</p>
+  </div>
+  <div class="flex flex-col gap-1 min-w-0">
+    <p class="text-lg font-semibold flex items-center gap-2 flex-wrap">
+      <span>{{ e.title }}</span>
+      <span class="now-badge hidden text-xs font-semibold uppercase bg-teal-500 text-white rounded-full px-2 py-0.5">Now</span>
+      <span class="next-badge hidden text-xs font-semibold uppercase bg-gray-200 text-gray-700 rounded-full px-2 py-0.5">Up next</span>
+    </p>
+    {% if e.location %}
+    <p class="text-sm text-gray-600 flex items-center gap-1.5"><i class="bi bi-geo-alt"></i><span>{{ e.location }}</span></p>
+    {% endif %}
+    {% if e.was_start %}
+    <p class="text-sm text-rose-700 font-medium flex items-center gap-1.5">
+      <i class="bi bi-clock-history"></i>
+      <span>Time changed from {{ self::t12(t=e.was_start) }}–{{ self::t12(t=e.was_end | default(value=e.end)) }}{% if e.note %} · {{ e.note }}{% endif %}</span>
+    </p>
+    {% endif %}
+    {% if e.description %}
+    <p class="text-sm text-gray-700">{{ e.description | markdown(inline=true) | safe }}</p>
+    {% endif %}
+  </div>
+</div>
+{% endmacro schedule_row %}
