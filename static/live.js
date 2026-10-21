@@ -24,7 +24,7 @@
     const phase = date < data.date ? "before" : date > data.date ? "after" : "today";
     const current = phase === "today" ? events.find((e) => mins(e.start) <= now && mins(e.end) > now) : null;
     const next = phase === "after" ? null : events.find((e) => mins(e.start) > now || phase === "before");
-    const meta = (e) => `${t12(e.start)}–${t12(e.end)}${e.location ? " · " + e.location : ""}`;
+    const meta = (e) => `${t12(e.start)} to ${t12(e.end)}${e.location ? ", " + e.location : ""}`;
 
     if (phase === "today") {
       if (current) {
