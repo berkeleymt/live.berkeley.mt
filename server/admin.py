@@ -225,7 +225,8 @@ def page_for(path):
             return "/updates/"
         name = os.path.splitext(os.path.basename(path))[0]
         name = re.sub(r"^\d{4}-\d{2}-\d{2}[_-]", "", name)  # zola drops the date prefix from slugs
-        return "/updates/" + re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") + "/"
+        # visitors only ever see updates in the list, scrolled to and highlighted by the hash
+        return "/updates/#" + re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
     if path.startswith("content/"):
         name = os.path.splitext(os.path.basename(path))[0]
         return "/" if name == "_index" else f"/{name}/"
@@ -233,6 +234,8 @@ def page_for(path):
         return "/schedule/"
     if path == "data/rooms.toml":
         return "/rooms/"
+    if path == "config.toml":
+        return "/"
     if path.startswith("static/"):
         return "/" + path[len("static/"):]
     return "/"
@@ -243,6 +246,8 @@ def page_for(path):
 PAGE_LABELS = {"content/_index.md": "Home page", "content/faq.md": "FAQ", "content/guide.md": "Tournament guide",
                "content/help.md": "Help", "content/map.md": "Map & rooms", "content/rooms.md": "Find my rooms",
                "content/lost-found.md": "Lost & found", "content/schedule.md": "Schedule page"}
+DATA_ITEMS = [("data/schedule.toml", "Tournament schedule", "calendar3"), ("data/rooms.toml", "Rooms", "door-open"),
+              ("config.toml", "Settings", "gear")]
 HIDDEN_STATIC = re.compile(r"^static/(fonts/|input\.css|style\.css|live\.js|site\.webmanifest|browserconfig\.xml|favicon|android-chrome|apple-touch|mstile|safari-pinned)")
 IMAGE_EXT = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
 MANAGED = {"title", "description", "date", "urgent"}
@@ -310,16 +315,64 @@ def compose_front(fields, kept, body):
 EVENT_KEYS = ["title", "start", "end", "was_start", "was_end", "note", "location", "description"]
 
 
-def parse_schedule(text):
-    header, events, cur = {}, [], None
+def parse_simple(text, array):
+    """Header keys plus the rows of one [[array]] table; good enough for our flat data files."""
+    header, rows, cur = {}, [], None
     for line in text.splitlines():
         st = line.split("#", 1)[0].strip() if not line.strip().startswith("#") else ""
-        if st == "[[events]]":
+        if st == f"[[{array}]]":
             cur = {}
-            events.append(cur)
+            rows.append(cur)
         elif m := re.match(r"(\w+)\s*=\s*(.+)$", st):
             (cur if cur is not None else header)[m.group(1)] = parse_value(m.group(2))
-    return header, events
+    return header, rows
+
+
+def parse_schedule(text):
+    return parse_simple(text, "events")
+
+
+def compose_rooms(event_id, columns):
+    out = ["# Room lookup (/rooms). server/rooms_api.py looks IDs up live on this",
+           "# ContestDojo event and returns room names only. Edit here or at /admin.", "",
+           f"event_id = {toml_str(event_id)}", "",
+           "# Optional: ContestDojo's roomAssignments keys are used as the round labels,",
+           "# in order of first appearance. List them here to rename or reorder them."]
+    for c in columns:
+        if (c.get("key") or "").strip():
+            out += ["", "[[columns]]", f"key = {toml_str(c['key'].strip())}"]
+            if (c.get("label") or "").strip():
+                out.append(f"label = {toml_str(c['label'].strip())}")
+    return "\n".join(out) + "\n"
+
+
+ADVISORY_KEYS = ["status", "title", "timestamp", "body"]
+
+
+def parse_settings(text):
+    """config.toml: only the site-wide banner ([extra.advisory]) is editable; everything else is kept."""
+    adv, inside = {}, False
+    for line in text.splitlines():
+        st = line.split("#", 1)[0].strip() if not line.strip().startswith("#") else ""
+        if st.startswith("["):
+            inside = st == "[extra.advisory]"
+        elif inside and (m := re.match(r"(\w+)\s*=\s*(.+)$", st)):
+            adv[m.group(1)] = parse_value(m.group(2))
+    return {"enabled": bool(adv), **{k: str(adv.get(k, "")) for k in ADVISORY_KEYS}}
+
+
+def compose_settings(advisory, current_text):
+    kept, inside = [], False
+    for line in (current_text or "").splitlines():
+        st = line.strip()
+        if st.startswith("["):
+            inside = st.split("#", 1)[0].strip() == "[extra.advisory]"
+        if not inside:
+            kept.append(line)
+    text = "\n".join(kept).rstrip() + "\n"
+    if advisory.get("enabled"):
+        text += "\n[extra.advisory]\n" + "".join(f"{k} = {toml_str(advisory.get(k, ''))}\n" for k in ADVISORY_KEYS)
+    return text
 
 
 def compose_schedule(header, events):
@@ -342,13 +395,18 @@ def doc_from_text(path, text):
     if path == "data/schedule.toml":
         header, events = parse_schedule(text)
         return {"kind": "schedule", "header": header, "events": events}
+    if path == "data/rooms.toml":
+        header, columns = parse_simple(text, "columns")
+        return {"kind": "rooms", "event_id": str(header.get("event_id", "")), "columns": columns}
+    if path == "config.toml":
+        return {"kind": "settings", "advisory": parse_settings(text)}
     if path.endswith(".md"):
         fields, kept, body = parse_front(text)
         kind = "update" if path.startswith("content/updates/") and not path.endswith("_index.md") else "page"
         return {"kind": kind, "title": fields.get("title", ""), "description": fields.get("description", ""),
                 "date": str(fields.get("date", "")), "urgent": bool(fields.get("urgent", False)), "body": body,
                 "kept": kept}
-    return {"kind": "raw", "text": text}
+    return None
 
 
 def text_from_doc(path, doc, current_text=None):
@@ -356,6 +414,10 @@ def text_from_doc(path, doc, current_text=None):
     if kind == "schedule":
         header = doc.get("header") or (parse_schedule(current_text)[0] if current_text else {})
         return compose_schedule(header, doc.get("events") or [])
+    if kind == "rooms":
+        return compose_rooms(str(doc.get("event_id", "")), doc.get("columns") or [])
+    if kind == "settings":
+        return compose_settings(doc.get("advisory") or {}, current_text)
     if kind in ("update", "page"):
         kept = [tuple(k) for k in doc.get("kept") or []]
         if current_text is not None and not doc.get("kept"):
@@ -363,7 +425,7 @@ def text_from_doc(path, doc, current_text=None):
         fields = {"title": doc.get("title", ""), "description": doc.get("description", ""),
                   "date": doc.get("date", ""), "urgent": bool(doc.get("urgent"))}
         return compose_front(fields, kept, doc.get("body", ""))
-    return str(doc.get("text", ""))
+    return ""
 
 
 def local_text(path):
@@ -377,7 +439,9 @@ def list_items():
     status, data = gh_tree()
     if status != 200:
         return status, data
-    items = {"updates": [], "pages": [], "images": [], "schedule": "data/schedule.toml", "advanced": data["files"]}
+    paths = {f["path"] for f in data["files"]}
+    items = {"updates": [], "pages": [], "images": [],
+             "data": [{"path": p, "title": t, "icon": i} for p, t, i in DATA_ITEMS if p in paths]}
     for f in data["files"]:
         p = f["path"]
         if p.startswith("content/updates/") and p.endswith(".md") and not p.endswith("_index.md"):
@@ -505,16 +569,14 @@ class Handler(BaseHTTPRequestHandler):
             if status != 200:
                 return self.send_json(status, data)
             if "text" in data:
-                data.update(doc_from_text(path, data["text"]))
+                doc = doc_from_text(path, data["text"])
+                if doc is None:
+                    return self.send_json(400, {"error": "unsupported", "detail": "This file can't be edited here."})
+                data.update(doc)
             else:
                 data["kind"] = "image" if os.path.splitext(path)[1].lower() in IMAGE_EXT else "binary"
             data["url"] = page_for(path)
             return self.send_json(200, data)
-        if p == "/admin/api/file":
-            path = qs.get("path", [""])[0]
-            if not editable(path):
-                return self.send_json(400, {"error": "bad_path"})
-            return self.send_json(*gh_get(path))
         return self.send_json(404, {"error": "not_found"})
 
     def do_POST(self):
@@ -549,6 +611,8 @@ class Handler(BaseHTTPRequestHandler):
         if not editable(path):
             return self.send_json(400, {"error": "bad_path"})
         raw = decode_content(body, path)
+        if raw is None:
+            return self.send_json(400, {"error": "bad_body"})
         if p == "/admin/api/preview":
             token, log = build_preview(path, raw)
             if not token:
@@ -585,10 +649,9 @@ class Handler(BaseHTTPRequestHandler):
 def decode_content(body, path=""):
     if "base64" in body:
         return base64.b64decode(body["base64"])
-    if isinstance(body.get("doc"), dict):
-        text = text_from_doc(path, body["doc"], local_text(path))
-    else:
-        text = str(body.get("text", ""))
+    if not isinstance(body.get("doc"), dict):
+        return None
+    text = text_from_doc(path, body["doc"], local_text(path))
     if text and not text.endswith("\n"):
         text += "\n"
     return text.encode()

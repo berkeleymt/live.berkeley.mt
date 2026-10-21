@@ -2,7 +2,6 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BMT Live</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
   :root{--teal:#14b8a6;--teal-dark:#0f766e;--border:#e5e7eb;--muted:#6b7280;--bg:#f8fafc;--rose:#e11d48}
@@ -34,8 +33,6 @@
   main.split{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .pane{min-height:0;overflow:auto}
   .editor{padding:22px 26px 60px;max-width:860px}
-  .editor.raw{padding:0;max-width:none;display:flex;flex-direction:column;height:100%}
-  .CodeMirror{flex:1;height:auto;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:14px;line-height:1.5}
   label.f{display:block;font-size:13px;font-weight:500;color:#374151;margin:16px 0 6px}
   label.f small{font-weight:400;color:var(--muted)}
   input.f,textarea.f,select.f{font:inherit;width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;background:#fff}
@@ -78,9 +75,6 @@
   dialog::backdrop{background:rgba(0,0,0,.3)}
   dialog h2{font-size:17px;margin:0 0 4px}dialog p{margin:0 0 6px;color:var(--muted);font-size:14px;line-height:1.5}
   dialog menu{display:flex;justify-content:flex-end;gap:8px;margin:20px 0 0;padding:0}
-  .adv{max-height:55vh;overflow:auto;margin:12px -8px 0}
-  .adv h4{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 8px 4px}.adv h4:first-child{margin-top:0}
-  .adv .item{display:flex;width:100%;gap:8px;align-items:center;text-align:left;border:0;background:none;padding:6px 8px;border-radius:8px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13px}.adv .item:hover{background:#f3f4f6}.adv .item i{color:var(--muted);font-size:12px}.adv .label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .spin{display:inline-block;width:12px;height:12px;border:2px solid #ccc;border-top-color:var(--teal);border-radius:50%;animation:s 1s linear infinite}@keyframes s{to{transform:rotate(360deg)}}
   .mobile-tabs{display:none}
   @media (max-width:860px){
@@ -112,7 +106,7 @@
 <main id="main">
   <div class="pane editor-pane" id="editorPane">
     <div class="mobile-tabs" id="tabs" hidden><button class="on" data-tab="edit">Edit</button><button data-tab="preview">Preview</button></div>
-    <div class="editor" id="editor"><div class="empty"><i class="bi bi-pencil-square"></i>Choose an update, the schedule, a page or an image on the left.<br><small>Everything you publish goes live within seconds and is kept in the site's history.</small></div></div>
+    <div class="editor" id="editor"><div class="empty"><i class="bi bi-pencil-square"></i>Choose something on the left to edit.<br><small>Everything you publish goes live within seconds and is kept in the site's history.</small></div></div>
   </div>
   <div class="preview pane">
     <div class="bar"><i class="bi bi-eye"></i> <span id="pvStatus">Preview updates as you type</span><span style="flex:1"></span><a id="pvOpen" href="#" target="_blank" style="font-size:12px;color:var(--teal-dark)">Open in new tab</a></div>
@@ -129,14 +123,8 @@
   <label class="f">Note <small>optional</small></label><input class="f" id="msg">
   <menu><button value="cancel" formnovalidate>Cancel</button><button value="ok" class="primary"><i class="bi bi-send"></i> Publish now</button></menu></form></dialog>
 <dialog id="confirmDialog"><form method="dialog"><h2 id="cTitle"></h2><p id="cText"></p><menu><button value="cancel">Cancel</button><button value="ok" class="primary" id="cOk" style="background:var(--rose);border-color:var(--rose)">Yes</button></menu></form></dialog>
-<dialog id="advDialog"><form method="dialog"><h2>Advanced</h2><p>Edit any file of the site directly. Only do this if you know the file format. The preview tells you if a change breaks a page.</p><div id="advList" class="adv"></div><menu><button value="cancel">Close</button></menu></form></dialog>
 <input id="file" type="file" hidden accept="image/*">
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/toml/toml.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -152,7 +140,7 @@ const nowPT = () => { const p = Object.fromEntries(new Intl.DateTimeFormat("en-U
 const isoToLocal = (iso) => (iso || "").slice(0, 16);
 const localToIso = (local, prevIso) => { if (!local) return ""; const off = (prevIso && /[+-]\d{2}:\d{2}$/.exec(prevIso)?.[0]) || nowPT().off; return `${local}:00${off}`; };
 
-let items = null, cur = null, dirty = false, cm = null, previewTimer = null, previewSeq = 0;
+let items = null, cur = null, dirty = false, previewTimer = null, previewSeq = 0;
 const setDirty = (v) => { dirty = v; $("publish").disabled = !v || !cur || cur.kind === "image" || (cur.kind === "update" && !($("fTitle")?.value || "").trim()); $("title").innerHTML = cur ? `<b>${esc(cur.label)}</b>${dirty ? "<small>Unsaved changes</small>" : ""}` : "<span>Pick something to edit</span>"; };
 const toast = (html, cls, ms) => { const t = $("toast"); t.innerHTML = html; t.className = "toast " + (cls || ""); t.style.display = "block"; clearTimeout(t._t); t._t = setTimeout(() => (t.style.display = "none"), ms || 6000); };
 
@@ -164,44 +152,33 @@ async function loadItems(keep) {
   const act = (p) => (cur && cur.path === p ? " active" : "");
   let h = `<h3>Live updates <button id="newUpdate" class="primary"><i class="bi bi-plus-lg"></i> New</button></h3>`;
   h += data.updates.map((u) => `<button class="item${act(u.path)}" data-path="${esc(u.path)}"><i class="bi ${u.urgent ? "bi-exclamation-triangle-fill" : "bi-megaphone"}" ${u.urgent ? 'style="color:var(--rose)"' : ""}></i><span class="label">${esc(u.title)}</span><span class="meta">${esc(fmtTime(u.date))}</span></button>`).join("") || `<div class="hint" style="padding:0 16px">No updates yet.</div>`;
-  h += `<h3>Schedule</h3><button class="item${act(data.schedule)}" data-path="${esc(data.schedule)}"><i class="bi bi-calendar3"></i><span class="label">Tournament schedule</span></button>`;
+  h += `<h3>Data</h3>` + data.data.map((d) => `<button class="item${act(d.path)}" data-path="${esc(d.path)}"><i class="bi bi-${esc(d.icon)}"></i><span class="label">${esc(d.title)}</span></button>`).join("");
   h += `<h3>Pages</h3>` + data.pages.map((p) => `<button class="item${act(p.path)}" data-path="${esc(p.path)}"><i class="bi bi-file-text"></i><span class="label">${esc(p.title)}</span></button>`).join("");
   h += `<h3>Images <button id="upload"><i class="bi bi-upload"></i> Upload</button></h3>` + data.images.map((i) => `<button class="item${act(i.path)}" data-path="${esc(i.path)}"><i class="bi bi-image"></i><span class="label">${esc(i.path.replace(/^static\/(images\/)?/, ""))}</span></button>`).join("");
-  h += `<h3 style="margin-top:22px"><button id="advanced" class="ghost" style="color:var(--muted)"><i class="bi bi-code-slash"></i> Advanced</button></h3>`;
   $("nav").innerHTML = h;
   $("newUpdate").onclick = newUpdate;
   $("upload").onclick = () => $("file").click();
-  $("advanced").onclick = () => { $("advList").innerHTML = advGroups(data.advanced).map(([dir, files]) => `<h4>${esc(dir)}</h4>` + files.map((f) => `<button class="item" data-path="${esc(f.path)}" data-raw="1"><i class="bi ${advIcon(f.path)}"></i><span class="label">${esc(f.path.slice(dir === "Site settings" ? 0 : dir.length + 1))}</span></button>`).join("")).join(""); $("advDialog").showModal(); };
 }
-const ADV_ORDER = ["Site settings", "content", "content/updates", "data", "static", "static/images"];
-function advGroups(files) {
-  const g = new Map();
-  for (const f of files) { const dir = f.path === "config.toml" ? "Site settings" : f.path.replace(/\/[^/]*$/, ""); if (!g.has(dir)) g.set(dir, []); g.get(dir).push(f); }
-  const rank = (d) => { const i = ADV_ORDER.indexOf(d); return i < 0 ? ADV_ORDER.length : i; };
-  return [...g.entries()].sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0]));
-}
-const advIcon = (p) => /\.(png|jpe?g|gif|webp|svg)$/i.test(p) ? "bi-image" : /\.md$/.test(p) ? "bi-file-text" : /\.toml$/.test(p) ? "bi-gear" : "bi-file-earmark-code";
-document.addEventListener("click", (e) => { const b = e.target.closest(".item[data-path]"); if (!b) return; if (b.closest("#advDialog")) $("advDialog").close(); openItem(b.dataset.path, !!b.dataset.raw); });
+document.addEventListener("click", (e) => { const b = e.target.closest(".item[data-path]"); if (!b) return; openItem(b.dataset.path); });
 
 /* ---------- opening ---------- */
 async function guard() { if (!dirty) return true; return confirmDlg("Leave without publishing?", "Your changes here haven't been published and will be lost.", "Leave"); }
 function confirmDlg(title, text, ok) { return new Promise((r) => { $("cTitle").textContent = title; $("cText").textContent = text; $("cOk").textContent = ok || "Yes"; const d = $("confirmDialog"); d.onclose = () => r(d.returnValue === "ok"); d.showModal(); }); }
 
-async function openItem(path, raw) {
+async function openItem(path) {
   if (!(await guard())) return;
   $("side").classList.remove("open");
   $("editor").innerHTML = `<div class="empty"><span class="spin"></span></div>`;
   const [status, d] = await api("GET", "/admin/api/doc?path=" + encodeURIComponent(path));
   if (status !== 200) { $("editor").innerHTML = `<div class="empty">Couldn't open this.<br><small>${esc(d.detail || d.error || status)}</small></div>`; return; }
-  cur = { path, sha: d.sha, url: d.url || "/", kind: raw && "text" in d ? "raw" : d.kind, doc: d, label: labelFor(path, d) };
-  cm = null;
+  cur = { path, sha: d.sha, url: d.url || "/", kind: d.kind, doc: d, label: labelFor(path, d) };
   render();
   setDirty(false);
   document.querySelectorAll("#nav .item").forEach((b) => b.classList.toggle("active", b.dataset.path === path));
   location.hash = encodeURIComponent(path);
 }
 function labelFor(path, d) {
-  if (path === "data/schedule.toml") return "Tournament schedule";
+  const dat = items?.data.find((p) => p.path === path); if (dat) return dat.title;
   const page = items?.pages.find((p) => p.path === path); if (page) return page.title;
   if (d.kind === "update") return d.title || "Update";
   return path.replace(/^(content|static|data)\//, "");
@@ -238,6 +215,31 @@ function render() {
     else if (b.dataset.rm) { confirmDlg(`Remove “${ev.title || "this event"}”?`, "It disappears from the schedule when you publish.", "Remove").then((ok) => { if (ok) { d0.events.splice(i, 1); renderEvents(); onChange(); } }); }
   });
     $("addEv").onclick = () => { d.events.push({ title: "", start: "", end: "", location: "", description: "" }); renderEvents(); onChange(); };
+  } else if (k === "rooms") {
+    e.innerHTML = `<div class="hint" style="margin-top:4px">Find my rooms looks every ID up live in ContestDojo. Changes here take effect a few minutes after you publish.</div>
+      <label class="f">ContestDojo event ID <small>the long code in the event's ContestDojo address</small></label><input class="f" id="fEvent" value="${esc(d.event_id)}" spellcheck="false">
+      <label class="f" style="margin-top:22px">Round names <small>optional</small></label>
+      <div class="hint" style="margin-top:0">ContestDojo's own room assignment names are shown unless you rename them here. The first column is the name exactly as ContestDojo has it, the second is what visitors see. The order here is the order on the page.</div>
+      <div id="cols"></div><div style="margin-top:14px"><button id="addCol"><i class="bi bi-plus-lg"></i> Add a round name</button></div>`;
+    const renderCols = () => { $("cols").innerHTML = d.columns.map((c, i) => `<div class="ev" data-i="${i}"><div class="top"><input class="f" data-k="key" placeholder="Name in ContestDojo" value="${esc(c.key || "")}"><input class="f" data-k="label" placeholder="Shown to visitors" value="${esc(c.label || "")}"><button class="iconbtn" data-rm="1" title="Remove"><i class="bi bi-x-lg"></i></button></div></div>`).join("");
+      $("cols").querySelectorAll("input").forEach((i) => i.addEventListener("input", () => { d.columns[+i.closest(".ev").dataset.i][i.dataset.k] = i.value; onChange(); })); };
+    renderCols();
+    $("fEvent").addEventListener("input", () => { d.event_id = $("fEvent").value.trim(); onChange(); });
+    $("cols").addEventListener("click", (e) => { const b = e.target.closest("button[data-rm]"); if (!b) return; d.columns.splice(+b.closest(".ev").dataset.i, 1); renderCols(); onChange(); });
+    $("addCol").onclick = () => { d.columns.push({ key: "", label: "" }); renderCols(); onChange(); $("cols").querySelector(".ev:last-child input")?.focus(); };
+  } else if (k === "settings") {
+    const a = d.advisory;
+    e.innerHTML = `<div class="hint" style="margin-top:4px">The banner shows at the top of every page. Use it for things everyone needs to know, like a venue change or the event being over.</div>
+      <label class="f" style="display:flex;align-items:center;gap:10px;margin-top:18px"><input type="checkbox" id="aOn" ${a.enabled ? "checked" : ""} style="width:18px;height:18px"> Show a banner on every page</label>
+      <div id="aFields" ${a.enabled ? "" : "hidden"}>
+        <label class="f">Type</label><select class="f" id="aStatus">${["info", "warning", "error"].map((v) => `<option value="${v}" ${a.status === v ? "selected" : ""}>${{ info: "Information (blue)", warning: "Warning (yellow)", error: "Urgent (red)" }[v]}</option>`).join("")}</select>
+        <label class="f">Title</label><input class="f" id="aTitle" value="${esc(a.title)}">
+        <label class="f">Small date text <small>optional, shown on the right</small></label><input class="f" id="aTime" value="${esc(a.timestamp)}">
+        <label class="f">Text</label><textarea class="f" id="aBody" style="min-height:90px">${esc(a.body)}</textarea>
+        <div class="hint">Write <code>[link text](https://...)</code> for a link.</div>
+      </div>`;
+    const sync = () => { a.enabled = $("aOn").checked; $("aFields").hidden = !a.enabled; a.status = $("aStatus").value; a.title = $("aTitle").value; a.timestamp = $("aTime").value; a.body = $("aBody").value; onChange(); };
+    e.querySelectorAll("input,select,textarea").forEach((i) => i.addEventListener("input", sync));
   } else if (k === "binary") {
     e.innerHTML = `<div class="empty"><i class="bi bi-file-earmark"></i>This file can't be shown here.<br><small>${esc(cur.path)}</small></div>`;
   } else if (k === "image") {
@@ -250,11 +252,6 @@ function render() {
     $("copyMd").onclick = () => { navigator.clipboard.writeText($("imgMd").value); toast("Copied.", "ok", 2000); };
     $("replace").onclick = () => { $("file").dataset.replace = cur.path; $("file").click(); };
     $("delImg").onclick = async () => { if (await confirmDlg("Delete this image?", "Pages that use it will show a broken picture.", "Delete")) doDelete("Delete " + cur.path); };
-  } else {
-    e.className = "editor raw";
-    e.innerHTML = "";
-    cm = CodeMirror(e, { value: d.text ?? "", mode: /\.md$/.test(cur.path) ? "markdown" : /\.toml$/.test(cur.path) ? "toml" : /\.css$/.test(cur.path) ? "css" : /\.js(on)?$/.test(cur.path) ? "javascript" : null, lineWrapping: true, lineNumbers: true });
-    cm.on("change", onChange);
   }
   schedulePreview(true);
 }
@@ -291,7 +288,8 @@ function collect() {
     return { doc: { kind: k, title: d.title, description: d.description, date: d.date, urgent: d.urgent, body: d.body, kept: d.kept } };
   }
   if (k === "schedule") return { doc: { kind: "schedule", header: d.header, events: d.events } };
-  if (k === "raw") return { text: cm.getValue() };
+  if (k === "rooms") return { doc: { kind: "rooms", event_id: d.event_id, columns: d.columns } };
+  if (k === "settings") return { doc: { kind: "settings", advisory: d.advisory } };
   return {};
 }
 function onChange() { setDirty(true); if (cur.kind === "update") cur.label = $("fTitle").value || "Update"; schedulePreview(); }
@@ -310,7 +308,7 @@ function friendlyBuildError(log) { if (/front matter|TOML parse/i.test(log)) ret
 /* ---------- publish / delete ---------- */
 $("publish").onclick = () => {
   if (!cur) return;
-  const what = cur.kind === "schedule" ? "the tournament schedule" : cur.kind === "update" ? `the update “${$("fTitle").value || "Untitled"}”` : cur.kind === "page" ? `the “${cur.label}” page` : cur.path;
+  const what = cur.kind === "schedule" ? "the tournament schedule" : cur.kind === "rooms" ? "the room lookup settings" : cur.kind === "settings" ? "the site banner" : cur.kind === "update" ? `the update “${$("fTitle").value || "Untitled"}”` : cur.kind === "page" ? `the “${cur.label}” page` : cur.path;
   $("pubWhat").textContent = `${cur.isNew ? "Posts" : "Updates"} ${what} on the live site right away.`;
   $("author").value = localStorage.getItem("admin-author") || ""; $("msg").value = "";
   $("pubDialog").showModal();
@@ -319,7 +317,7 @@ $("pubDialog").onclose = () => { if ($("pubDialog").returnValue === "ok") { loca
 async function doPublish(author, note) {
   $("publish").disabled = true; toast(`<span class="spin"></span> Publishing…`, "", 60000);
   const [status, d] = await api("POST", "/admin/api/save", { path: cur.path, sha: cur.sha, note, author, ...collect() });
-  if (status === 409) return toast(`Someone else published a change to this since you opened it. <button onclick="openItem(cur.path, cur.kind==='raw')">Reload theirs</button> and then make your change again.`, "err", 15000);
+  if (status === 409) return toast(`Someone else published a change to this since you opened it. <button onclick="openItem(cur.path)">Reload theirs</button> and then make your change again.`, "err", 15000);
   if (status === 422) return toast(`Not published. The site can't be built with this change. ${esc(friendlyBuildError(d.log || "").split("\n")[0])}`, "err", 12000);
   if (status !== 200) return toast(`Not published. ${esc(d.detail || d.error || ("Error " + status))}. Try again in a moment.`, "err", 12000);
   cur.sha = d.sha; if (d.url) cur.url = d.url; setDirty(false);
