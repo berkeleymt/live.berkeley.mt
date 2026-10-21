@@ -74,7 +74,7 @@
 {# Full article for one update, used on the updates page #}
 {% macro update_article(page) %}
 {% set urgent = page.extra.urgent | default(value=false) %}
-<article id="{{ page.slug }}" class="{% if urgent %}bg-rose-50 border-rose-200{% else %}bg-white border-gray-200{% endif %} border rounded-xl p-5 flex flex-col gap-3 scroll-mt-4 target:ring-2 target:ring-teal-400">
+<article id="{{ page.slug }}" class="{% if urgent %}bg-rose-50 border-rose-200{% else %}bg-white border-gray-200{% endif %} border rounded-xl p-5 flex flex-col gap-3 scroll-mt-20 md:scroll-mt-4 target:ring-2 target:ring-teal-400">
   <p class="uppercase text-xs text-gray-500 flex gap-2 items-center">
     <i class="bi {% if urgent %}bi-exclamation-triangle-fill text-rose-500{% else %}bi-megaphone-fill{% endif %}"></i>
     <span>{% if urgent %}Urgent{% else %}Update{% endif %}</span>

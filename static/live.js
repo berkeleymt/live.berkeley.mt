@@ -52,6 +52,9 @@
     });
   }
 
+  // Compare server HTML with the last server HTML (never with the live DOM, which
+  // the user has interacted with), so unchanged content never gets swapped in.
+  let lastHtml = null;
   async function refresh() {
     try {
       const res = await fetch(location.pathname, { cache: "no-store" });
@@ -59,11 +62,21 @@
       const doc = new DOMParser().parseFromString(await res.text(), "text/html");
       const fresh = doc.getElementById("content-wrapper");
       const mine = document.getElementById("content-wrapper");
-      if (fresh && mine && fresh.innerHTML !== mine.innerHTML) { mine.innerHTML = fresh.innerHTML; render(); }
+      if (!fresh || !mine) return;
+      const html = fresh.innerHTML;
+      if (lastHtml === null || html === lastHtml) { lastHtml = html; return; }
+      lastHtml = html;
+      const open = [...mine.querySelectorAll("details")].map((d) => d.open);
+      const y = window.scrollY;
+      mine.innerHTML = html;
+      mine.querySelectorAll("details").forEach((d, i) => { if (open[i]) d.open = true; });
+      window.scrollTo(0, y);
+      render();
     } catch (_) { /* offline; try again next minute */ }
   }
 
   render();
+  refresh();
   setInterval(render, 30 * 1000);
   setInterval(refresh, 60 * 1000);
 })();
