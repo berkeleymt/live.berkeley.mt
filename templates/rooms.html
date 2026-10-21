@@ -34,14 +34,6 @@
   const norm = (s) => s.replace(/\s+/g, "").toUpperCase();
   const MAP = { DWINELLE: "dwinelle", WHEELER: "wheeler", VLSB: "vlsb", VALLEY: "vlsb" };
 
-  async function sha16(s) {
-    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
-    return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
-  }
-
-  let dataPromise = null;
-  const load = () => dataPromise || (dataPromise = fetch("/rooms.json", { cache: "no-store" }).then((r) => r.json()));
-
   function roomHtml(room) {
     const slug = MAP[room.split(" ")[0].toUpperCase()];
     const link = slug ? ` <a class="text-sm font-medium text-teal-700 hover:underline whitespace-nowrap" href="/map/#${slug}">Floor plan <i class="bi bi-arrow-right"></i></a>` : "";
@@ -62,16 +54,6 @@
       <p class="uppercase text-xs text-gray-500 flex gap-2 items-center mb-2"><i class="bi bi-person-badge"></i><span>${kind === "team" ? "Team" : "Student"} ${esc(id)}</span><span class="ml-auto normal-case">${source}</span></p>${rows}</div>`;
   }
 
-  async function lookupStatic(id) {
-    const data = await load();
-    const key = await sha16(id);
-    const padded = /^\d{1,2}[A-Z]?$/.test(id) ? await sha16(id.replace(/^\d+/, (n) => n.padStart(3, "0"))) : null;
-    const student = data.students[key] || (padded && data.students[padded]);
-    const rooms = student || data.teams[key] || (padded && data.teams[padded]);
-    const when = new Date(data.synced).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-    render(id, student ? "student" : "team", data.columns, rooms, `as of ${when} PT`);
-  }
-
   async function lookup(raw, fromMemory) {
     const id = norm(raw);
     if (!id) return;
@@ -90,8 +72,9 @@
         throw new Error(`api ${res.status}`);
       }
     } catch (_) {
-      try { await lookupStatic(id); found = !result.querySelector(".bg-orange-50"); }
-      catch (__) { render(id, "", [], null, ""); }
+      result.innerHTML = `<div class="bg-orange-50 border border-orange-200 rounded-xl p-5 flex flex-col gap-1">
+        <p class="font-semibold">Room lookup isn't available right now</p>
+        <p class="text-sm text-gray-700">Please try again in a moment, or ask your coach or the information desk in Dwinelle Hall.</p></div>`;
     }
     if (found) localStorage.setItem("rooms-id", id); else if (!fromMemory) localStorage.removeItem("rooms-id");
   }

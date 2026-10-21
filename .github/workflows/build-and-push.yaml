@@ -58,7 +58,7 @@ jobs:
           KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
           CONTESTDOJO_API_TOKEN: ${{ secrets.CONTESTDOJO_API_TOKEN }}
         run: |
-          if [ -z "$CONTESTDOJO_API_TOKEN" ]; then echo "CONTESTDOJO_API_TOKEN secret not set; /rooms will use the static rooms.json."; exit 0; fi
+          if [ -z "$CONTESTDOJO_API_TOKEN" ]; then echo "CONTESTDOJO_API_TOKEN secret not set; /rooms lookup stays unavailable."; exit 0; fi
           export KUBECONFIG="$RUNNER_TEMP/kubeconfig"
           printf '%s' "$CONTESTDOJO_API_TOKEN" | kubectl -n bmt exec -i deployment/live -- sh -c 'umask 077 && cat > /app/data/contestdojo.token'
           kubectl -n bmt exec deployment/live -- wget -qO- http://127.0.0.1:3001/api/health

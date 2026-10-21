@@ -14,7 +14,6 @@ It is a static [Zola](https://www.getzola.org/) site built the same way as [berk
 | Edit a page | `content/*.md` (map, guide, faq, help, lost-found, home) |
 | Swap a floor plan | `static/maps/*.png`, referenced from `content/map.md` |
 | Link the lost & found form | `form_url` in `content/lost-found.md` |
-| Refresh room assignments | Actions → **Sync rooms** → Run workflow (also runs hourly) |
 | Point room lookup at another event | `event_id` in `data/rooms.toml` |
 
 An update looks like this:
@@ -39,7 +38,7 @@ Markdown plus the shortcodes from berkeley.mt: `{% alert(status="info", title="�
 
 ## Room lookup
 
-`/rooms/` asks `/api/rooms?id=302A`, answered live from ContestDojo by `server/rooms_api.py`, a 100-line stdlib Python service that runs next to nginx in the same container (`start.sh`). It returns room names only, caches each ID for 5 s, and reads the token from `/app/data/contestdojo.token` — the deploy job writes that file into the pod's existing data volume with `kubectl exec`, so no cluster configuration changes. If the file is missing the API answers 503 and the page falls back to `static/rooms.json`, which `scripts/sync_rooms.py` builds from the same API (`data/rooms.toml` names the event). Whatever `roomAssignments` keys ContestDojo returns become the round columns, so nothing is hard-coded per tournament; rename or reorder them in `rooms.toml` if needed. The file holds only `sha256(ID) → rooms`; no names or emails. Both need the `CONTESTDOJO_API_TOKEN` repository secret. Locally: `ROOMS_TOKEN_FILE=/path/to/token ROOMS_CONFIG=data/rooms.toml python3 server/rooms_api.py` (port 3002) or `CONTESTDOJO_API_TOKEN=… python3 scripts/sync_rooms.py`.
+`/rooms/` asks `/api/rooms?id=302A`, answered live from ContestDojo by `server/rooms_api.py`, a 100-line stdlib Python service that runs next to nginx in the same container (`start.sh`). It returns room names only, caches each ID for 5 s, and reads the token from `/app/data/contestdojo.token` — the deploy job writes that file into the pod's existing data volume with `kubectl exec`, so no cluster configuration changes. If the file is missing the API answers 503 and the page says lookup is unavailable. `data/rooms.toml` names the ContestDojo event. Whatever `roomAssignments` keys ContestDojo returns become the round columns, so nothing is hard-coded per tournament; rename or reorder them in `rooms.toml` if needed. The file holds only `sha256(ID) → rooms`; no names or emails. Needs the `CONTESTDOJO_API_TOKEN` repository secret. Locally: `ROOMS_TOKEN_FILE=/path/to/token ROOMS_CONFIG=data/rooms.toml python3 server/rooms_api.py` (port 3002).
 
 ## Running locally
 
@@ -63,8 +62,7 @@ config.toml          site config + site-wide advisory banner
 data/schedule.toml   the schedule
 data/rooms.toml      ContestDojo event for the room lookup
 server/rooms_api.py  live room lookup API (same container as nginx)
-scripts/             sync_rooms.py (static fallback)
-.github/workflows/   build-and-push (deploy), sync-rooms, post-update
+.github/workflows/   build-and-push (deploy), post-update
 content/             Markdown pages; content/updates/ holds announcements
 templates/           Tera templates (base.html, index.html, schedule.html, updates.html, page.html)
 static/              live.js (now/next + auto-refresh), input.css, fonts, logo, maps
