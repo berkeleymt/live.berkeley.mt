@@ -18,17 +18,17 @@ Rounds take place in four buildings on the south side of campus. Check-in is at 
 
 Green rooms are classrooms, blue are auditoriums, yellow are stairs, and elevators are marked ☒. Feel free to ask a volunteer if you need further guidance or accessibility needs.
 
-{% details(title="Dwinelle Hall (floors C, D and E)") %}
+{% details(title="Dwinelle Hall (floors C, D and E)", id="dwinelle") %}
 Dwinelle's room numbers tell you the floor: 1xx is floor D (main entrance), 2xx is floor E, and 7x–8x is floor C below.
 
 ![Dwinelle Hall floor plans](/maps/dwinelle.png)
 {% end %}
 
-{% details(title="Wheeler Hall (basement, floors 1 and 2)") %}
+{% details(title="Wheeler Hall (basement, floors 1 and 2)", id="wheeler") %}
 ![Wheeler Hall floor plans](/maps/wheeler.png)
 {% end %}
 
-{% details(title="Valley Life Sciences Building (floor 2)") %}
+{% details(title="Valley Life Sciences Building (floor 2)", id="vlsb") %}
 ![VLSB floor 2 plan](/maps/vlsb.png)
 {% end %}
 

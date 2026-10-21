@@ -39,8 +39,9 @@
 
 {# Where to go #}
 <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
-  {{ macros::tile(class="md:col-span-3 bg-gradient-to-br from-fuchsia-700 to-fuchsia-900 text-white shadow-lg", name="Schedule", icon="bi-calendar3", href="/schedule/", description="Every round and break, with any changed times.") }}
-  {{ macros::tile(class="md:col-span-3 bg-gradient-to-br from-orange-700 to-orange-900 text-white shadow-lg", name="Map & rooms", icon="bi-map", href="/map/", description="Campus map, buildings and floor plans for each room.") }}
+  {{ macros::tile(class="md:col-span-2 bg-gradient-to-br from-teal-600 to-teal-800 text-white shadow-lg", name="Find my rooms", icon="bi-person-badge", href="/rooms/", description="Enter your student ID or team number.") }}
+  {{ macros::tile(class="md:col-span-2 bg-gradient-to-br from-fuchsia-700 to-fuchsia-900 text-white shadow-lg", name="Schedule", icon="bi-calendar3", href="/schedule/", description="Every round and break, with any changed times.") }}
+  {{ macros::tile(class="md:col-span-2 bg-gradient-to-br from-orange-700 to-orange-900 text-white shadow-lg", name="Map & rooms", icon="bi-map", href="/map/", description="Campus map and floor plans for each building.") }}
   {{ macros::tile(class="md:col-span-2 bg-gradient-to-br from-slate-200 to-slate-300", name="Guide", icon="bi-book", href="/guide/", description="What to bring and how the day works.") }}
   {{ macros::tile(class="md:col-span-2 bg-gradient-to-br from-slate-200 to-slate-300", name="FAQ & help", icon="bi-question-circle", href="/faq/", description="Wi-Fi, restrooms, info desk, emergencies.") }}
   {{ macros::tile(class="md:col-span-2 bg-gradient-to-br from-slate-200 to-slate-300", name="Lost & found", icon="bi-search", href="/lost-found/", description="Report a lost or found item.") }}

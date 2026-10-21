@@ -1,0 +1,88 @@
+{% import "macros.html" as macros %}
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex flex-col gap-3">
+  <h1 class="text-3xl font-semibold">{{ page.title }}</h1>
+</div>
+
+{% if page.content %}
+<div class="prose">{{ page.content | safe }}</div>
+{% endif %}
+
+<form id="rooms-form" class="flex flex-col sm:flex-row gap-3" autocomplete="off">
+  <label class="sr-only" for="rooms-id">Student ID or team number</label>
+  <input id="rooms-id" name="id" inputmode="text" autocapitalize="characters" spellcheck="false" placeholder="e.g. 302A or 302" required
+    class="flex-1 text-lg px-4 py-3 rounded-xl border border-gray-300 bg-white uppercase placeholder:normal-case focus:outline-none focus:ring-2 focus:ring-teal-400">
+  <button type="submit" class="text-lg bg-teal-500 text-white py-3 px-6 rounded-xl shadow hover:-translate-y-0.5 hover:shadow-lg transition-all">Find rooms</button>
+</form>
+
+<div id="rooms-result" class="hidden"></div>
+
+
+<div class="prose">
+  <p>Can't find your ID? Ask your coach, or visit the information desk in Dwinelle Hall. The <a href="/map/">map</a> has floor plans for every building.</p>
+</div>
+
+{% raw %}
+<script>
+(function () {
+  const form = document.getElementById("rooms-form");
+  const input = document.getElementById("rooms-id");
+  const result = document.getElementById("rooms-result");
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const norm = (s) => s.replace(/\s+/g, "").toUpperCase();
+  const MAP = { DWINELLE: "dwinelle", WHEELER: "wheeler", VLSB: "vlsb", VALLEY: "vlsb" };
+
+  function roomHtml(room) {
+    const slug = MAP[room.split(" ")[0].toUpperCase()];
+    const link = slug ? ` <a class="text-sm font-medium text-teal-700 hover:underline whitespace-nowrap" href="/map/#${slug}">Floor plan <i class="bi bi-arrow-right"></i></a>` : "";
+    return `<span class="text-xl font-semibold">${esc(room)}</span>${link}`;
+  }
+
+  function render(id, kind, columns, rooms, source) {
+    result.classList.remove("hidden");
+    if (!rooms) {
+      result.innerHTML = `<div class="bg-orange-50 border border-orange-200 rounded-xl p-5 flex flex-col gap-1">
+        <p class="font-semibold">No rooms found for ${esc(id)}</p>
+        <p class="text-sm text-gray-700">Student IDs look like <b>302A</b>, team numbers like <b>302</b>. Rooms appear once your coach has checked in; if you have checked in, ask the information desk.</p></div>`;
+      return;
+    }
+    const rows = columns.map((label, i) => rooms[i] ? `<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3 border-t border-teal-100 first:border-0">
+        <span class="text-sm uppercase text-gray-500">${esc(label)}</span>${roomHtml(rooms[i])}</div>` : "").join("");
+    result.innerHTML = `<div class="bg-teal-50 border border-teal-200 rounded-xl p-5">
+      <p class="uppercase text-xs text-gray-500 flex gap-2 items-center mb-2"><i class="bi bi-person-badge"></i><span>${kind === "team" ? "Team" : "Student"} ${esc(id)}</span><span class="ml-auto normal-case">${source}</span></p>${rows}</div>`;
+  }
+
+  async function lookup(raw, fromMemory) {
+    const id = norm(raw);
+    if (!id) return;
+    result.classList.remove("hidden");
+    result.innerHTML = `<p class="text-gray-500">Looking up ${esc(id)}…</p>`;
+    let found = false;
+    try {
+      const res = await fetch(`/api/rooms?id=${encodeURIComponent(id)}`, { cache: "no-store" });
+      if (res.status === 200) {
+        const d = await res.json();
+        render(d.id, d.kind, d.columns, d.rooms, "live from check-in");
+        found = true;
+      } else if (res.status === 404) {
+        render(id, "", [], null, "");
+      } else {
+        throw new Error(`api ${res.status}`);
+      }
+    } catch (_) {
+      result.innerHTML = `<div class="bg-orange-50 border border-orange-200 rounded-xl p-5 flex flex-col gap-1">
+        <p class="font-semibold">Room lookup isn't available right now</p>
+        <p class="text-sm text-gray-700">Please try again in a moment, or ask your coach or the information desk in Dwinelle Hall.</p></div>`;
+    }
+    if (found) localStorage.setItem("rooms-id", id); else if (!fromMemory) localStorage.removeItem("rooms-id");
+  }
+
+  form.addEventListener("submit", (e) => { e.preventDefault(); lookup(input.value, false); });
+  const remembered = new URLSearchParams(location.search).get("id") || localStorage.getItem("rooms-id");
+  if (remembered) { input.value = remembered; lookup(remembered, true); }
+})();
+</script>
+{% endraw %}
+{% endblock %}

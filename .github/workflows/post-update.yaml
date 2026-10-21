@@ -1,0 +1,61 @@
+# Publish a live update without touching Git: Actions → Post an update →
+# Run workflow, fill in the fields, run. It writes content/updates/<file>.md,
+# commits to main and deploys (about two minutes).
+name: Post an update
+
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: "Title (e.g. Team Round begins at 1:45 PM sharp)"
+        required: true
+        type: string
+      body:
+        description: "Text (Markdown). Write \\n for a new paragraph."
+        required: true
+        type: string
+      urgent:
+        description: "Urgent (red, shown first on the home page)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: content-commit
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write the update
+        env:
+          TITLE: ${{ inputs.title }}
+          BODY: ${{ inputs.body }}
+          URGENT: ${{ inputs.urgent }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          export TZ=America/Los_Angeles
+          slug=$(printf '%s' "$TITLE" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-|-$//g' | cut -c1-50)
+          file="content/updates/$(date +%Y-%m-%d_%H%M)_${slug:-update}.md"
+          {
+            echo '+++'
+            printf 'title = %s\n' "$(printf '%s' "$TITLE" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')"
+            echo "date = $(date +%Y-%m-%dT%H:%M:%S%:z)"
+            if [ "$URGENT" = "true" ]; then printf '\n[extra]\nurgent = true\n'; fi
+            echo '+++'
+            echo
+            printf '%s\n' "$BODY" | sed 's/\\n/\n/g'
+          } > "$file"
+          cat "$file"
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+          git add "$file"
+          git commit -m "update: $TITLE"
+          git push
+          gh workflow run build-and-push.yaml --ref main

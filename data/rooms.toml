@@ -1,0 +1,10 @@
+# Room lookup (/rooms). server/rooms_api.py looks IDs up live on this
+# ContestDojo event and returns room names only.
+
+event_id = "9hJZTzftFdrZswSyerPy"   # BmMT 2026
+
+# Optional: ContestDojo's roomAssignments keys are used as the round labels,
+# in order of first appearance. To rename or reorder them, list them here:
+# [[columns]]
+# key = "Testing Room"      # exactly as ContestDojo names it
+# label = "All rounds"      # what visitors see
