@@ -9,7 +9,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   {% set title = section.title | default(value=page.title | default(value="BMT Live")) %}
-  <title>{% if title != "BMT Live" %}{{ title }} · {% endif %}BMT Live</title>
+  <title>{{ title }}</title>
   <meta property="og:title" content="{{ title }}" />
   <meta property="og:site_name" content="BMT Live" />
   <meta property="og:type" content="website" />
@@ -109,7 +109,7 @@
           We are a student group acting independently of the University of California. We take full responsibility for
           our organization and this web site.
         </p>
-        <p class="text-xs text-gray-500">All times are in Pacific Time. Visit <a href="https://berkeley.mt/events/bmt-2026/" class="underline">berkeley.mt</a> for more information.</p>
+        <p class="text-xs text-gray-500">Visit <a href="https://berkeley.mt/" class="underline">berkeley.mt</a> for more information.</p>
       </div>
     </div>
   </div>

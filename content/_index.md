@@ -1,5 +1,5 @@
 +++
-title = "BMT Live"
+title = "Home"
 description = "Tournament-day companion for the Berkeley Math Tournament: schedule, live updates, maps and help."
 +++
 
