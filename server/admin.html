@@ -202,7 +202,7 @@ function render() {
     e.innerHTML = `
       <label class="f">Title</label><input class="f" id="fTitle" value="${esc(d.title)}" placeholder="${isU ? "e.g. Team Round starts at 1:45 PM" : "Page title"}">
       ${isU ? `<div class="row2"><div><label class="f">Posted at <small>— Pacific time; newest shows first</small></label><input class="f" id="fDate" type="datetime-local" value="${esc(isoToLocal(d.date))}"></div>
-        <div><label class="f">&nbsp;</label><label class="switch" style="margin-top:0"><input type="checkbox" id="fUrgent" ${d.urgent ? "checked" : ""}><span><span class="t">Urgent</span><br><span class="d">Red, pinned to the top of the home page</span></span></label></div></div>`
+        <div><label class="f">&nbsp;</label><label class="switch" style="margin-top:0"><input type="checkbox" id="fUrgent" ${d.urgent ? "checked" : ""}><span><span class="t">Urgent</span><br><span class="d">Shown in red with an Urgent label (home page and updates list)</span></span></label></div></div>`
         : `<label class="f">Short description <small>— shown in search results and link previews</small></label><input class="f" id="fDesc" value="${esc(d.description)}">`}
       <label class="f">Text</label>
       <div class="toolbar"><button type="button" data-md="bold" title="Bold"><i class="bi bi-type-bold"></i></button><button type="button" data-md="italic" title="Italic"><i class="bi bi-type-italic"></i></button><button type="button" data-md="link" title="Link"><i class="bi bi-link-45deg"></i> Link</button><button type="button" data-md="list" title="Bulleted list"><i class="bi bi-list-ul"></i></button><button type="button" data-md="heading" title="Heading"><i class="bi bi-type-h2"></i></button></div>
