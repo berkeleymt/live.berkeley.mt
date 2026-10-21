@@ -87,7 +87,11 @@ def gh(method, path, body=None, token=None):
             detail = json.load(e).get("message", "")
         except Exception:
             detail = ""
+        if e.code in (401, 403):  # never echo GitHub's 401/403 as ours: the browser would treat it as "log in again"
+            return 502, {"error": f"GitHub refused the site's access token ({detail or e.reason}). Tell the web team."}
         return e.code, {"error": detail or e.reason}
+    except (urllib.error.URLError, TimeoutError) as e:
+        return 502, {"error": f"Could not reach GitHub ({getattr(e, 'reason', e)}). Try again in a moment."}
 
 
 def gh_tree():

@@ -142,7 +142,7 @@ const isoToLocal = (iso) => (iso || "").slice(0, 16);
 const localToIso = (local, prevIso) => { if (!local) return ""; const off = (prevIso && /[+-]\d{2}:\d{2}$/.exec(prevIso)?.[0]) || nowPT().off; return `${local}:00${off}`; };
 
 let items = null, cur = null, dirty = false, cm = null, previewTimer = null, previewSeq = 0;
-const setDirty = (v) => { dirty = v; $("publish").disabled = !v || !cur || cur.kind === "image"; $("title").innerHTML = cur ? `<b>${esc(cur.label)}</b>${dirty ? '<span class="dirty-dot" title="Unsaved changes"></span>' : ""}` : "Pick something to edit"; };
+const setDirty = (v) => { dirty = v; $("publish").disabled = !v || !cur || cur.kind === "image" || (cur.kind === "update" && !($("fTitle")?.value || "").trim()); $("title").innerHTML = cur ? `<b>${esc(cur.label)}</b>${dirty ? '<span class="dirty-dot" title="Unsaved changes"></span>' : ""}` : "Pick something to edit"; };
 const toast = (html, cls, ms) => { const t = $("toast"); t.innerHTML = html; t.className = "toast " + (cls || ""); t.style.display = "block"; clearTimeout(t._t); t._t = setTimeout(() => (t.style.display = "none"), ms || 6000); };
 
 /* ---------- sidebar ---------- */
@@ -327,8 +327,7 @@ async function newUpdate() {
   const n = nowPT();
   const path = `content/updates/${n.local.slice(0, 10)}_${n.local.slice(11, 13)}${n.local.slice(14, 16)}_update-${Math.random().toString(36).slice(2, 6)}.md`;
   cur = { path, sha: null, url: "/updates/", kind: "update", isNew: true, label: "New update", doc: { kind: "update", title: "", description: "", date: n.iso, urgent: false, body: "", kept: [] } };
-  $("side").classList.remove("open"); render(); setDirty(true); $("publish").disabled = true; $("fTitle").focus();
-  $("fTitle").addEventListener("input", () => { $("publish").disabled = !$("fTitle").value.trim(); });
+  $("side").classList.remove("open"); render(); setDirty(true); $("fTitle").focus();
   const slugify = () => { const t = $("fTitle").value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50); if (t) cur.path = path.replace(/_update-\w+\.md$/, `_${t}.md`); };
   $("fTitle").addEventListener("change", slugify); $("fTitle").addEventListener("blur", slugify);
 }
