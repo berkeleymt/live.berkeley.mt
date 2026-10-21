@@ -79,8 +79,12 @@
   @media (max-width:860px){
     body{grid-template-columns:1fr;grid-template-areas:"top" "main"}
     aside{display:none}aside.open{display:block;position:fixed;inset:52px 0 0;z-index:5}
-    main.split{grid-template-columns:1fr}
-    main.split.show-preview .editor-pane{display:none}main.split:not(.show-preview) .preview{display:none}
+    main{display:flex;flex-direction:column}
+    main.split .editor-pane{flex:1 1 auto}
+    main.split.show-preview .editor-pane{flex:0 0 auto;overflow:visible}
+    main.split.show-preview .editor{display:none}
+    main.split:not(.show-preview) .preview{display:none}
+    main.split.show-preview .preview{display:flex;flex:1 1 auto}
     .preview{border-left:0}
     .mobile-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:#fff}
     .mobile-tabs button{flex:1;border:0;border-radius:0;padding:10px;border-bottom:2px solid transparent}.mobile-tabs button.on{border-bottom-color:var(--teal);color:var(--teal-dark);font-weight:600}
@@ -174,7 +178,7 @@ async function open(path, raw) {
   $("editor").innerHTML = `<div class="empty"><span class="spin"></span></div>`;
   const [status, d] = await api("GET", "/admin/api/doc?path=" + encodeURIComponent(path));
   if (status !== 200) { $("editor").innerHTML = `<div class="empty">Couldn't open this.<br><small>${esc(d.detail || d.error || status)}</small></div>`; return; }
-  cur = { path, sha: d.sha, url: d.url || "/", kind: raw ? "raw" : (d.kind === "raw" && d.base64 ? "image" : d.kind), doc: d, label: labelFor(path, d) };
+  cur = { path, sha: d.sha, url: d.url || "/", kind: raw && "text" in d ? "raw" : d.kind, doc: d, label: labelFor(path, d) };
   cm = null;
   render();
   setDirty(false);
@@ -219,6 +223,8 @@ function render() {
     else if (b.dataset.rm) { confirmDlg(`Remove “${ev.title || "this event"}”?`, "It disappears from the schedule when you publish.", "Remove").then((ok) => { if (ok) { d0.events.splice(i, 1); renderEvents(); onChange(); } }); }
   });
     $("addEv").onclick = () => { d.events.push({ title: "", start: "", end: "", location: "", description: "" }); renderEvents(); onChange(); };
+  } else if (k === "binary") {
+    e.innerHTML = `<div class="empty"><i class="bi bi-file-earmark"></i>This file can't be shown here.<br><small>${esc(cur.path)}</small></div>`;
   } else if (k === "image") {
     const ext = cur.path.split(".").pop().toLowerCase(), mime = ext === "svg" ? "svg+xml" : ext === "jpg" ? "jpeg" : ext;
     const url = "/" + cur.path.replace(/^static\//, "");
@@ -337,7 +343,8 @@ $("file").onchange = async () => {
   if (!f) return;
   const path = replace || `static/assets/${f.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-")}`;
   if (!replace && items.images.some((i) => i.path === path) && !(await confirmDlg("Replace the existing image?", `${path.replace(/^static\//, "")} already exists.`, "Replace"))) return;
-  const b64 = btoa(String.fromCharCode(...new Uint8Array(await f.arrayBuffer())));
+  if (f.size > 20 * 1024 * 1024) return toast("That file is too big (over 20 MB). Please shrink it first.", "err", 8000);
+  const b64 = await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(String(fr.result).split(",")[1]); fr.readAsDataURL(f); });
   toast(`<span class="spin"></span> Uploading…`, "", 60000);
   const [status, d] = await api("POST", "/admin/api/save", { path, base64: b64, sha: null, message: (replace ? "Replace image " : "Add image ") + path, author: localStorage.getItem("admin-author") || "" });
   if (status !== 200) return toast(`Upload failed — ${esc(d.detail || d.error || status)}.`, "err", 10000);

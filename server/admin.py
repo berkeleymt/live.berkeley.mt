@@ -27,7 +27,7 @@ BASE_URL = os.environ.get("ADMIN_BASE_URL", "https://live.berkeley.mt")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 EDITABLE = re.compile(r"^(content|data|static)/(?:[A-Za-z0-9_][A-Za-z0-9._-]*/)*[A-Za-z0-9_][A-Za-z0-9._ -]*$")
-TEXT_EXT = {".md", ".toml", ".txt", ".css", ".js", ".json", ".svg", ".html", ".xml", ".csv", ".yaml", ".yml"}
+TEXT_EXT = {".md", ".toml", ".txt", ".css", ".js", ".json", ".html", ".xml", ".csv", ".yaml", ".yml"}
 SESSION_HOURS = 24
 
 
@@ -495,7 +495,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(status, data)
             if "text" in data:
                 data.update(doc_from_text(path, data["text"]))
-                data["url"] = page_for(path)
+            else:
+                data["kind"] = "image" if os.path.splitext(path)[1].lower() in IMAGE_EXT else "binary"
+            data["url"] = page_for(path)
             return self.send_json(200, data)
         if p == "/admin/api/file":
             path = qs.get("path", [""])[0]
