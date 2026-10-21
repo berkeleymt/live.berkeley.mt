@@ -166,13 +166,13 @@ async function loadItems(keep) {
   $("upload").onclick = () => $("file").click();
   $("advanced").onclick = () => { $("advList").innerHTML = data.advanced.map((f) => `<button class="item" data-path="${esc(f.path)}" data-raw="1" style="padding:5px 8px">${esc(f.path)}</button>`).join(""); $("advDialog").showModal(); };
 }
-document.addEventListener("click", (e) => { const b = e.target.closest(".item[data-path]"); if (!b) return; if (b.closest("#advDialog")) $("advDialog").close(); open(b.dataset.path, !!b.dataset.raw); });
+document.addEventListener("click", (e) => { const b = e.target.closest(".item[data-path]"); if (!b) return; if (b.closest("#advDialog")) $("advDialog").close(); openItem(b.dataset.path, !!b.dataset.raw); });
 
 /* ---------- opening ---------- */
 async function guard() { if (!dirty) return true; return confirmDlg("Leave without publishing?", "Your changes here haven't been published and will be lost.", "Leave"); }
 function confirmDlg(title, text, ok) { return new Promise((r) => { $("cTitle").textContent = title; $("cText").textContent = text; $("cOk").textContent = ok || "Yes"; const d = $("confirmDialog"); d.onclose = () => r(d.returnValue === "ok"); d.showModal(); }); }
 
-async function open(path, raw) {
+async function openItem(path, raw) {
   if (!(await guard())) return;
   $("side").classList.remove("open");
   $("editor").innerHTML = `<div class="empty"><span class="spin"></span></div>`;
@@ -306,7 +306,7 @@ async function doPublish(author, note) {
   const what = cur.kind === "update" ? `update: ${cur.doc.title || cur.label}` : cur.kind === "schedule" ? "schedule" : cur.label;
   const message = note ? `${what} — ${note}` : `Update ${what}`;
   const [status, d] = await api("POST", "/admin/api/save", { path: cur.path, sha: cur.sha, message, author, ...collect() });
-  if (status === 409) return toast(`Someone else published a change to this since you opened it. <button onclick="open(cur.path, cur.kind==='raw')">Reload theirs</button> then re-apply yours.`, "err", 15000);
+  if (status === 409) return toast(`Someone else published a change to this since you opened it. <button onclick="openItem(cur.path, cur.kind==='raw')">Reload theirs</button> then re-apply yours.`, "err", 15000);
   if (status === 422) return toast(`Not published: the site can't be built with this change. ${esc(friendlyBuildError(d.log || "").split("\n")[0])}`, "err", 12000);
   if (status !== 200) return toast(`Not published — ${esc(d.detail || d.error || ("error " + status))}. Try again in a moment.`, "err", 12000);
   cur.sha = d.sha; if (d.url) cur.url = d.url; setDirty(false);
@@ -349,7 +349,7 @@ $("file").onchange = async () => {
   const [status, d] = await api("POST", "/admin/api/save", { path, base64: b64, sha: null, message: (replace ? "Replace image " : "Add image ") + path, author: localStorage.getItem("admin-author") || "" });
   if (status !== 200) return toast(`Upload failed — ${esc(d.detail || d.error || status)}.`, "err", 10000);
   toast(`<i class="bi bi-check-circle-fill"></i> Uploaded.`, "ok", 4000);
-  await loadItems(); open(path);
+  await loadItems(); openItem(path);
 };
 
 /* ---------- misc ---------- */
@@ -357,5 +357,5 @@ $("logout").onclick = async () => { if (await guard()) { await api("POST", "/adm
 $("menu").onclick = () => $("side").classList.toggle("open");
 $("tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; $("tabs").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); $("main").classList.toggle("show-preview", b.dataset.tab === "preview"); if (b.dataset.tab === "preview") schedulePreview(true); });
 window.addEventListener("beforeunload", (e) => { if (dirty) e.preventDefault(); });
-loadItems().then(() => { const h = decodeURIComponent(location.hash.slice(1)); if (h) open(h); });
+loadItems().then(() => { const h = decodeURIComponent(location.hash.slice(1)); if (h) openItem(h); });
 </script></body></html>
