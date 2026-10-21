@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Live — staff editor</title>
+<title>Live staff editor</title>
 <link rel="icon" href="/favicon.svg">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -94,7 +94,7 @@
 </style></head><body>
 <header>
   <button id="menu" class="iconbtn" title="Menu"><i class="bi bi-list"></i></button>
-  <span class="brand">BMT <span>Live</span> · staff editor</span>
+  <span class="brand">BMT <span>Live</span> staff editor</span>
   <span class="title" id="title">Pick something to edit</span>
   <button id="publish" class="primary" disabled><i class="bi bi-send"></i> Publish</button>
   <button id="logout" class="iconbtn" title="Sign out"><i class="bi bi-box-arrow-right"></i></button>
@@ -105,10 +105,10 @@
 <main id="main">
   <div class="pane editor-pane" id="editorPane">
     <div class="mobile-tabs" id="tabs" hidden><button class="on" data-tab="edit">Edit</button><button data-tab="preview">Preview</button></div>
-    <div class="editor" id="editor"><div class="empty"><i class="bi bi-pencil-square"></i>Choose an update, the schedule, a page or an image on the left.<br><small>Everything you publish goes live within seconds and is saved in the site's history.</small></div></div>
+    <div class="editor" id="editor"><div class="empty"><i class="bi bi-pencil-square"></i>Choose an update, the schedule, a page or an image on the left.<br><small>Everything you publish goes live within seconds and is kept in the site's history.</small></div></div>
   </div>
   <div class="preview pane">
-    <div class="bar"><i class="bi bi-eye"></i> <span id="pvStatus">Preview — updates as you type</span><span style="flex:1"></span><a id="pvOpen" href="#" target="_blank" style="font-size:12px;color:var(--teal-dark)">Open in new tab</a></div>
+    <div class="bar"><i class="bi bi-eye"></i> <span id="pvStatus">Preview updates as you type</span><span style="flex:1"></span><a id="pvOpen" href="#" target="_blank" style="font-size:12px;color:var(--teal-dark)">Open in new tab</a></div>
     <div class="err" id="pvErr" hidden></div>
     <iframe id="frame" title="Preview"></iframe>
   </div>
@@ -118,11 +118,11 @@
 <dialog id="pubDialog"><form method="dialog">
   <h2>Publish to the live site</h2>
   <p id="pubWhat"></p>
-  <label class="f">Your name <small>— so the team can see who changed what</small></label><input class="f" id="author" placeholder="e.g. Ian (info desk)" required>
-  <label class="f">Note <small>(optional)</small></label><input class="f" id="msg" placeholder="e.g. Lunch moved to 12:45">
+  <label class="f">Your name <small>so the team knows who made the change</small></label><input class="f" id="author" placeholder="For example, Ian at the info desk" required>
+  <label class="f">Note <small>optional</small></label><input class="f" id="msg" placeholder="For example, lunch moved to 12:45">
   <menu><button value="cancel">Cancel</button><button value="ok" class="primary"><i class="bi bi-send"></i> Publish now</button></menu></form></dialog>
 <dialog id="confirmDialog"><form method="dialog"><h2 id="cTitle"></h2><p id="cText"></p><menu><button value="cancel">Cancel</button><button value="ok" class="primary danger" id="cOk" style="background:var(--rose);border-color:var(--rose)">Yes</button></menu></form></dialog>
-<dialog id="advDialog"><form method="dialog"><h2>Advanced: files</h2><p>Edit any file directly. Only do this if you know the file format; a mistake here can break a page (Preview will tell you).</p><div id="advList" style="max-height:50vh;overflow:auto;margin-top:10px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:13px"></div><menu><button value="cancel">Close</button></menu></form></dialog>
+<dialog id="advDialog"><form method="dialog"><h2>Advanced: files</h2><p>Edit any file directly. Only do this if you know the file format. A mistake here can break a page, and the preview will tell you.</p><div id="advList" style="max-height:50vh;overflow:auto;margin-top:10px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:13px"></div><menu><button value="cancel">Close</button></menu></form></dialog>
 <input id="file" type="file" hidden accept="image/*">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
@@ -200,20 +200,20 @@ function render() {
   if (k === "update" || k === "page") {
     const isU = k === "update";
     e.innerHTML = `
-      <label class="f">Title</label><input class="f" id="fTitle" value="${esc(d.title)}" placeholder="${isU ? "e.g. Team Round starts at 1:45 PM" : "Page title"}">
-      ${isU ? `<div class="row2"><div><label class="f">Posted at <small>— Pacific time; newest shows first</small></label><input class="f" id="fDate" type="datetime-local" value="${esc(isoToLocal(d.date))}"></div>
-        <div><label class="f">&nbsp;</label><label class="switch" style="margin-top:0"><input type="checkbox" id="fUrgent" ${d.urgent ? "checked" : ""}><span><span class="t">Urgent</span><br><span class="d">Shown in red with an Urgent label (home page and updates list)</span></span></label></div></div>`
-        : `<label class="f">Short description <small>— shown in search results and link previews</small></label><input class="f" id="fDesc" value="${esc(d.description)}">`}
+      <label class="f">Title</label><input class="f" id="fTitle" value="${esc(d.title)}" placeholder="${isU ? "For example, Team Round starts at 1:45 PM" : "Page title"}">
+      ${isU ? `<div class="row2"><div><label class="f">Posted at <small>Pacific time. Newest shows first.</small></label><input class="f" id="fDate" type="datetime-local" value="${esc(isoToLocal(d.date))}"></div>
+        <div><label class="f">&nbsp;</label><label class="switch" style="margin-top:0"><input type="checkbox" id="fUrgent" ${d.urgent ? "checked" : ""}><span><span class="t">Urgent</span><br><span class="d">Shown in red with an Urgent label on the home page and in the updates list</span></span></label></div></div>`
+        : `<label class="f">Short description <small>appears in search results and link previews</small></label><input class="f" id="fDesc" value="${esc(d.description)}">`}
       <label class="f">Text</label>
       <div class="toolbar"><button type="button" data-md="bold" title="Bold"><i class="bi bi-type-bold"></i></button><button type="button" data-md="italic" title="Italic"><i class="bi bi-type-italic"></i></button><button type="button" data-md="link" title="Link"><i class="bi bi-link-45deg"></i> Link</button><button type="button" data-md="list" title="Bulleted list"><i class="bi bi-list-ul"></i></button><button type="button" data-md="heading" title="Heading"><i class="bi bi-type-h2"></i></button></div>
       <textarea class="f" id="fBody" style="min-height:${isU ? 220 : 420}px">${esc(d.body)}</textarea>
-      <div class="hint">Plain text is fine. For formatting: <code>**bold**</code>, <code>*italic*</code>, <code>[link text](https://…)</code>, lines starting with <code>- </code> make a list, <code>## </code> makes a heading. Images: upload one under Images, then insert it from there.</div>
+      <div class="hint">Plain text works. Wrap words in <code>**</code> for bold or <code>*</code> for italic. Write <code>[link text](https://...)</code> for a link. Start a line with <code>- </code> for a bullet or <code>## </code> for a heading. To add a picture, upload it under Images and copy its line from there.</div>
       ${isU ? `<div style="margin-top:28px"><button class="danger" id="del"><i class="bi bi-trash"></i> Remove this update</button></div>` : ""}`;
     e.querySelectorAll("input,textarea").forEach((i) => i.addEventListener("input", onChange));
     e.querySelectorAll("[data-md]").forEach((b) => b.addEventListener("click", () => mdInsert(b.dataset.md)));
     if (isU) $("del").onclick = removeUpdate;
   } else if (k === "schedule") {
-    e.innerHTML = `<div class="hint" style="margin-top:4px">Times are Pacific. When you change a time, visitors see the old time crossed out next to the new one. Add a short note to say why.</div><div id="events"></div><div style="margin-top:14px"><button id="addEv"><i class="bi bi-plus-lg"></i> Add an event</button></div>`;
+    e.innerHTML = `<div class="hint" style="margin-top:4px">All times are Pacific. When you change a time, visitors see the old time crossed out next to the new one. You can add a short note to say why.</div><div id="events"></div><div style="margin-top:14px"><button id="addEv"><i class="bi bi-plus-lg"></i> Add an event</button></div>`;
     renderEvents();
     const d0 = d;
     $("events").addEventListener("click", (e) => {
@@ -250,9 +250,9 @@ function renderEvents() {
     <div class="grid">
       <div><label class="f" style="margin-top:0">Starts</label><div class="time"><input class="f" type="time" data-k="start" value="${esc(ev.start)}"></div>${ev.was_start && ev.was_start !== ev.start ? `<div class="was"><s>was ${to12(ev.was_start)}</s><button type="button" data-undo="start">undo</button></div>` : ""}</div>
       <div><label class="f" style="margin-top:0">Ends</label><div class="time"><input class="f" type="time" data-k="end" value="${esc(ev.end)}"></div>${ev.was_end && ev.was_end !== ev.end ? `<div class="was"><s>was ${to12(ev.was_end)}</s><button type="button" data-undo="end">undo</button></div>` : ""}</div>
-      <div><label class="f" style="margin-top:0">Where</label><input class="f" data-k="location" value="${esc(ev.location)}" placeholder="e.g. Pauley Ballroom"></div>
-      <div><label class="f" style="margin-top:0">Note about a change <small>(optional)</small></label><input class="f" data-k="note" value="${esc(ev.note || "")}" placeholder="e.g. Check-in is running late"></div>
-      <div class="more"><label class="f" style="margin-top:0">Details <small>(optional)</small></label><textarea class="f" data-k="description" style="min-height:64px">${esc(ev.description || "")}</textarea></div>
+      <div><label class="f" style="margin-top:0">Where</label><input class="f" data-k="location" value="${esc(ev.location)}" placeholder="For example, Pauley Ballroom"></div>
+      <div><label class="f" style="margin-top:0">Why it changed <small>optional</small></label><input class="f" data-k="note" value="${esc(ev.note || "")}" placeholder="For example, check-in is running late"></div>
+      <div class="more"><label class="f" style="margin-top:0">Details <small>optional</small></label><textarea class="f" data-k="description" style="min-height:64px">${esc(ev.description || "")}</textarea></div>
     </div></div>`).join("");
   $("events").querySelectorAll("[data-k]").forEach((inp) => inp.addEventListener("input", () => {
     const ev = d.events[+inp.closest(".ev").dataset.i], k = inp.dataset.k, old = ev[k] || "";
@@ -287,10 +287,10 @@ async function doPreview() {
   const seq = ++previewSeq; $("pvStatus").innerHTML = `<span class="spin"></span> Updating preview…`;
   const [status, d] = await api("POST", "/admin/api/preview", { path: cur.path, ...collect() });
   if (seq !== previewSeq) return;
-  if (status !== 200) { $("pvErr").hidden = false; $("pvErr").textContent = friendlyBuildError(d.log || d.detail || d.error || status); $("pvStatus").textContent = "This change can't be shown — see the message"; return; }
+  if (status !== 200) { $("pvErr").hidden = false; $("pvErr").textContent = friendlyBuildError(d.log || d.detail || d.error || status); $("pvStatus").textContent = "This change can't be shown. See the message above."; return; }
   $("pvErr").hidden = true; $("frame").src = d.url; $("pvOpen").href = d.url; $("pvStatus").textContent = dirty ? "Preview of your unpublished changes" : "This is how the page looks now";
 }
-function friendlyBuildError(log) { if (/front matter|TOML parse/i.test(log)) return "There's a problem in the file's header. If you're in the simple editor, check the Title for stray quotes; if you're editing the file directly, check the lines between the +++ marks.\n\n" + log; return "The site couldn't be built with this change:\n\n" + log; }
+function friendlyBuildError(log) { if (/front matter|TOML parse/i.test(log)) return "There is a problem in the file's header. In the simple editor, check the Title for stray quotes. If you are editing the file directly, check the lines between the +++ marks.\n\n" + log; return "The site couldn't be built with this change.\n\n" + log; }
 
 /* ---------- publish / delete ---------- */
 $("publish").onclick = () => {
@@ -304,13 +304,13 @@ $("pubDialog").onclose = () => { if ($("pubDialog").returnValue === "ok") { loca
 async function doPublish(author, note) {
   $("publish").disabled = true; toast(`<span class="spin"></span> Publishing…`, "", 60000);
   const what = cur.kind === "update" ? `update: ${cur.doc.title || cur.label}` : cur.kind === "schedule" ? "schedule" : cur.label;
-  const message = note ? `${what} — ${note}` : `Update ${what}`;
+  const message = note ? `${what} (${note})` : `Update ${what}`;
   const [status, d] = await api("POST", "/admin/api/save", { path: cur.path, sha: cur.sha, message, author, ...collect() });
-  if (status === 409) return toast(`Someone else published a change to this since you opened it. <button onclick="openItem(cur.path, cur.kind==='raw')">Reload theirs</button> then re-apply yours.`, "err", 15000);
-  if (status === 422) return toast(`Not published: the site can't be built with this change. ${esc(friendlyBuildError(d.log || "").split("\n")[0])}`, "err", 12000);
-  if (status !== 200) return toast(`Not published — ${esc(d.detail || d.error || ("error " + status))}. Try again in a moment.`, "err", 12000);
+  if (status === 409) return toast(`Someone else published a change to this since you opened it. <button onclick="openItem(cur.path, cur.kind==='raw')">Reload theirs</button> and then make your change again.`, "err", 15000);
+  if (status === 422) return toast(`Not published. The site can't be built with this change. ${esc(friendlyBuildError(d.log || "").split("\n")[0])}`, "err", 12000);
+  if (status !== 200) return toast(`Not published. ${esc(d.detail || d.error || ("Error " + status))}. Try again in a moment.`, "err", 12000);
   cur.sha = d.sha; if (d.url) cur.url = d.url; setDirty(false);
-  toast(`<i class="bi bi-check-circle-fill"></i> Published${d.live ? " — live now." : ". It appears on the site in about two minutes."} <a href="${esc(cur.url)}" target="_blank">Open the page</a>`, "ok", 8000);
+  toast(`<i class="bi bi-check-circle-fill"></i> Published${d.live ? ". It is live now." : ". It appears on the site in about two minutes."} <a href="${esc(cur.url)}" target="_blank">Open the page</a>`, "ok", 8000);
   loadItems();
   if (cur.kind === "update" && cur.isNew) { cur.isNew = false; }
   schedulePreview(true);
@@ -323,7 +323,7 @@ async function doDelete(message) {
   if (!cur.sha) { cur = null; dirty = false; $("editor").innerHTML = `<div class="empty">Discarded.</div>`; setDirty(false); return; }
   toast(`<span class="spin"></span> Removing…`, "", 60000);
   const [status, d] = await api("POST", "/admin/api/delete", { path: cur.path, sha: cur.sha, message, author: localStorage.getItem("admin-author") || "" });
-  if (status !== 200) return toast(`Couldn't remove it — ${esc(d.detail || d.error || status)}.`, "err", 10000);
+  if (status !== 200) return toast(`Couldn't remove it. ${esc(d.detail || d.error || status)}.`, "err", 10000);
   toast(`<i class="bi bi-check-circle-fill"></i> Removed.`, "ok", 4000);
   cur = null; dirty = false; setDirty(false); $("editor").innerHTML = `<div class="empty"><i class="bi bi-check2-circle"></i>Removed.</div>`; $("main").classList.remove("split"); loadItems();
 }
@@ -347,7 +347,7 @@ $("file").onchange = async () => {
   const b64 = await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(String(fr.result).split(",")[1]); fr.readAsDataURL(f); });
   toast(`<span class="spin"></span> Uploading…`, "", 60000);
   const [status, d] = await api("POST", "/admin/api/save", { path, base64: b64, sha: null, message: (replace ? "Replace image " : "Add image ") + path, author: localStorage.getItem("admin-author") || "" });
-  if (status !== 200) return toast(`Upload failed — ${esc(d.detail || d.error || status)}.`, "err", 10000);
+  if (status !== 200) return toast(`Upload failed. ${esc(d.detail || d.error || status)}.`, "err", 10000);
   toast(`<i class="bi bi-check-circle-fill"></i> Uploaded.`, "ok", 4000);
   await loadItems(); openItem(path);
 };
