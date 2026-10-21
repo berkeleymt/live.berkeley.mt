@@ -26,9 +26,3 @@ Pre-ordered lunches are picked up in Kerr Lobby (MLK Student Union). There are p
 ## Awards
 
 Awards are presented simultaneously in several auditoriums. Report to the awards room you were assigned at check-in; going to a different room may delay your award.
-
-## Useful links
-
-- [BMT website](https://berkeley.mt/)
-- [TakeTransit](https://taketransit.berkeley.mt/)
-- [FAQ](/faq/) · [Help](/help/) · [Lost & found](/lost-found/)

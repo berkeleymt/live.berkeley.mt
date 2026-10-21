@@ -4,7 +4,7 @@ description = "Emergencies, Wi-Fi, the information desk and restrooms at the Ber
 +++
 
 {% alert(status="error", title="Emergency") %}
-For an immediate emergency, **call 911** and alert the nearest BMT staff member. Online forms are not monitored for emergencies.
+For an immediate emergency, **call 911** and alert the nearest BMT staff member. Emails and online forms are not monitored for emergencies.
 {% end %}
 
 ## Information desk
@@ -13,7 +13,7 @@ In Dwinelle Hall by the main entrance (floor D). Come here for directions, room 
 
 ## Wi-Fi
 
-Connect to **CalVisitor**, UC Berkeley's free guest network. No password is needed; accept the terms in the browser window that opens.
+Connect to **Berkeley-Visitor**, a free Wi-Fi service intended for visitors to campus. Select it from the list of available networks, accept the terms of service, and you will be connected. No username or password are required. For troubleshooting, read this [article](https://berkeley.service-now.com/kb/en/what-is-the-berkeley-visitor-wi-fi-network?id=kb_article_view&sysparm_article=KB0014552).
 
 ## Restrooms
 

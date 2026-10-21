@@ -37,4 +37,4 @@ In Dwinelle Hall by the main entrance (floor D). Any volunteer can point you the
 
 ## Who do I contact for an emergency?
 
-For an immediate emergency call 911 and alert a nearby staff member. See [help](/help/).
+For an immediate emergency, call 911 and alert a nearby staff member. For non-immediate ones, email [team@berkeley.mt](mailto:team@berkeley.mt) or find any volunteer. See [help](/help/). 
