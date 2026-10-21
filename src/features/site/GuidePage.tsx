@@ -6,12 +6,15 @@ import { isImageUrl, isLinkUrl, searchGuide } from './config';
 import type { SiteConfig } from './config';
 import { siteText } from './defaults';
 import { useSite } from './useSite';
+import { useSiteText } from './text';
+import { publicDestination } from '../../data/publicNavigation';
 import './site.css';
 
-export function SiteImage({ src, alt, unavailable = 'Image unavailable' }: { src: string; alt: string; unavailable?: string }) {
+export function SiteImage({ src, alt, unavailable }: { src: string; alt: string; unavailable?: string }) {
+  const t = useSiteText();
   const [failed, setFailed] = useState(false);
   if (!src || !isImageUrl(src)) return null;
-  if (failed) return <span className="bmt-site-image-error" role="status">{unavailable}: {alt}</span>;
+  if (failed) return <span className="bmt-site-image-error" role="status">{unavailable ?? t('guide.imageUnavailable')}: {alt}</span>;
   return <img src={src} alt={alt} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} />;
 }
 
@@ -22,26 +25,27 @@ export function SafeSiteMarkdown({ children, imageUnavailable }: { children: str
     components={{
       h1: ({ children }) => <h3>{children}</h3>,
       h2: ({ children }) => <h3>{children}</h3>,
-      a: ({ href, children }) => href ? <a href={href} rel={href.startsWith('https:') ? 'noopener noreferrer' : undefined}>{children}</a> : <span>{children}</span>,
+      a: ({ href, children }) => href ? <a href={publicDestination(href)} rel={href.startsWith('https:') ? 'noopener noreferrer' : undefined}>{children}</a> : <span>{children}</span>,
       img: ({ src, alt }) => typeof src === 'string' && src ? <SiteImage key={src} src={src} alt={alt ?? ''} unavailable={imageUnavailable} /> : null,
     }}>{children}</Markdown></div>;
 }
 
 /** Shared real renderer used by the public page and the editor preview. */
-export function GuideContent({ content, preview = false }: { content: SiteConfig; preview?: boolean }) {
+export function GuideContent({ content, preview = false, embedded = false }: { content: SiteConfig; preview?: boolean; embedded?: boolean }) {
+  const Container = embedded || preview ? 'div' : 'main';
   const [query, setQuery] = useState('');
   const sections = searchGuide(content.guide.sections, query);
   const t = (key: string, values?: Record<string, string | number>) => siteText(content, key, values);
   return <div className={`bmt-site bmt-site-guide ${preview ? 'bmt-site-preview' : ''}`}>
-    {!preview && <a className="bmt-site-skip" href="#guide-main">{t('a11y.skip')}</a>}
-    {!preview && <header className="bmt-site-guide-header">
+    {!preview && !embedded && <a className="bmt-site-skip" href="#guide-main">{t('a11y.skip')}</a>}
+    {!preview && !embedded && <header className="bmt-site-guide-header">
       <a href={isLinkUrl(content.branding.homeUrl) ? content.branding.homeUrl : undefined} className="bmt-site-brand">
         <SiteImage key={content.branding.logoUrl} src={content.branding.logoUrl} alt={content.branding.logoAlt} unavailable={t('guide.imageUnavailable')} />
         <span>{content.branding.title}<small>{content.branding.caption}</small></span>
       </a>
       <a href="/" className="bmt-site-back"><ArrowLeft aria-hidden size={18} />{t('guide.back')}</a>
     </header>}
-    <main id={preview ? undefined : 'guide-main'} tabIndex={preview ? undefined : -1}>
+    <Container className="bmt-site-guide-main" id={preview ? undefined : 'guide-main'} tabIndex={preview ? undefined : -1}>
       <div className="bmt-site-guide-heading">
         <div><h1>{content.guide.title}</h1><p>{content.guide.intro}</p></div>
         {!preview && <button type="button" className="bmt-site-secondary bmt-site-print" onClick={() => { setQuery(''); requestAnimationFrame(() => requestAnimationFrame(() => window.print())); }}><Printer aria-hidden size={18} />{t('guide.print')}</button>}
@@ -63,11 +67,11 @@ export function GuideContent({ content, preview = false }: { content: SiteConfig
             <SiteImage key={section.imageUrl} src={section.imageUrl} alt={section.imageAlt} unavailable={t('guide.imageUnavailable')} />
           </section>)}
           {content.help.length > 0 && <section aria-label={t('guide.help')}><h2>{t('guide.help')}</h2><div className="bmt-site-help-grid">{content.help.map(block => <article key={block.id} className={block.kind === 'emergency' ? 'bmt-site-emergency' : ''}><h3>{block.title}</h3><SafeSiteMarkdown imageUnavailable={t('guide.imageUnavailable')}>{block.markdown}</SafeSiteMarkdown></article>)}</div></section>}
-          {content.usefulLinks.length > 0 && <section><h2>{t('guide.links')}</h2><ul className="bmt-site-useful-links">{content.usefulLinks.map(link => <li key={link.id}><a href={isLinkUrl(link.href) ? link.href : undefined}>{link.label}{link.href.startsWith('https://') && <ArrowUpRight aria-hidden size={16} />}</a></li>)}</ul></section>}
+          {content.usefulLinks.length > 0 && <section><h2>{t('guide.links')}</h2><ul className="bmt-site-useful-links">{content.usefulLinks.map(link => <li key={link.id}><a href={isLinkUrl(link.href) ? publicDestination(link.href) : undefined}>{link.label}{link.href.startsWith('https://') && <ArrowUpRight aria-hidden size={16} />}</a></li>)}</ul></section>}
         </div>
       </div>
-    </main>
-    {!preview && <footer className="bmt-site-guide-footer">{t('footer.credit')}<a href="/">{t('guide.back')}</a></footer>}
+    </Container>
+    {!preview && !embedded && <footer className="bmt-site-guide-footer">{t('footer.credit')}<a href="/">{t('guide.back')}</a></footer>}
   </div>;
 }
 

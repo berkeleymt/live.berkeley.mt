@@ -14,8 +14,10 @@ Start here. This is the product and engineering handbook for the November 14, 20
 
 | Job | Read |
 | --- | --- |
+| Author Markdown pages or migrate legacy Guide/Help | [Markdown syntax/editor/API/recovery](markdown-pages.md), [ADR 0007](adr/0007-markdown-pages-with-shortcodes.md) |
 | Design public pages or maps | [Public UX](public-ux.md), [design system](design-system.md), [localization](localization.md) |
 | Connect ContestDojo | [Verified Lemon parity reference](setup-contestdojo.md) |
+| Configure/deploy through GitHub without SSH | [GitHub Variables/Secrets and owner checklist](github-deployment.md) |
 | Change staff access | [Permissions](permissions.md), [current staff implementation](staff-access.md) |
 | Operate the current application | [Staff guide](guide.md), [runbook](runbook.md), [demo walkthrough](demo.md) |
 | Verify a change | [Testing](testing.md), [change workflow](CLAUDE.md) |

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { LiveData, DelayNotice } from "./types";
 import { toMins } from "./utils";
 
-const API_URL = import.meta.env.VITE_API_URL || "/api/live";
+const API_URL = import.meta.env?.VITE_API_URL || "/api/live";
 const POLL_INTERVAL = 5_000;
 /** Show "stale" banner after this many consecutive failures. */
 const STALE_THRESHOLD = 3;
@@ -16,54 +16,50 @@ export function useLiveData(devNow?: number | null) {
   const [error, setError] = useState<string | null>(null);
   /** True when we have data but haven't been able to refresh it recently. */
   const [stale, setStale] = useState(false);
-  const failCount = useRef(0);
-  const request = useRef<AbortController | null>(null);
+  const [lastReceived, setLastReceived] = useState<number | null>(null);
   const hasData = useRef(false);
-
-  const fetchData = useCallback(async () => {
-    if (request.current) return;
-    const controller = new AbortController();
-    request.current = controller;
-    try {
-      let url = API_URL;
-      if (devNow != null) {
-        // Send UTC ISO string without fractional seconds to match backend format
-        const iso = new Date(devNow).toISOString().replace(/\.\d{3}Z$/, "Z");
-        url += `?at=${encodeURIComponent(iso)}`;
-      }
-      const res = await fetch(url, { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8_000)]), cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const nextData: LiveData = await res.json();
-      if (controller.signal.aborted) return;
-      setData(nextData);
-      hasData.current = true;
-      setError(null);
-      setStale(false);
-      failCount.current = 0;
-    } catch {
-      if (controller.signal.aborted) return;
-      failCount.current += 1;
-      if (failCount.current >= STALE_THRESHOLD || !hasData.current) {
-        setStale(true);
-        // If we never got data, surface as a hard error too
-        setError((prev) => prev ?? "Unable to connect");
-      }
-    } finally {
-      if (request.current === controller) request.current = null;
-    }
-  }, [devNow]);
+  const refreshRef = useRef<() => void>(() => {});
+  const refresh = useCallback(() => refreshRef.current(), []);
 
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, POLL_INTERVAL);
-    return () => {
-      clearInterval(interval);
-      request.current?.abort();
-      request.current = null;
-    };
-  }, [fetchData]);
+    let stopped = false;
+    let request: AbortController | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let failures = 0;
+    async function load() {
+      if (stopped || request) return;
+      clearTimeout(timer);
+      const controller = new AbortController();
+      request = controller;
+      try {
+        let url = API_URL;
+        if (devNow != null) {
+          const iso = new Date(devNow).toISOString().replace(/\.\d{3}Z$/, "Z");
+          url += `?at=${encodeURIComponent(iso)}`;
+        }
+        const res = await fetch(url, { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8_000)]), cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const nextData: LiveData = await res.json();
+        if (stopped) return;
+        setData(nextData); setLastReceived(Date.now()); hasData.current = true;
+        setError(null); setStale(false); failures = 0;
+      } catch {
+        if (stopped) return;
+        failures += 1;
+        if (failures >= STALE_THRESHOLD || !hasData.current) {
+          setStale(true); setError("Unable to connect");
+        }
+      } finally {
+        request = null;
+        if (!stopped) timer = setTimeout(load, failures ? Math.random() * Math.min(60000, 1000 * 2 ** Math.min(failures, 6)) : POLL_INTERVAL);
+      }
+    }
+    refreshRef.current = () => { void load(); };
+    void load();
+    return () => { stopped = true; clearTimeout(timer); request?.abort(); refreshRef.current = () => {}; };
+  }, [devNow]);
 
-  return { data, error, stale, refresh: fetchData };
+  return { data, error, stale, lastReceived, refresh };
 }
 
 // ── Schedule helpers ──

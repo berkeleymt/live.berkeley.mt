@@ -21,6 +21,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
+#[path = "route_graph.rs"]
+pub mod graph;
 const CONTENT_LIMIT: usize = 512_000;
 const LOOKUP_ERROR: &str = "We could not verify those details. Check your student ID and private check-in code, or ask the BMT help desk.";
 const WINDOW: Duration = Duration::from_secs(600);
@@ -96,12 +98,15 @@ pub struct WayfindingContent {
     pub help_text: String,
     pub travel_url: String,
     pub buildings: Vec<Building>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub graph: Option<graph::Graph>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Verification {
     Demo,
     Unverified,
+    Mapped,
     Verified,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -261,6 +266,9 @@ impl WayfindingContent {
                     }
                 }
             }
+        }
+        if let Some(graph) = &self.graph {
+            graph.validate(self)?;
         }
         Ok(())
     }
@@ -517,6 +525,7 @@ impl FailureLimits {
     }
 }
 pub struct WayfindingStore {
+    pub remote: std::sync::OnceLock<Arc<crate::remote_content::RemoteStore>>,
     path: PathBuf,
     stored: Mutex<Stored>,
     provider: Arc<dyn AssignmentProvider>,
@@ -554,6 +563,7 @@ impl WayfindingStore {
     ) -> std::result::Result<Self, String> {
         let (content, bytes) = Self::read(&path)?;
         Ok(Self {
+            remote: std::sync::OnceLock::new(),
             path,
             stored: Mutex::new(Stored {
                 document: WayfindingDocument {
@@ -575,6 +585,13 @@ impl WayfindingStore {
         Ok((content, bytes))
     }
     pub fn snapshot(&self) -> WayfindingDocument {
+        if let Some(remote) = self.remote.get() {
+            let snapshot = remote.snapshot();
+            return WayfindingDocument {
+                revision: snapshot.revision,
+                content: snapshot.content.editorial.unwrap().wayfinding,
+            };
+        }
         self.stored.lock().unwrap().document.clone()
     }
     pub fn publish(&self, content: WayfindingContent, revision: String) {
@@ -584,7 +601,7 @@ impl WayfindingStore {
     }
 
     pub fn reload(&self) -> std::result::Result<WayfindingDocument, String> {
-        if self.published.load(std::sync::atomic::Ordering::SeqCst) {
+        if self.remote.get().is_some() || self.published.load(std::sync::atomic::Ordering::SeqCst) {
             return Ok(self.snapshot());
         }
         let mut stored = self.stored.lock().unwrap();
@@ -599,7 +616,7 @@ impl WayfindingStore {
         Ok(stored.document.clone())
     }
     pub fn save(&self, input: WayfindingDocument) -> Result<WayfindingDocument> {
-        if self.published.load(std::sync::atomic::Ordering::SeqCst) {
+        if self.remote.get().is_some() || self.published.load(std::sync::atomic::Ordering::SeqCst) {
             return Err(conflict());
         }
         input.content.validate()?;
@@ -739,7 +756,7 @@ fn authorize(access: Option<Extension<WayfindingAccess>>, write: bool) -> Result
     }
     Ok(())
 }
-fn same_origin(headers: &HeaderMap) -> Result<()> {
+pub(crate) fn same_origin(headers: &HeaderMap) -> Result<()> {
     let cross_site =
         headers.get("sec-fetch-site").and_then(|v| v.to_str().ok()) == Some("cross-site");
     let invalid_origin = headers.get(header::ORIGIN).is_some_and(|origin| {

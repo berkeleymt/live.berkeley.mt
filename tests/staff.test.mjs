@@ -48,7 +48,7 @@ async fn main() {
     }
     let state = routes::AppState { staff: std::sync::Arc::new(staff::StaffStore::from_env().expect("staff configuration rejected")), admin_password: std::env::var("ADMIN_PASSWORD").ok() };
     let mut protected = Router::new();
-    for path in ["/api/content", "/api/site/editor", "/api/site/editor/assets", "/api/site/media", "/api/wayfinding/editor", "/api/publishing", "/api/publishing/export", "/api/publishing/push", "/api/publishing/restore", "/api/schedule", "/api/schedule/test", "/api/delays", "/api/delays/test", "/api/announcements", "/api/announcements/test", "/api/lost-found/staff", "/api/lost-found/staff/test", "/api/room-lookup/staff", "/api/unmapped", "/admin"] {
+    for path in ["/api/content", "/api/site/editor", "/api/site/editor/assets", "/api/site/media", "/api/wayfinding/editor", "/api/publishing", "/api/publishing/export", "/api/publishing/push", "/api/publishing/restore", "/api/schedule", "/api/schedule/test", "/api/delays", "/api/delays/test", "/api/announcements", "/api/announcements/test", "/api/lost-found/staff", "/api/lost-found/staff/test", "/api/room-lookup/staff", "/api/unmapped", "/api/settings", "/admin"] {
         protected = protected.route(path, any(|| async { Json(serde_json::json!({"allowed":true})) }));
     }
     protected = protected.route("/api/staff/access", get(staff::session)).route_layer(middleware::from_fn_with_state(state.clone(), staff::require_auth));
@@ -130,13 +130,14 @@ const boundaries = [
   ["/api/publishing/push", "POST", "publishing:write"],
   ["/api/publishing/restore", "POST", "publishing:write"],
   ["/api/staff/access", "GET", "access:read"],
+  ["/api/settings", "GET", "settings:write"],
 ];
 
 const roleGrants = {
   "demo-dispatcher": ["schedule:write", "updates:read", "updates:write", "access:read"],
   "demo-crisis": ["updates:read", "updates:write", "found:read", "found:write", "access:read"],
   "demo-info": ["updates:read", "found:read", "found:write", "access:read"],
-  "demo-admin": Object.keys(CAPABILITY_LABELS),
+  "demo-admin": Object.keys(CAPABILITY_LABELS).filter(capability => !['people:write', 'settings:write'].includes(capability)),
 };
 
 test("role utilities deny absent grants and constrain login return destinations", () => {
@@ -254,6 +255,87 @@ test("legacy owner Basic Auth remains usable, but an empty owner password is nev
   assert.ok((await ownerLogin.json()).csrfToken);
   const empty = await launch(t, { ADMIN_PASSWORD: "" });
   assert.equal((await empty.api("/api/content", { headers: { Authorization: `Basic ${Buffer.from("owner:").toString("base64")}` } })).status, 401);
+});
+
+test('two-role demo enforces operational access and Super-only People, with live demotion/removal', async t => {
+  const { api, demo } = await launch(t, { DEMO_MODE: 'true', STAFF_COOKIE_SECURE: 'false' });
+  const discovery = await (await api('/api/staff/session')).json();
+  assert.deepEqual(discovery.demoAccounts.map(a => a.role), ['admin', 'super']);
+  assert.equal(discovery.authMode, 'legacy');
+  assert.equal(discovery.googleClientId, null);
+  const admin = await demo('demo-operator');
+  const boss = await demo('demo-super');
+  for (const session of [admin, boss]) {
+    for (const [path, method, capability] of boundaries) {
+      assert.equal((await api(path, { method, cookie: session.cookie, csrf: session.csrf })).status,
+        session.data.user.capabilities.includes(capability) ? 200 : 403, `${session.data.user.role} ${path}`);
+    }
+  }
+  assert.equal((await api('/api/staff/people')).status, 401);
+  assert.equal((await api('/api/staff/people', { cookie: admin.cookie })).status, 403);
+  const mutate = (session, email, method, body, headers = { 'X-Staff-Request': '1' }) => api('/api/staff/people' + (email ? '/' + encodeURIComponent(email) : ''), { method, body, cookie: session.cookie, csrf: session.csrf, headers });
+  assert.equal((await mutate(admin, '', 'POST', { email: 'denied@example.test', role: 'super' })).status, 403);
+  assert.equal((await api('/api/staff/people', { method: 'POST', cookie: boss.cookie, body: { email: 'no-csrf@example.test', role: 'admin' }, headers: { 'X-Staff-Request': '1' } })).status, 403);
+  assert.equal((await mutate(boss, '', 'POST', { email: 'bad-origin@example.test', role: 'admin' }, { 'X-Staff-Request': '1', Origin: 'https://evil.test' })).status, 403);
+  for (const role of ['administrator', 'dispatcher', 'info_desk', 'crisis_manager']) assert.equal((await mutate(boss, '', 'POST', { email: 'invalid@example.test', role })).status, 400);
+  assert.equal((await mutate(boss, '', 'POST', { email: 'not-an-email', role: 'admin' })).status, 400);
+  assert.equal((await mutate(boss, '', 'POST', { email: ' New@Example.Test ', role: 'admin' })).status, 204);
+  assert.equal((await mutate(boss, '', 'POST', { email: 'new@example.test', role: 'admin' })).status, 409);
+  const list = await api('/api/staff/people', { cookie: boss.cookie });
+  assert.equal(list.headers.get('cache-control'), 'no-store');
+  const people = (await list.json()).accounts;
+  assert.equal(people.find(p => p.email === 'new@example.test').addedBy, 'super@example.test');
+  assert.equal(JSON.stringify(people).includes('csrf'), false);
+  assert.equal((await mutate(boss, 'super@example.test', 'DELETE')).status, 409);
+  assert.equal((await mutate(boss, 'super@example.test', 'PATCH', { role: 'admin' })).status, 409);
+  assert.equal((await mutate(boss, 'admin@example.test', 'PATCH', { role: 'super' })).status, 204);
+  assert.equal((await (await api('/api/staff/session', { cookie: admin.cookie, headers: { 'X-Staff-Presence': '1' } })).json()).user.role, 'super');
+  assert.equal((await mutate(admin, 'super@example.test', 'DELETE')).status, 409, 'bootstrap protected even from another Super');
+  assert.equal((await mutate(admin, 'admin@example.test', 'PATCH', { role: 'admin' })).status, 409, 'cannot demote self');
+  assert.ok((await (await api('/api/staff/people', { cookie: boss.cookie })).json()).accounts.find(p => p.email === 'admin@example.test').online);
+  assert.equal((await mutate(boss, 'admin@example.test', 'PATCH', { role: 'admin' })).status, 204);
+  assert.equal((await api('/api/staff/people', { cookie: admin.cookie })).status, 403, 'live demotion');
+  assert.equal((await mutate(boss, 'admin@example.test', 'DELETE')).status, 204);
+  assert.equal((await api('/api/content', { cookie: admin.cookie })).status, 401, 'live removal');
+  assert.equal((await (await api('/api/staff/session', { cookie: admin.cookie })).json()).user, null);
+  assert.equal((await mutate(boss, '', 'POST', { email: 'admin@example.test', role: 'admin' })).status, 204);
+  assert.equal((await api('/api/content', { cookie: admin.cookie })).status, 401, 'no resurrection on re-add');
+  const next = await demo('demo-super', boss);
+  assert.equal((await api('/api/staff/people', { cookie: boss.cookie })).status, 401, 'rotation');
+  assert.equal((await api('/api/staff/logout', { method: 'POST', cookie: next.cookie, csrf: next.csrf, headers: { 'X-Staff-Request': '1' } })).status, 200);
+  assert.equal((await api('/api/staff/people', { cookie: next.cookie })).status, 401, 'logout');
+});
+
+test('Google configuration never falls back to local accounts and missing/invalid Google is explicit', async t => {
+  const dir = await mkdtemp(join(temporary, 'private-google-'));
+  const config = { STAFF_AUTH_MODE: 'google', SUPER_ADMIN_EMAILS: 'bootstrap@example.test', STAFF_STATE_PATH: join(dir, 'staff.sqlite'), ADMIN_PASSWORD: 'synthetic-owner' };
+  const { api } = await launch(t, config);
+  const data = await (await api('/api/staff/session')).json();
+  assert.equal(data.authMode, 'google');
+  assert.equal(data.passwordLoginEnabled, false);
+  assert.equal(data.ownerLoginEnabled, false);
+  assert.equal(data.googleClientId, null);
+  assert.equal(JSON.stringify(data).includes('bootstrap@example.test'), false);
+  const headers = { 'X-Staff-Request': '1' };
+  assert.equal((await api('/api/staff/google-login', { method: 'POST', body: { credential: 'not-a-token' }, headers })).status, 503);
+  assert.equal((await api('/api/staff/login', { method: 'POST', body: { username: 'owner', password: 'synthetic-owner' }, headers })).status, 403);
+  assert.equal((await api('/api/content', { headers: { Authorization: `Basic ${Buffer.from('owner:synthetic-owner').toString('base64')}` } })).status, 401);
+  assert.equal((await api('/api/staff/demo', { method: 'POST', body: { accountId: 'demo-super' }, headers })).status, 404);
+  const configured = await launch(t, { ...config, GOOGLE_CLIENT_ID: 'synthetic-client' });
+  assert.equal((await (await configured.api('/api/staff/session')).json()).googleClientId, 'synthetic-client');
+  // Malformed tokens are rejected before any network access. Cryptographic cases use offline Rust fixtures.
+  assert.equal((await configured.api('/api/staff/google-login', { method: 'POST', body: { credential: 'not-a-token' }, headers })).status, 401);
+  assert.equal((await configured.api('/api/staff/google-login', { method: 'POST', body: { credential: 'not-a-token' } })).status, 403);
+  assert.equal((await configured.api('/api/staff/google-login', { method: 'POST', body: { credential: 'not-a-token' }, headers: { ...headers, Origin: 'https://evil.test' } })).status, 403);
+  await assert.rejects(run(binary, [], { env: { PATH: process.env.PATH, ...config, GOOGLE_CLIENT_ID: 'synthetic-client', STAFF_AUTH_MODE: 'legacy' }, timeout: 10000 }), /cannot fall back to legacy/);
+  await assert.rejects(run(binary, [], { env: { PATH: process.env.PATH, ...config, SUPER_ADMIN_EMAILS: '' }, timeout: 10000 }), /requires at least one explicit/);
+  await assert.rejects(run(binary, [], { env: { PATH: process.env.PATH, ...config, DEMO_MODE: 'true' }, timeout: 10000 }), /cannot be combined/);
+  await assert.rejects(run(binary, [], { env: { PATH: process.env.PATH, ...config, STAFF_STATE_PATH: join(root, 'server', 'never-created.sqlite') }, timeout: 10000 }), /outside Git checkouts/);
+  await assert.rejects(run(binary, [], { env: { PATH: process.env.PATH, ...config, STATIC_DIR: dir }, timeout: 10000 }), /outside public\/content/);
+  await assert.rejects(run(binary, [], { env: { PATH: process.env.PATH, ...config, LIVE_CONTENT_REMOTE_REPO: dir }, timeout: 1000 }), /outside public\/content/);
+  const old = JSON.parse(accountFixture); old.accounts[0].role = 'super';
+  const path = join(dir, 'never-promote.json'); await writeFile(path, JSON.stringify(old), { mode: 0o600 });
+  await assert.rejects(run(binary, [], { env: { PATH: process.env.PATH, STAFF_AUTH_MODE: 'legacy', STAFF_ACCOUNTS_PATH: path }, timeout: 10000 }), /invalid, reserved or duplicated/);
 });
 
 test("unsafe cookie configuration and invalid private account imports fail startup", async () => {

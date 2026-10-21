@@ -1,4 +1,4 @@
-import type { SearchResult, WayfindingContent } from './types';
+import type { Room, SearchResult, WayfindingContent } from './types';
 
 export class WayfindingApiError extends Error {
   status: number;
@@ -7,7 +7,7 @@ export class WayfindingApiError extends Error {
 export type WayfindingTransport = (path: string, init?: RequestInit) => Promise<Response>;
 /** One user-triggered request, finite timeout, no retry/queue of private credentials. */
 export async function wayfindingRequest<T>(path: string, init: RequestInit = {}, transport: WayfindingTransport = fetch): Promise<T> {
-  const timeout = AbortSignal.timeout(12_000);
+  const timeout = AbortSignal.timeout(path === '/editor' && init.method === 'PUT' ? 90_000 : 12_000);
   const headers = new Headers(init.headers);
   if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
   const response = await transport(`/api/wayfinding${path}`, {
@@ -59,6 +59,7 @@ export function findRoom(content: WayfindingContent, roomId: string): SearchResu
   }
 }
 export function resultKey(result: SearchResult): string { return result.room?.id ?? result.floor?.id ?? result.building.id; }
+export function roomLabel(room: Room): string { return room.name === `Room ${room.code}` ? room.name : `${room.code} · ${room.name}`; }
 export function safeImageUrl(value: string): boolean {
   if (/^\/(demo-maps|media)\/[a-zA-Z0-9/_.-]+$/.test(value) && !value.includes('..')) return true;
   try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password; } catch { return false; }

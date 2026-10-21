@@ -1,8 +1,9 @@
-export type StaffRole = "dispatcher" | "crisis_manager" | "info_desk" | "administrator";
+export type ProductionStaffRole = "admin" | "super";
+export type StaffRole = ProductionStaffRole | "dispatcher" | "crisis_manager" | "info_desk" | "administrator";
 export type StaffCapability =
   | "schedule:write" | "updates:read" | "updates:write"
   | "content:write" | "rooms:write" | "found:read" | "found:write"
-  | "publishing:write" | "access:read";
+  | "publishing:write" | "access:read" | "people:write" | "settings:write";
 
 export interface StaffIdentity {
   id: string;
@@ -10,7 +11,9 @@ export interface StaffIdentity {
   role: StaffRole;
   capabilities: StaffCapability[];
   demo: boolean;
-  authSource: "account" | "owner" | "demo";
+  authSource: "account" | "owner" | "demo" | "google";
+  email?: string | null;
+  picture?: string | null;
 }
 
 export interface StaffSession {
@@ -22,9 +25,13 @@ export interface StaffSession {
   demoAccounts: StaffIdentity[];
   passwordLoginEnabled: boolean;
   ownerLoginEnabled: boolean;
+  authMode?: "google" | "legacy";
+  googleClientId?: string | null;
 }
 
 export const ROLE_LABELS: Record<StaffRole, string> = {
+  admin: "Admin",
+  super: "Super admin",
   dispatcher: "Dispatcher",
   crisis_manager: "Crisis manager",
   info_desk: "Info desk",
@@ -41,6 +48,8 @@ export const CAPABILITY_LABELS: Record<StaffCapability, string> = {
   "found:write": "Respond to and resolve lost-and-found reports",
   "publishing:write": "Publish, export and restore Git content",
   "access:read": "View your own role and permissions",
+  "people:write": "Manage staff accounts and roles",
+  "settings:write": "Manage application settings and provider credentials",
 };
 
 /** Presentation only. The server checks its own policy on every protected request. */

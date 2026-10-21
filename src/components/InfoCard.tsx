@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
-import { siteDefaults, siteText } from '../features/site';
+import { useSiteText } from '../features/site/text';
+import { subscriptionResult } from '../features/site/subscription';
 import type { SiteConfig } from '../features/site/config';
 import type { InfoItem } from "../data/types";
 
@@ -44,8 +45,8 @@ export function InfoCardCompact({ info }: InfoCardProps) {
   );
 }
 
-export function EmailSubscribe({ site = siteDefaults }: { site?: SiteConfig }) {
-  const t = (key: string) => siteText(site, key);
+export function EmailSubscribe({ site }: { site?: SiteConfig }) {
+  const t = useSiteText(site);
   const emailId = useId();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
@@ -62,12 +63,12 @@ export function EmailSubscribe({ site = siteDefaults }: { site?: SiteConfig }) {
         body: JSON.stringify({ email: email.trim() }),
         signal: AbortSignal.timeout(12000),
       });
-      const data = await res.json();
-      setStatus(data.ok ? "done" : "error");
-      setMessage(data.message);
+      const result = subscriptionResult(res.status, await res.json());
+      setStatus(result.ok ? "done" : "error");
+      setMessage(result.key);
     } catch {
       setStatus("error");
-      setMessage(t('subscription.failure'));
+      setMessage('subscription.failure');
     }
   };
 
@@ -75,7 +76,7 @@ export function EmailSubscribe({ site = siteDefaults }: { site?: SiteConfig }) {
     <div className="px-5 py-3">
       {status === "done" ? (
         <div className="flex items-center gap-3 min-h-[36px]">
-            <p role="status" className="text-[13px] text-secondary-label">{message}</p>
+            <p role="status" className="text-[13px] text-secondary-label">{t(message)}</p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-2 lg:space-y-0 lg:flex lg:items-center lg:gap-3">
@@ -100,7 +101,7 @@ export function EmailSubscribe({ site = siteDefaults }: { site?: SiteConfig }) {
           </button>
           </div>
           {status === "error" && (
-            <p role="alert" className="text-[12px] text-danger shrink-0">{message}</p>
+            <p role="alert" className="text-[12px] text-danger shrink-0">{t(message)}</p>
           )}
         </form>
       )}

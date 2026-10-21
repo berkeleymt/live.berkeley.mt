@@ -339,7 +339,13 @@ test("content and legacy APIs work together on an isolated database", async (t) 
         auth: false,
       });
       assert.equal(response.status, 200);
-      assert.equal((await response.json()).ok, true);
+      const result = await response.json();
+      assert.equal(result.ok, true);
+      assert.equal(result.emailDeliveryEnabled, false);
+      assert.match(result.message, /unavailable/);
+      const repeated = await (await api('/api/email/subscribe', { method: 'POST', body: { email: 'local-test@example.invalid' }, auth: false })).json();
+      assert.equal(repeated.emailDeliveryEnabled, false);
+      assert.match(repeated.message, /unavailable/);
     },
   );
 });

@@ -61,6 +61,8 @@ mod tests {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Operations {
+    #[serde(default, skip_serializing_if = "crate::pages::Files::is_empty")]
+    pub pages: crate::pages::Files,
     pub schedule: Vec<ScheduleEvent>,
     pub delays: Vec<DelayNotice>,
     pub announcements: Vec<Announcement>,
@@ -116,9 +118,11 @@ impl Operations {
             delays: live.delays,
             announcements: live.announcements,
             editorial: None,
+            pages: Default::default(),
         }
     }
     pub fn validate(&self) -> Result<(), ContentError> {
+        crate::pages::validate(&self.pages)?;
         if let Some(editorial) = &self.editorial {
             editorial.event.validate().map_err(|e| invalid(&e))?;
             editorial.site.validate().map_err(|e| invalid(&e))?;
@@ -364,8 +368,10 @@ pub struct Published {
 }
 
 pub struct OperationsStore {
+    pub remote: Option<std::sync::Arc<crate::remote_content::RemoteStore>>,
     directory: PathBuf,
     branch: String,
+    media_dirs: Vec<PathBuf>,
     write: Mutex<()>,
     published: RwLock<Published>,
     last_failure: RwLock<Option<String>>,
@@ -422,7 +428,31 @@ async fn git(directory: &Path, args: &[&str]) -> Result<String, ContentError> {
 }
 
 impl OperationsStore {
-    pub async fn open(directory: PathBuf) -> Result<Self, ContentError> {
+    pub async fn open_remote(
+        directory: PathBuf,
+        branch: String,
+        allow_local: bool,
+    ) -> Result<Self, ContentError> {
+        let remote = std::sync::Arc::new(
+            crate::remote_content::RemoteStore::open(
+                directory.clone(),
+                branch.clone(),
+                allow_local,
+            )
+            .await?,
+        );
+        Ok(Self {
+            published: RwLock::new(remote.snapshot()),
+            remote: Some(remote),
+            media_dirs: Vec::new(),
+            directory,
+            branch,
+            write: Mutex::new(()),
+            last_failure: RwLock::new(None),
+            last_push: RwLock::new(None),
+        })
+    }
+    pub async fn open(directory: PathBuf, media_dirs: Vec<PathBuf>) -> Result<Self, ContentError> {
         let directory = tokio::fs::canonicalize(directory)
             .await
             .map_err(|_| unavailable("Content repository does not exist."))?;
@@ -451,13 +481,36 @@ impl OperationsStore {
             .await?
             .trim()
             .to_owned();
-        let content = Self::read(&directory, &revision).await?;
+        let candidate = Self::read(&directory, &revision).await.and_then(|content| {
+            crate::pages::check_media(&content.pages, &media_dirs)?;
+            Ok(content)
+        });
+        let (revision, content, failure) = match candidate {
+            Ok(content) => (revision, content, None),
+            Err(error) => {
+                let retained = git(&directory, &["rev-parse", "refs/live/local-loaded"])
+                    .await
+                    .map_err(|_| error.clone())?
+                    .trim()
+                    .to_owned();
+                let content = Self::read(&directory, &retained).await?;
+                crate::pages::check_media(&content.pages, &media_dirs)?;
+                (retained, content, Some(error.1))
+            }
+        };
+        git(
+            &directory,
+            &["update-ref", "refs/live/local-loaded", &revision],
+        )
+        .await?;
         Ok(Self {
+            remote: None,
+            media_dirs,
             directory,
             branch,
             write: Mutex::new(()),
             published: RwLock::new(Published { revision, content }),
-            last_failure: RwLock::new(None),
+            last_failure: RwLock::new(failure),
             last_push: RwLock::new(None),
         })
     }
@@ -480,8 +533,46 @@ impl OperationsStore {
         if size > 1_000_000 {
             return Err(invalid("Operations content exceeds 1 MB."));
         }
-        let content: Operations = serde_json::from_str(&git(directory, &["show", &object]).await?)
-            .map_err(|_| invalid("Committed operations.json is not valid content JSON."))?;
+        let mut content: Operations =
+            serde_json::from_str(&git(directory, &["show", &object]).await?)
+                .map_err(|_| invalid("Committed operations.json is not valid content JSON."))?;
+        if !content.pages.is_empty() {
+            return Err(invalid(
+                "Store pages as pages/*.md, not inside operations.json.",
+            ));
+        }
+        let listing = git(directory, &["ls-tree", "-r", "-l", revision, "--", "pages"]).await?;
+        let mut total = 0usize;
+        for line in listing.lines() {
+            let (entry, path) = line
+                .split_once('\t')
+                .ok_or_else(|| invalid("Invalid page tree."))?;
+            let parts: Vec<_> = entry.split_whitespace().collect();
+            let name = path
+                .strip_prefix("pages/")
+                .ok_or_else(|| invalid("Invalid page path."))?;
+            let size = parts
+                .get(3)
+                .and_then(|s| s.parse::<usize>().ok())
+                .unwrap_or(usize::MAX);
+            total = total.saturating_add(size);
+            if parts.len() != 4
+                || parts[0] != "100644"
+                || parts[1] != "blob"
+                || !crate::pages::filename(name)
+                || size > crate::pages::MAX_PAGE
+                || total > crate::pages::MAX_TOTAL
+                || content.pages.len() >= crate::pages::MAX_PAGES
+            {
+                return Err(invalid(
+                    "Pages require bounded regular pages/<slug>.md files, not symlinks.",
+                ));
+            }
+            content.pages.insert(
+                name.into(),
+                git(directory, &["show", &format!("{revision}:{path}")]).await?,
+            );
+        }
         content.validate()?;
         Ok(content)
     }
@@ -490,6 +581,9 @@ impl OperationsStore {
             .map_err(|_| unavailable("Another publication operation is still running. Keep your draft and refresh status shortly."))
     }
     pub fn snapshot(&self) -> Published {
+        if let Some(remote) = &self.remote {
+            return remote.snapshot();
+        }
         self.published.read().unwrap().clone()
     }
     async fn head(&self) -> Result<String, ContentError> {
@@ -525,10 +619,19 @@ impl OperationsStore {
         Ok(())
     }
     pub async fn reload(&self) -> Result<(), ContentError> {
+        if let Some(remote) = &self.remote {
+            return remote.reload().await;
+        }
         let _guard = self.writer().await?;
         let revision = self.head().await?;
         if revision != self.snapshot().revision {
             let content = Self::read(&self.directory, &revision).await?;
+            crate::pages::check_media(&content.pages, &self.media_dirs)?;
+            git(
+                &self.directory,
+                &["update-ref", "refs/live/local-loaded", &revision],
+            )
+            .await?;
             *self.published.write().unwrap() = Published { revision, content };
         }
         Ok(())
@@ -540,7 +643,10 @@ impl OperationsStore {
         message: &str,
     ) -> Result<String, ContentError> {
         content.validate()?;
-        let bytes = serde_json::to_vec_pretty(&content).unwrap();
+        crate::pages::check_media(&content.pages, &self.media_dirs)?;
+        let mut disk_content = content.clone();
+        disk_content.pages.clear();
+        let bytes = serde_json::to_vec_pretty(&disk_content).unwrap();
         if bytes.len() > 1_000_000 {
             return Err(invalid("Operations content exceeds 1 MB."));
         }
@@ -581,6 +687,29 @@ impl OperationsStore {
             {
                 return Err(std::io::Error::other("Worktree changed or index locked"));
             }
+            // Stage Markdown alongside operations, then commit them in the same Git transaction.
+            // A failed commit retains ordinary worktree edits; last-good memory is unchanged.
+            let page_dir = self.directory.join("pages");
+            let previous = crate::pages::read_directory_unvalidated(&page_dir)
+                .map_err(|e| std::io::Error::other(e.1))?;
+            if !content.pages.is_empty() && !page_dir.exists() {
+                tokio::fs::create_dir(&page_dir).await?;
+            }
+            for (name, source) in &content.pages {
+                let path = page_dir.join(name);
+                if previous.get(name) != Some(source) {
+                    let staged = self.directory.join(format!(".page-{}.tmp", Uuid::new_v4()));
+                    tokio::fs::write(&staged, source).await?;
+                    tokio::fs::File::open(&staged).await?.sync_all().await?;
+                    tokio::fs::rename(staged, path).await?;
+                }
+            }
+            for name in previous
+                .keys()
+                .filter(|name| !content.pages.contains_key(*name))
+            {
+                tokio::fs::remove_file(page_dir.join(name)).await?;
+            }
             tokio::fs::rename(&temporary, self.directory.join(FILE)).await?;
             tokio::fs::File::open(&self.directory)
                 .await?
@@ -595,9 +724,13 @@ impl OperationsStore {
             return Err(error);
         }
         let result = async {
-            git(&self.directory, &["add", "--", FILE]).await?;
+            let has_pages = self.directory.join("pages").exists();
+            let paths = if has_pages { vec![FILE, "pages"] } else { vec![FILE] };
+            let mut args = vec!["add", "--all", "--"]; args.extend(&paths);
+            git(&self.directory, &args).await?;
             if self.head().await? != expected { return Err(conflict()); }
-            git(&self.directory, &["commit", "-m", message, "--", FILE]).await?;
+            let mut args = vec!["commit", "-m", message, "--"]; args.extend(&paths);
+            git(&self.directory, &args).await?;
             let revision = self.head().await?;
             let committed = Self::read(&self.directory, &revision).await?;
             if serde_json::to_value(&committed).unwrap() != serde_json::to_value(&content).unwrap() {
@@ -612,6 +745,11 @@ impl OperationsStore {
                 return Err(error);
             }
         };
+        git(
+            &self.directory,
+            &["update-ref", "refs/live/local-loaded", &revision],
+        )
+        .await?;
         *self.last_failure.write().unwrap() = None;
         *self.published.write().unwrap() = Published {
             revision: revision.clone(),
@@ -619,12 +757,64 @@ impl OperationsStore {
         };
         Ok(revision)
     }
+    pub async fn publish_pages(
+        &self,
+        expected: &str,
+        files: crate::pages::Files,
+    ) -> Result<String, ContentError> {
+        crate::pages::validate(&files)?;
+        if let Some(remote) = &self.remote {
+            return remote
+                .edit(expected, |content| {
+                    content.pages = files;
+                    Ok(Value::Null)
+                })
+                .await
+                .map(|(_, revision)| revision);
+        }
+        let _guard = self.writer().await?;
+        self.clean(expected).await?;
+        let mut content = self.snapshot().content;
+        if content.pages == files {
+            return Ok(expected.into());
+        }
+        content.pages = files;
+        self.commit(expected, content, "Live staff: publish Markdown pages")
+            .await
+    }
     pub async fn publish_editorial(
         &self,
         expected: &str,
         kind: &str,
         value: Value,
     ) -> Result<String, ContentError> {
+        if let Some(remote) = &self.remote {
+            return remote
+                .edit(expected, |content| {
+                    let editorial = content
+                        .editorial
+                        .as_mut()
+                        .ok_or_else(|| invalid("Missing editorial bundle."))?;
+                    match kind {
+                        "event" => {
+                            editorial.event = serde_json::from_value(value)
+                                .map_err(|_| invalid("Invalid event content."))?
+                        }
+                        "site" => {
+                            editorial.site = serde_json::from_value(value)
+                                .map_err(|_| invalid("Invalid site content."))?
+                        }
+                        "wayfinding" => {
+                            editorial.wayfinding = serde_json::from_value(value)
+                                .map_err(|_| invalid("Invalid wayfinding content."))?
+                        }
+                        _ => return Err(invalid("Unknown public document.")),
+                    }
+                    Ok(Value::Null)
+                })
+                .await
+                .map(|(_, revision)| revision);
+        }
         let _guard = self.writer().await?;
         self.clean(expected).await?;
         let mut content = self.snapshot().content;
@@ -661,6 +851,15 @@ impl OperationsStore {
         expected: &str,
         plan: &crate::planner::PlanInput,
     ) -> Result<String, ContentError> {
+        if let Some(remote) = &self.remote {
+            return remote
+                .edit(expected, |content| {
+                    *content = crate::planner::plan(content, plan)?;
+                    Ok(Value::Null)
+                })
+                .await
+                .map(|(_, revision)| revision);
+        }
         let _guard = self.writer().await?;
         self.clean(expected).await?;
         let content = crate::planner::plan(&self.snapshot().content, plan)?;
@@ -680,6 +879,11 @@ impl OperationsStore {
         id: Option<&str>,
         body: Value,
     ) -> Result<(Value, String), ContentError> {
+        if let Some(remote) = &self.remote {
+            return remote
+                .edit(expected, |content| content.mutate(method, kind, id, body))
+                .await;
+        }
         let _guard = self.writer().await?;
         self.clean(expected).await?;
         let before = self.snapshot();
@@ -695,6 +899,9 @@ impl OperationsStore {
         Ok((result, revision))
     }
     pub async fn restore(&self, expected: &str, target: &str) -> Result<String, ContentError> {
+        if let Some(remote) = &self.remote {
+            return remote.restore(expected, target).await;
+        }
         let _guard = self.writer().await?;
         // Restore uses the HEAD shown in staff status, even if that HEAD is invalid.
         // This repairs a bad direct commit without a reset or throwing away edits.
@@ -733,6 +940,9 @@ impl OperationsStore {
         .await
     }
     pub async fn push(&self, expected: &str) -> Result<Value, ContentError> {
+        if let Some(remote) = &self.remote {
+            return remote.retry(expected).await;
+        }
         let _guard = self.writer().await?;
         self.clean(expected).await?;
         let result = async {
@@ -757,6 +967,9 @@ impl OperationsStore {
         result
     }
     pub async fn status(&self) -> Result<Value, ContentError> {
+        if let Some(remote) = &self.remote {
+            return remote.status().await;
+        }
         let _guard = self.writer().await?;
         let published = self.snapshot();
         let mut issues = Vec::new();
@@ -798,7 +1011,14 @@ impl OperationsStore {
         }
         let history = git(
             &self.directory,
-            &["log", "-15", "--format=%H%x09%aI%x09%s", "--", FILE],
+            &[
+                "log",
+                "-15",
+                "--format=%H%x09%aI%x09%s",
+                "--",
+                FILE,
+                "pages",
+            ],
         )
         .await;
         let history: Vec<Value> = match history {

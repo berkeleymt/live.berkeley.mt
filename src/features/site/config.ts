@@ -14,12 +14,13 @@ export interface SiteConfig {
 }
 export interface SiteDocument { revision: string; content: SiteConfig }
 export interface EditorDocument extends SiteDocument { reloadError: string | null }
-export interface MediaAsset { url: string; bytes: number }
+export interface MediaAsset { url: string; bytes: number; revision?: string; previousRevision?: string }
 export interface MediaList { assets: MediaAsset[]; truncated: boolean }
 
+export const MAX_COPY_KEYS = 500;
 const bytes = (value: string) => new TextEncoder().encode(value).length;
 const safeId = (value: string) => /^[a-z0-9-]{1,64}$/.test(value);
-const knownPaths = new Set(['', '/', '/guide', '/help', '/faq', '/map', '/directions', '/rooms', '/lookup', '/lost-found', '/lost-and-found', '/staff/sign-in', '/admin', '/classic']);
+const knownPaths = new Set(['', '/', '/schedule', '/updates', '/guide', '/help', '/faq', '/map', '/directions', '/rooms', '/lookup', '/lost-found', '/lost-and-found', '/staff/sign-in', '/admin', '/classic']);
 export function isHttpsUrl(value: string): boolean {
   if (bytes(value) > 2048 || /[\s\\]/.test(value) || [...value].some(char => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)) return false;
   try {
@@ -82,7 +83,7 @@ export function parseSiteConfig(value: unknown): SiteConfig {
   const hero = object(root.hero, ['imageUrl', 'imageAlt', 'location']);
   const guide = object(root.guide, ['title', 'intro', 'notice', 'sections']);
   const copyObject = object(root.copy);
-  if (Object.keys(copyObject).length > 200) throw new Error('Use at most 200 copy keys.');
+  if (Object.keys(copyObject).length > MAX_COPY_KEYS) throw new Error(`Use at most ${MAX_COPY_KEYS} copy keys.`);
   const copy: Record<string, string> = {};
   for (const [key, value] of Object.entries(copyObject)) {
     if (!/^[a-zA-Z0-9.]{1,100}$/.test(key)) throw new Error('Copy keys must contain letters, digits and dots only (at most 100 characters).');

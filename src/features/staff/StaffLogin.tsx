@@ -3,6 +3,7 @@ import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, SignIn } from "@phosphor-icons/react";
 import { useStaff } from "./context";
 import { ROLE_LABELS, staffReturnPath } from "./model";
+import { GoogleSignIn } from './GoogleSignIn';
 import "./staff.css";
 
 export function StaffLogin() {
@@ -29,7 +30,8 @@ export function StaffLogin() {
       {staff.error && <p className="staff-note staff-error" role="alert">{staff.error}</p>}
       {staff.status === "error" && <button className="staff-button" disabled={staff.busy} onClick={() => void staff.refresh()}>{staff.busy ? "Checking…" : "Retry connection"}</button>}
       {staff.status === "ready" && <>
-        {passwordEnabled ? <form className="staff-form" onSubmit={submit} aria-busy={staff.busy}>
+        {staff.session?.authMode === 'google' ? (staff.session.googleClientId ? <GoogleSignIn clientId={staff.session.googleClientId} busy={staff.busy} signIn={staff.googleLogin} /> : <div role="alert" className="staff-note">Google sign-in is not configured. Ask an operator to check GOOGLE_CLIENT_ID. There is no password fallback.</div>) : passwordEnabled ? <form className="staff-form" onSubmit={submit} aria-busy={staff.busy}>
+          <p className="staff-note">Legacy local access · Google is not configured on this server. Local accounts do not become Google accounts automatically.</p>
           <label htmlFor="staff-username">Username</label>
           <input id="staff-username" name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} required maxLength={128} value={username} onChange={(event) => setUsername(event.target.value)} disabled={staff.busy} />
           <label htmlFor="staff-password">Password</label>
@@ -39,7 +41,7 @@ export function StaffLogin() {
           <p className="staff-muted">Need an account or a reset? Ask your BMT Live administrator. Passwords cannot be reset by email here.</p>
         </form> : !staff.session?.demoMode && <div className="staff-note">
           <strong>Staff access has not been configured.</strong>
-          <p>Ask an administrator to import private staff accounts or configure the owner fallback. There is no default password.</p>
+          <p>Google sign-in is not configured. Ask an operator to configure Google and the Live account allowlist, or explicitly enable legacy local access. There is no default password.</p>
           <button className="staff-button" disabled={staff.busy} onClick={() => void staff.refresh()}>Check again</button>
         </div>}
         {staff.session?.demoMode && <section className="staff-demo-box" aria-labelledby="demo-sign-in-heading">

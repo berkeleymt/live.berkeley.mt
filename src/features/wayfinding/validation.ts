@@ -29,7 +29,7 @@ export function parseWayfinding(value: unknown): WayfindingContent {
     if (typeof value !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(value) || local.has(value)) throw new Error('IDs must be unique, 1–64 characters, with only letters, numbers, hyphens or underscores.');
     local.add(value); return value;
   }
-  const content = object(value, ['title', 'intro', 'notice', 'helpText', 'travelUrl', 'buildings'], 'Directions');
+  const content = object(value, ['title', 'intro', 'notice', 'helpText', 'travelUrl', 'buildings', 'graph'], 'Directions');
   text(content.title, 'Title', 120); text(content.intro, 'Introduction', 1000); text(content.notice, 'Notice', 1500, true); text(content.helpText, 'Help text', 1000);
   text(content.travelUrl, 'TakeTransit URL', 1000);
   if (!String(content.travelUrl).startsWith('https://') || !safeImageUrl(String(content.travelUrl))) throw new Error('The transit link must be a safe HTTPS URL.');
@@ -38,7 +38,7 @@ export function parseWayfinding(value: unknown): WayfindingContent {
     const building = object(value, ['id', 'name', 'aliases', 'coordinates', 'status', 'verificationNote', 'entrances', 'floors'], 'Building');
     identifier(building.id); text(building.name, 'Building name', 120); coords(building.coordinates);
     list(building.aliases, 12, 'Building aliases').forEach(alias => text(alias, 'Alias', 100));
-    if (!['demo', 'unverified', 'verified'].includes(String(building.status))) throw new Error('Choose demo, unverified or verified for the building status.');
+    if (!['demo', 'unverified', 'mapped', 'verified'].includes(String(building.status))) throw new Error('Choose demo, unverified, mapped or verified for the building status.');
     text(building.verificationNote, 'Verification note', 1500);
     const entrances = new Map<string, boolean>(); const entranceIds = new Set<string>();
     for (const value of list(building.entrances, 12, 'Entrances')) {
@@ -71,6 +71,27 @@ export function parseWayfinding(value: unknown): WayfindingContent {
           if (!floor.image || [marker.x, marker.y].some(v => typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > 100)) throw new Error('Room markers need an image and x/y percentages from 0 to 100.');
         }
       }
+    }
+  }
+  if (content.graph != null) {
+    const graph = object(content.graph, ['demonstration','maps','nodes','edges'], 'Route graph');
+    if (typeof graph.demonstration !== 'boolean') throw new Error('Graph demonstration must be true or false.');
+    const maps = new Set<string>(); const nodes = new Set<string>(); const edges = new Set<string>();
+    for (const v of list(graph.maps, 40, 'Graph maps')) {
+      const m = object(v, ['id','label','floorId','image'], 'Graph map'); identifier(m.id, maps); text(m.label,'Map label',120);
+      if (m.floorId != null && (typeof m.floorId !== 'string' || !seen.has(m.floorId))) throw new Error('Map floor must reference a published floor.');
+      if (m.image != null) {
+        const i = object(m.image, ['url','alt','caption','demonstration'], 'Graph image'); text(i.url,'Image URL',1000); text(i.alt,'Alt text',500); text(i.caption,'Caption',500);
+        if (!safeImageUrl(String(i.url)) || typeof i.demonstration !== 'boolean' || (String(i.url).startsWith('/demo-maps/') && !i.demonstration) || (i.demonstration && !graph.demonstration)) throw new Error('Use a safe image URL and retain demonstration labels.');
+      }
+    }
+    for (const v of list(graph.nodes, 1500, 'Graph nodes')) {
+      const n = object(v, ['id','label','mapId','roomId','x','y'], 'Graph node'); identifier(n.id,nodes); text(n.label,'Node label',120);
+      if (!maps.has(String(n.mapId)) || (n.roomId != null && !seen.has(String(n.roomId))) || [n.x,n.y].some(x => typeof x !== 'number' || !Number.isFinite(x) || x<0 || x>100)) throw new Error('Nodes need known maps/rooms and x/y percentages from 0 to 100.');
+    }
+    for (const v of list(graph.edges, 5000, 'Graph edges')) {
+      const e = object(v, ['id','from','to','kind','cost','stepFree','closed','status','verificationNote','instruction'], 'Graph edge'); identifier(e.id,edges); text(e.verificationNote,'Verification note',500); text(e.instruction,'Instruction',500);
+      if (!nodes.has(String(e.from)) || !nodes.has(String(e.to)) || e.from===e.to || !['path','stairs','elevator','entrance'].includes(String(e.kind)) || typeof e.cost!=='number' || !Number.isInteger(e.cost) || e.cost<1 || e.cost>100000 || typeof e.closed!=='boolean' || typeof e.stepFree!=='boolean' || (e.stepFree && (e.kind==='stairs' || e.status==='mapped')) || !['demo','unverified','mapped','verified'].includes(String(e.status)) || (e.status==='demo' && !graph.demonstration)) throw new Error('Edges need distinct known nodes, positive bounded costs and honest verification/accessibility metadata.');
     }
   }
   return value as WayfindingContent;

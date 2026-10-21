@@ -9,9 +9,11 @@ Status: target design guidance. Existing CSS/components are not all compliant; t
 3. **Predictable interaction.** Familiar links, forms, dialogs and search. No discovery-dependent gestures or hover-only information.
 4. **Immediate, honest feedback.** Press feedback is instant; saved/published/sent are different outcomes. Preserve drafts on failure and tell the user what to do next.
 5. **Accessible by default.** Design for sunlight, small/older devices, large text, keyboard and assistive technology. Color never carries meaning alone.
-6. **One public identity; related staff identity.** The public site need not look like Lemon's dense workspace. Staff navigation, control conventions and account footer should feel familiar between the two apps, without shared sessions.
+6. **Berkeley public identity; Lemon staff identity.** Per Ian's October 21 direction, match [berkeley.mt](https://berkeley.mt/)'s public appearance as closely as practical: its logo, IBM Plex typography, light neutral background, restrained links, centered content and editorial rhythm. Adapt navigation to tournament-day tasks rather than copying marketing content. Staff navigation, control conventions and account footer should feel familiar with Lemon, without shared sessions.
 
 ## 2. Reference skills
+
+Public reference: [berkeley.mt at 769770a](https://github.com/berkeleymt/berkeley.mt/tree/769770aa0d0a5398ea15183e118905bf1adc8300). Its Markdown/TOML-frontmatter, shared templates and shortcodes inform the proposed content migration; replacing Live's runtime with Zola is **not approved**. See the [direction and migration proposal](status/log/2026-10-21-content-driven-direction.md).
 
 Reviewed Lemon's packaged [Apple design guidance](https://github.com/berkeleymt/proctor-suite/blob/77721d0/docs/apple-design.skill), [animation guidance](https://github.com/berkeleymt/proctor-suite/blob/77721d0/docs/animate.skill), [design skill](https://github.com/berkeleymt/proctor-suite/blob/77721d0/docs/design-skill.md) and [design system](https://github.com/berkeleymt/proctor-suite/blob/77721d0/docs/design-system.md). The `.skill` files are ZIP packages containing `SKILL.md`; read their contents, not the binary as text.
 

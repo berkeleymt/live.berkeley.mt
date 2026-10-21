@@ -9,7 +9,7 @@ import { pathToFileURL } from 'node:url';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { build } from 'vite';
-import { formatSiteText, isImageUrl, isLinkUrl, parseSiteConfig, parseSiteDocument, searchGuide } from '../src/features/site/config.ts';
+import { MAX_COPY_KEYS, formatSiteText, isImageUrl, isLinkUrl, parseSiteConfig, parseSiteDocument, searchGuide } from '../src/features/site/config.ts';
 
 // No browser automation and no production server. Compile site.rs in a minimal isolated host
 // so this builder can verify its real routes without modifying shared main.rs/AppState.
@@ -22,7 +22,7 @@ const unitBinary = join(root, 'server/target/debug/site-unit-tests');
 const harness = join(root, 'src/features/site/server-test-harness.rs');
 const libraryFiles = await readdir(deps);
 const externs = [];
-for (const name of ['axum', 'tokio', 'serde', 'serde_json', 'sha2', 'uuid', 'reqwest', 'base64', 'tower_http', 'argon2']) {
+for (const name of ['axum', 'tokio', 'serde', 'serde_json', 'sha2', 'uuid', 'reqwest', 'base64', 'tower_http', 'argon2', 'jsonwebtoken', 'rusqlite']) {
   const candidates = await Promise.all(libraryFiles.filter(file => file.startsWith(`lib${name}-`) && file.endsWith('.rlib')).map(async file => ({ file, time: (await stat(join(deps, file))).mtimeMs })));
   candidates.sort((a, b) => b.time - a.time);
   assert.ok(candidates.length, `Run cargo build --locked --manifest-path server/Cargo.toml first; missing ${name}`);
@@ -41,13 +41,14 @@ await command('rustc', ['--edition=2021', '--test', harness, '-L', `dependency=$
 
 test('Rust site store regression tests pass against the real site.rs', async () => {
   const output = await command(unitBinary, []);
-  assert.match(output, /10 passed; 0 failed/);
+  assert.equal(output.match(/^test site::tests::.* \.\.\. ok$/gm)?.length, 8);
+  assert.match(output, /0 failed/);
 });
 
 test('public fixture is valid, clearly labeled, and schema/URL checks match the API', () => {
   assert.deepEqual(parseSiteConfig(fixture), fixture);
-  assert.match(fixture.guide.notice, /Demo guide/);
-  assert.match(fixture.guide.intro, /November 14, 2026/);
+  assert.equal(fixture.guide.notice, '', 'the shared event banner provides demo provenance without repeated warnings');
+  assert.match(fixture.guide.intro, /Prepare for your visit/);
   assert.equal(parseSiteDocument({ revision: 'a'.repeat(64), content: fixture }).content.schemaVersion, 1);
   assert.throws(() => parseSiteDocument({ revision: 'unknown', content: fixture }), /revision/i);
   assert.throws(() => parseSiteConfig({ ...fixture, privateRoster: [] }), /Unknown field/);
@@ -58,6 +59,15 @@ test('public fixture is valid, clearly labeled, and schema/URL checks match the 
   for (const url of ['/bmt-logo.svg', '/media/test.png', '/demo-guide/demo.webp', 'https://example.invalid/image.png']) assert.equal(isImageUrl(url), true, url);
   for (const url of ['//evil.test', '/api/site', '/../../etc/passwd', 'mailto:someone@example.invalid']) assert.equal(isLinkUrl(url), false, url);
   for (const url of ['/#schedule', '#guide-arrival', '/guide', '/lost-and-found', 'https://taketransit.berkeley.mt/']) assert.equal(isLinkUrl(url), true, url);
+});
+
+test('copy count/string/document bounds stay finite, while old sparse documents and blank overrides remain valid', () => {
+  const copy = Object.fromEntries(Array.from({ length: MAX_COPY_KEYS }, (_, index) => [`custom.key${index}`, 'value']));
+  assert.equal(Object.keys(parseSiteConfig({ ...fixture, copy }).copy).length, 500);
+  assert.throws(() => parseSiteConfig({ ...fixture, copy: { ...copy, overflow: '' } }), /500/);
+  assert.throws(() => parseSiteConfig({ ...fixture, copy: { 'rooms.title': 'x'.repeat(4001) } }), /4000/);
+  assert.throws(() => parseSiteConfig({ ...fixture, copy: Object.fromEntries(Object.keys(copy).map(key => [key, 'x'.repeat(2000)])) }), /512/);
+  assert.deepEqual(parseSiteConfig({ ...fixture, copy: { 'rooms.title': '', 'custom.future': 'Preserve' } }).copy, { 'rooms.title': '', 'custom.future': 'Preserve' });
 });
 
 test('guide search matches multiple terms across title and content; templates are plain text', () => {
@@ -81,7 +91,7 @@ test('standalone feature bundles and Markdown/guide render safely without a brow
   assert.match(html, /href="\/guide"/);
   assert.match(html, /<strong>Safe text<\/strong>/);
   const guide = renderToStaticMarkup(createElement(GuideContent, { content: fixture }));
-  assert.match(guide, /Demo guide/);
+  assert.match(guide, /Prepare for your visit/);
   assert.match(guide, /aria-label="In this guide"/);
   assert.match(guide, /type="search"/);
   assert.match(guide, /Print guide/);
@@ -157,21 +167,47 @@ test('site HTTP contract: authentication, revision-safe publishing, direct edits
   await t.test('save updates the editable file and public snapshot; stale save returns 409', async () => {
     const stale = structuredClone(document);
     document.content.branding.title = 'Synthetic API test title';
+    document.content.navigation = [
+      { id: 'schedule', label: 'Synthetic timetable', href: '/schedule' },
+      { id: 'updates', label: 'Synthetic updates', href: '/updates' },
+      { id: 'old-help', label: 'Saved help link', href: '/#help' },
+    ];
+    document.content.copy['hub.title'] = 'Synthetic visitor hub';
+    document.content.copy['route.selected'] = 'Go to {label}';
+    document.content.copy['lookup.privacy'] = 'Authored privacy notice';
+    document.content.copy['rooms.title'] = '';
+    document.content.copy['custom.future'] = 'Keep this valid unknown key';
     const response = await api('/api/site/editor', { method: 'PUT', body: document, headers: { Origin: origin } });
     assert.equal(response.status, 200, await response.clone().text());
     document = await response.json();
     assert.notEqual(document.revision, stale.revision);
     assert.equal(JSON.parse(await readFile(path, 'utf8')).branding.title, 'Synthetic API test title');
     assert.equal((await (await api('/api/site', { auth: false })).json()).content.branding.title, 'Synthetic API test title');
+    const published = (await (await api('/api/site', { auth: false })).json()).content;
+    assert.deepEqual(published.navigation, document.content.navigation);
+    assert.equal(published.copy['hub.title'], 'Synthetic visitor hub');
+    assert.equal(published.copy['route.selected'], 'Go to {label}');
+    assert.equal(published.copy['lookup.privacy'], 'Authored privacy notice');
+    assert.equal(published.copy['rooms.title'], '');
+    assert.equal(published.copy['custom.future'], 'Keep this valid unknown key');
     assert.equal((await api('/api/site/editor', { method: 'PUT', body: stale })).status, 409);
   });
   await t.test('invalid schema, unsafe image URLs and duplicate IDs do not modify disk', async () => {
     const before = await readFile(path, 'utf8');
-    for (const mutate of [content => { content.schemaVersion = 2; }, content => { content.hero.imageUrl = 'javascript:alert(1)'; }, content => { content.guide.sections.push(content.guide.sections[0]); }, content => { content.privateRoster = []; }]) {
+    for (const mutate of [content => { content.schemaVersion = 2; }, content => { content.hero.imageUrl = 'javascript:alert(1)'; }, content => { content.guide.sections.push(content.guide.sections[0]); }, content => { content.privateRoster = []; }, content => { content.navigation[0].href = '/not-a-page'; }, content => { content.navigation[0].href = '/schedule?redirect=evil'; }, content => { content.copy = Object.fromEntries(Array.from({ length: 501 }, (_, index) => [`custom.key${index}`, 'value'])); }]) {
       const next = structuredClone(document); mutate(next.content);
       assert.equal((await api('/api/site/editor', { method: 'PUT', body: next })).status, 422);
     }
     assert.equal(await readFile(path, 'utf8'), before);
+  });
+  await t.test('older sparse copy documents remain sparse on save; server does not silently merge defaults', async () => {
+    const next = structuredClone(document);
+    next.content.copy = { 'rooms.title': '', 'custom.future': 'Keep me' };
+    const response = await api('/api/site/editor', { method: 'PUT', body: next });
+    assert.equal(response.status, 200);
+    document = await response.json();
+    assert.deepEqual(document.content.copy, next.content.copy);
+    assert.deepEqual((await (await api('/api/site', { auth: false })).json()).content.copy, next.content.copy);
   });
   await t.test('valid direct file edits reload; invalid files preserve the last good snapshot', async () => {
     const next = structuredClone(document.content); next.guide.title = 'Direct file edit';

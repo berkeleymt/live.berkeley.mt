@@ -1,14 +1,20 @@
 .staff-ui {
   color-scheme: light;
-  --staff-bg: var(--color-bg, #f5f5f7);
-  --staff-surface: var(--color-card, #ffffff);
+  /* Lemon's light palette and system type, scoped to avoid changing /classic. */
+  --staff-bg: #f5f5f7;
+  --staff-surface: #ffffff;
   --staff-text: #1d1d1f;
   --staff-muted: #636366;
   --staff-line: #d2d2d7;
-  --staff-accent: var(--color-berkeley-blue, #003262);
+  --staff-accent: #0058bd;
   --staff-on-accent: #ffffff;
   --staff-danger: #b8001a;
   --staff-warning: #8a5100;
+  --staff-ok: #146c2e;
+  --staff-line-soft: #e8e8ed;
+  --staff-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --staff-shadow: 0 1px 2px rgb(0 0 0 / 0.05), 0 4px 12px rgb(0 0 0 / 0.05);
+  --staff-radius-panel: 0.625rem;
   --staff-space-1: 0.25rem;
   --staff-space-2: 0.5rem;
   --staff-space-3: 0.75rem;
@@ -22,9 +28,23 @@
   --staff-text-xl: 1.75rem;
   --staff-radius: 0.5rem;
   --staff-target: 2.75rem;
-  --staff-sidebar: 14rem;
+  --staff-sidebar: 15rem;
+  --staff-rail: 6.75rem;
+  --staff-popover: 18rem;
   --staff-content: 87.5rem;
   --staff-login: 36rem;
+  --live-ink: var(--staff-text);
+  --live-muted: var(--staff-muted);
+  --live-line: var(--staff-line);
+  --live-paper: var(--staff-surface);
+  --live-blue: var(--staff-accent);
+  --color-berkeley-blue: var(--staff-accent);
+  --color-danger: var(--staff-danger);
+  --color-secondary-label: var(--staff-muted);
+  --color-tertiary-label: var(--staff-muted);
+  --color-bg: var(--staff-bg);
+  --color-label: var(--staff-text);
 }
 @media (pointer: coarse) { .staff-ui { --staff-target: 3rem; } }
-@media (min-width: 601px) and (max-width: 1024px) { .staff-ui { --staff-sidebar: 12rem; } }
+@media (max-width: 600px) { .staff-ui { --staff-target: 3rem; } }
+@media (min-width: 601px) and (max-width: 1024px) { .staff-ui { --staff-sidebar: var(--staff-rail); } }

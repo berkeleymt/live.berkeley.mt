@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Reproducible local sandbox. No credentials, network Git remotes, resets, or process discovery.
-import { mkdir, readFile, writeFile, access, realpath } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile, access, realpath } from "node:fs/promises";
 import { spawn, execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -50,19 +50,24 @@ export async function prepareSandbox(directory) {
   const remote = join(directory, "backup.git");
   await mkdir(repo, { recursive: true });
   await mkdir(join(directory, "media"), { recursive: true });
+  for (const name of await readdir(join(root, "content/media"))) {
+    if (!/^[a-f0-9]{64}\.(png|jpg|webp)$/.test(name)) continue;
+    const destination = join(directory, "media", name);
+    if (!(await exists(destination))) await writeFile(destination, await readFile(join(root, "content/media", name)), { flag: 'wx' });
+  }
   const event = await json(join(root, "content/bmt-2026.example.json"));
   event.notice =
-    "Demonstration only · November 14, 2026. Fictional schedule and rooms, not official tournament information. Email sending is disabled.";
+    "Demo · Sample schedule, rooms and routes. Not official tournament information. Email is off.";
   event.faqs = [
     {
       question: "How do I find my room?",
       answer:
-        "Open [Map & rooms](/rooms). In this sandbox, try DEMO-1001 with the displayed demo check-in code. Real assignments require a private, approved roster.",
+        "Open [My rooms](/rooms) and enter your student ID. Try **DEMO-1001** for sample assignments, then choose Directions beside a round.",
     },
     {
       question: "How do I get to campus?",
       answer:
-        "Use [TakeTransit](https://taketransit.berkeley.mt/) for travel planning. It is a separate site, not a live integration in this demo.",
+        "Plan your trip with [TakeTransit](https://taketransit.berkeley.mt/). Allow time to find your building and check in before your first round.",
     },
     {
       question: "I lost something. What should I do?",
@@ -71,6 +76,11 @@ export async function prepareSandbox(directory) {
     },
   ];
   const site = await json(join(root, "content/site.json"));
+  site.help = site.help.map(block => ({ ...block, markdown: ({
+    wifi: 'Guest network: **BMT-Demo**. Open your Wi-Fi settings, choose the network and follow the sign-in screen. Ask the information desk if you need help.',
+    'information-desk': '**Demo Learning Center, ground-floor lobby** · 8:00 am–4:00 pm. Ask us about rooms, the schedule, accessibility or lost items.',
+    restrooms: 'In the sample building, restrooms are on the ground floor beside the lobby. The accessible restroom is opposite A101. A volunteer can help you find it.',
+  })[block.id] ?? block.markdown }));
   const wayfinding = await json(join(root, "content/wayfinding.json"));
   for (const [name, value] of Object.entries({ event, site, wayfinding })) {
     const path = join(directory, `${name}.json`);
@@ -137,23 +147,23 @@ export async function prepareSandbox(directory) {
       },
     ].map((row) => ({
       ...row,
-      location: "Demonstration Hall · fictional",
+      location: "Demo Learning Center",
       description:
-        "Synthetic November demo event; not an official timetable or confirmed room assignment.",
+        ({ arrival: 'Check in with your coach and keep your student ID handy.', lunch: 'Take a break and meet your team before the afternoon rounds.', awards: 'Join the closing celebration with your team and family.' })[row.id] ?? 'Check My rooms for your assigned room. Arrive a few minutes early and follow your proctor’s instructions.',
     }));
     const announcements = [
       {
         id: "demo-welcome",
-        title: "Welcome to the November sandbox",
-        body: "Explore the visitor guide, find a demo room, or try a private lost-and-found report. **All examples are synthetic.**",
+        title: "Welcome to BMT",
+        body: "Find your [rooms](/rooms), check the [schedule](/schedule) and keep an eye here for announcements. Need a hand? Ask a volunteer or visit the information desk.",
         timestamp: "2026-01-01T08:00:00Z",
         priority: "normal",
         pinned: true,
       },
       {
         id: "demo-future",
-        title: "Scheduled demonstration update",
-        body: "This future update is visible to staff before its publication time. No email is sent in demo mode.",
+        title: "Ready for the first round?",
+        body: "Have your pencils and student ID ready. Check [My rooms](/rooms) for your first room, and follow your proctor’s instructions when you arrive.",
         timestamp: "2026-01-01T08:00:00Z",
         scheduledAt: "2026-11-14T17:00:00Z",
         priority: "normal",
@@ -174,7 +184,16 @@ export async function prepareSandbox(directory) {
       ) + "\n",
       { flag: "wx" },
     );
-    await git(repo, "add", "operations.json");
+    // Only a genuinely new sandbox gets shipped authored pages. Persisted installs
+    // use the explicit conversion preview in Website content; no staff file is replaced.
+    const pages = join(repo, 'pages');
+    if (await exists(pages)) throw new Error('Unversioned pages exist; refusing to replace them.');
+    await mkdir(pages);
+    for (const name of await readdir(join(root, 'content/pages'))) {
+      if (!/^[a-z0-9-]{1,64}\.md$/.test(name)) continue;
+      await writeFile(join(pages, name), await readFile(join(root, 'content/pages', name)), { flag: 'wx' });
+    }
+    await git(repo, "add", "operations.json", "pages");
     await git(repo, "commit", "-m", "Initialize synthetic November BMT demo");
   }
   if (!(await exists(remote))) await git(directory, "init", "--bare", remote);
@@ -199,6 +218,7 @@ export async function prepareSandbox(directory) {
     SITE_CONTENT_PATH: join(directory, "site.json"),
     WAYFINDING_CONTENT_PATH: join(directory, "wayfinding.json"),
     SITE_MEDIA_DIR: join(directory, "media"),
+    PAGES_CONTENT_DIR: join(repo, 'pages'),
     LIVE_CONTENT_REPO: repo,
     STATIC_DIR: join(root, "dist"),
     POSTMARK_SERVER_TOKEN: "",
@@ -261,7 +281,7 @@ async function main() {
     );
   }
   console.log(
-    `\nBMT local demo: http://127.0.0.1:${port}/\nStaff: /staff/sign-in → choose a synthetic role (no password).\nRooms: DEMO-1001 / DEMO-CHECKIN-2026\nPersistent data: ${directory}\nGit backup is local only. Email is disabled. Ctrl-C stops only this child server.\n`,
+    `\nBMT local demo: http://127.0.0.1:${port}/\nStaff: /staff/sign-in → choose a synthetic role (no password).\nRooms: DEMO-1001 (ID only; fictional routes)\nPersistent data: ${directory}\nGit backup is local only. Email is disabled. Ctrl-C stops only this child server.\n`,
   );
   const child = spawn(join(root, "server/target/debug/server"), [], {
     cwd: directory,

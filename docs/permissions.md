@@ -4,7 +4,7 @@
 
 Live has exactly two staff roles: **Admin** and **Super admin**. Public visitors are not an extra staff role. Public report submission remains allowed; “only staff can edit” refers to protected editorial/operational actions, not the public lost-and-found form.
 
-Ian subsequently approved Google-only sign-in and the operational/settings split, with the requirement that they behave and function like Lemon. [ADR 0003](adr/0003-lemon-staff-parity.md) defines that accepted behavior; it is not implemented yet.
+Ian subsequently approved Google-only sign-in and the operational/settings split, with the requirement that they behave and function like Lemon. [ADR 0003](adr/0003-lemon-staff-parity.md) defines that accepted behavior; slice 2 now implements it in the server and staff web shell with local synthetic tests. Real-Google/device verification and an authorized production account migration remain outstanding.
 
 Lemon navigation links are enough. Live keeps its own service, accounts, sessions and authorization. Never reuse a Lemon cookie, account database or API token as implicit Live access.
 
@@ -34,9 +34,9 @@ Reference: [ADR 0048](https://github.com/berkeleymt/proctor-suite/blob/77721d0/d
 
 This maps Lemon's tab-level model to Live. Operational publish actions use clear confirmation where consequential, not an invented mandatory second-approver role. Shared reads needed by operational tabs are available to both staff roles; credentials/settings remain Super-only. Do not invent per-control read-only roles or require Settings access to load an operational tab.
 
-## Migration gap and constraints
+## Implementation and migration constraints
 
-Current [staff code](../server/src/staff.rs) uses local named accounts, legacy owner credentials, in-memory sessions and four roles (`dispatcher`, `crisis_manager`, `info_desk`, `administrator`). [Current implementation notes](staff-access.md) describe that behavior, not the accepted target.
+Current [staff code](../server/src/staff.rs) supports Google GIS/FedCM with Live-only private People/persistent sessions, per-request Admin/Super role resolution, Super-only People and reserved settings capability. Both roles retain all existing operational reads/writes. Provider/settings screens themselves are later slices, not fabricated endpoints. The explicit Google-unconfigured legacy/demo path retains old named accounts/owner Basic and four historical roles for compatibility, never as a Google bypass. The modern demo chooser exposes only Admin/Super. [Operator instructions](staff-access.md) cover configuration, deliberate migration and rollback.
 
 Before changing access, inventory configured accounts without exporting secrets. Decide migration to Admin/Super admin explicitly; do not grant Super admin to every old role or remove the only usable login. Verify allowed and denied actions in the real router, immediate revocation, CSRF/origin protection, logout and expired sessions. No demo login on production. Do not remove working auth until a tested replacement and authorized migration are ready.
 

@@ -119,7 +119,7 @@ function useAdminData() {
           ...(revision ? { "If-Match": `"${revision}"` } : {}),
         },
         body: body !== undefined ? JSON.stringify(body) : undefined,
-        signal: AbortSignal.timeout(60_000),
+        signal: AbortSignal.timeout(90_000),
       });
       if (!res.ok) {
         const detail = await res.text();
@@ -129,7 +129,7 @@ function useAdminData() {
       if (loading.current) await loading.current;
       // Only this editor's snapshots supply revisions. EventEditor/public requests never change them.
       await refresh();
-      toast.success(path.startsWith("/publishing/push") ? "Remote revision verified." : "Saved to this server.");
+      toast.success(path.startsWith('/publishing/') ? 'Publishing action completed. Review the loaded and remote status below.' : 'Saved and loaded by this server.');
       return true;
     } catch (e) {
       const message = failure(e);
@@ -763,29 +763,21 @@ export default function Admin() {
   );
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10 pb-24 text-base">
-      <div className="flex items-center justify-between mb-10">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{data.event?.title ?? "Live"} Admin</h1>
-          <p className="text-sm text-tertiary-label mt-1">
-            Press Edit to modify · <kbd>.</kbd> to refresh
-          </p>
-        </div>
-        <a href="/" className="btn-secondary">← Live Site</a>
-      </div>
+    <div className="staff-operations">
+      <p className="staff-muted">Manage the schedule and live updates. Preview timing changes before publishing.</p>
       {error && <p role="alert" className="editor-error mb-4">{error} Existing editors and failed drafts are kept below.</p>}
       <div className="flex flex-wrap gap-3 items-center mb-6">
         <button type="button" className="btn-secondary" disabled={pending} onClick={() => { void refresh(); }}>Refresh published values</button>
         <span role="status" className="text-sm text-secondary-label">{pending ? "Waiting for server confirmation…" : "Refresh does not discard open drafts."}</span>
       </div>
       <div className="space-y-12">
-        {can('publishing:write') && <PublishingPanel request={mutate} disabled={pending} revision={data.operationRevision} />}
         {can('schedule:write') && <SchedulePlanner events={data.schedule} onPublish={refresh} />}
         <fieldset disabled={pending} className="space-y-12 min-w-0">
           <legend className="sr-only">Schedule, delays and announcements</legend>
           {can('schedule:write') && <ScheduleSection events={data.schedule} delays={data.delays} api={scopedApi} undo={mutate} />}
           <fieldset disabled={!can('updates:write')} className="min-w-0"><legend className="sr-only">Updates editor</legend><AnnouncementsSection announcements={data.announcements} api={scopedApi} undo={mutate} /></fieldset>
         </fieldset>
+        {can('publishing:write') && <details className="staff-publishing-details"><summary>Publication history & recovery</summary><PublishingPanel request={mutate} disabled={pending} revision={data.operationRevision} /></details>}
       </div>
     </div>
   );

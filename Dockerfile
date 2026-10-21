@@ -28,6 +28,10 @@ COPY --from=backend /app/server/target/release/server ./server
 COPY --from=frontend /app/dist ./dist
 COPY content/ ./content/
 ENV STATIC_DIR=dist
+# content/pages/*.md is included above for fresh installs. Existing mounted content
+# without pages stays on legacy views; no startup migration copies these defaults.
+# PAGES_CONTENT_DIR defaults to the SITE_CONTENT_PATH sibling pages/ (file mode).
+# Git modes use their own pages/ tree instead, never this bundled directory.
 # Absolute so they still resolve when the container's workingDir is the data volume (/app/data)
 ENV SITE_CONTENT_PATH=/app/content/site.json \
     EVENT_CONTENT_PATH=/app/content/event.json \

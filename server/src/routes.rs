@@ -15,6 +15,9 @@ use crate::models::*;
 /// Shared application state passed to all route handlers.
 #[derive(Clone)]
 pub struct AppState {
+    pub pages: Option<Arc<crate::pages::Store>>,
+    pub page_media: Vec<std::path::PathBuf>,
+    pub roster: Arc<crate::contestdojo::RosterStore>,
     pub db: Arc<Db>,
     pub postmark: Option<PostmarkConfig>,
     pub admin_password: Option<String>,
@@ -53,6 +56,10 @@ pub async fn feature_access(
     next.run(request).await
 }
 
+pub async fn lost_found_mail_settings(State(state): State<AppState>) -> Json<serde_json::Value> {
+    Json(state.lost_found.mail_settings())
+}
+
 #[derive(Deserialize)]
 pub struct LiveQuery {
     at: Option<String>,
@@ -89,14 +96,18 @@ pub async fn get_live(
     };
     let include_future = can_preview && query.include_future.unwrap_or(false);
     let mut live = state.db.get_live_data(at, include_future);
+    let mut event = state.content.snapshot().content;
     let operation_revision = state.operations.as_ref().map(|store| {
         let snapshot = store.snapshot();
         snapshot.content.apply(&mut live, at, include_future);
+        if let Some(editorial) = snapshot.content.editorial {
+            event = editorial.event;
+        }
         snapshot.revision
     });
     let mut response = Json(LiveResponse {
         live,
-        event: state.content.snapshot().content,
+        event,
         operation_revision: operation_revision.clone(),
     })
     .into_response();
@@ -237,22 +248,26 @@ pub async fn subscribe(
     Json(input): Json<SubscribeInput>,
 ) -> Json<SubscribeResponse> {
     let email = input.email.trim().to_lowercase();
+    let email_delivery_enabled = state.postmark.is_some();
     if !email.contains('@') || !email.contains('.') {
         return Json(SubscribeResponse {
             ok: false,
             message: "Invalid email address.".to_string(),
+            email_delivery_enabled,
         });
     }
-    match state.db.add_subscriber(&email) {
-        Some(_) => Json(SubscribeResponse {
-            ok: true,
-            message: "Subscribed! You'll receive email notifications for live updates.".to_string(),
-        }),
-        None => Json(SubscribeResponse {
-            ok: true,
-            message: "You're already subscribed.".to_string(),
-        }),
-    }
+    let added = state.db.add_subscriber(&email).is_some();
+    Json(SubscribeResponse {
+        ok: true,
+        message: if !email_delivery_enabled {
+            "Subscription saved. Email updates are currently unavailable; check this page for the latest news."
+        } else if added {
+            "You're subscribed to email updates."
+        } else {
+            "You're already subscribed."
+        }.to_string(),
+        email_delivery_enabled,
+    })
 }
 
 #[derive(Deserialize)]

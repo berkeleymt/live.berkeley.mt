@@ -1,10 +1,10 @@
 # Architecture and data boundaries
 
-Status: current-state inventory plus recommended target; no architecture code changes in this documentation pass. [Requirements](specs.md) govern scope; [ADR 0002](adr/0002-github-content-publication.md) records the publication recommendation.
+Status: current-state inventory plus remaining target; slice 3 implements the opt-in remote-first public bundle path described below. [Requirements](specs.md) govern scope; [ADR 0002](adr/0002-github-content-publication.md) records the publication recommendation.
 
 ## Current system
 
-React/TypeScript/Vite serves public/staff routes; Rust/Axum owns validation and APIs. SQLite stores legacy operations/subscriptions and private lost-and-found data. File-backed event/site/wayfinding stores coexist with optional `LIVE_CONTENT_REPO` operations publishing, which can include an editorial bundle. Local Git commits can be served before remote push. Named local staff accounts and demo roles are not the approved two-role target.
+React/TypeScript/Vite serves public/staff routes; Rust/Axum owns validation and APIs. SQLite stores legacy operations/subscriptions and private lost-and-found data. File-backed event/site/wayfinding stores coexist with optional `LIVE_CONTENT_REPO` operations publishing, which can include an editorial bundle. Local-first Git commits can be served before remote push. The separate opt-in `LIVE_CONTENT_REMOTE_REPO` mode uses a dedicated bare repository, remote confirmation, complete validation and one durable last-good bundle; it never checks out application code. Google Admin/Super staff access is implemented with explicit legacy/demo compatibility. See [publication/migration guide](git-publishing.md).
 
 See [main router](../server/src/main.rs), [operations](../server/src/operations.rs), [site](../server/src/site.rs), [lookup](../server/src/wayfinding.rs), and [current feature notes](README.md). These are migration inputs, not a reason to silently remove working subscriptions, editors, routes or data.
 
@@ -41,6 +41,8 @@ content/
 
 Use JSON/Markdown initially to match the existing validators and human-editable files. A content schema migration replaces the current duplicated editorial bundle; do not leave multiple authoritative copies. An admin form must cover every editable public field, including alt text, upload replacement and structured route data, while preserving direct file edits. UI structure/behavior remains application code; text and images do not require a code edit.
 
+The implemented slice-3 v1 bundle is deliberately narrower than this future layout: manifest, operations, event, site and wayfinding JSON plus hash-named PNG/JPEG/WebP media. Long-form Markdown and current editable copy stay in `site.json`; separate guide/ui/map-graph formats are not accepted yet. Existing schema constraints remain, and remaining hard-coded public copy still needs editorial migration. No automatic migration rewrites current files.
+
 ## Publication pipeline
 
 ```text
@@ -59,10 +61,10 @@ admin form or authorized human/AI file edit
 - Validate allowed paths, supported schema, all files, asset references, cross-file IDs, dates/timezone, schedule intervals and map graph before activation. Reject traversal/symlinks escaping the bundle, unsafe Markdown/URLs, unbounded files and unknown private fields. No half-updated schedule/map/guide.
 - Source commit SHA identifies the bundle. Optimistic editing also uses a content digest so a code-only commit need not lose an unrelated draft. Compare the relevant base files, never force-push over someone else's edit.
 - Serialize admin publishers. A non-fast-forward push retains the draft, reports conflict and requires refresh/reconciliation. Direct authorized file pushes go through the same consumer validation.
-- Repository branch protection remains authoritative. If protected main requires a PR, admin publication creates a proposal and shows awaiting merge; never bypass the gate or pretend it is live. Integration must settle this policy before enabling publishing.
+- Repository branch protection remains authoritative. Slice 3 supports permitted normal pushes and retains a pending draft on rejection. It does **not** create PRs, sign commits or automate required checks; a required-PR branch needs the approved external merge workflow. Automatic proposal creation remains future work. Never bypass policy or pretend a pending commit is live.
 - GitHub is canonical: a local commit is not “published.” During a failed push, keep the draft and existing public revision. Display Draft / Awaiting merge or push / Remote revision / Loaded revision separately, with a useful failure reason. This deliberately differs from the current local-first demo.
 - Roll back by a new validated revert/restore commit; no rewriting history or deleting unrelated code. Out-of-order fetch jobs must not activate an older candidate after a newer one.
-- Content-only changes should skip image builds/restarts once the new loader is implemented. Code, dependency or schema-support changes still use normal deploy CI. Current CI builds on every main push; path filtering is future work, not already configured.
+- Content-only changes need no image build/restart in remote mode. CI filtering is separately opt-in via Actions variable `LIVE_CONTENT_RUNTIME_RELOAD=true`, only after verifying runtime migration. Default build-on-push remains compatible; opted-in content-only changes skip build/deploy, while code/dependency/schema-support changes and manual dispatch build. No workflow/deployment run was performed in slice 3.
 
 ## Media, translation and AI editing
 

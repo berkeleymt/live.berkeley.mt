@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useStaff } from '../features/staff';
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ContentDocument, EventContent } from "../data/types";
+import { publicationBase } from '../data/publication';
 
 const API = import.meta.env.VITE_API_URL?.replace(/\/live$/, "") || "/api";
 
-export function EventEditor({ onPublish }: { onPublish: () => void }) {
+export function EventEditor({ onPublish, section }: { onPublish: () => void; section?: 'Event details' | 'FAQ' }) {
   const { request } = useStaff();
   const [saved, setSaved] = useState<ContentDocument | null>(null);
   const [draft, setDraft] = useState<EventContent | null>(null);
@@ -14,6 +15,8 @@ export function EventEditor({ onPublish }: { onPublish: () => void }) {
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [preview, setPreview] = useState(false);
+  const feedback = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (error) feedback.current?.focus(); }, [error]);
   const dirty =
     saved !== null && JSON.stringify(draft) !== JSON.stringify(saved.content);
 
@@ -69,18 +72,23 @@ export function EventEditor({ onPublish }: { onPublish: () => void }) {
     setError("");
     setStatus("");
     try {
+      const currentResponse = await request(`${API}/content`, { signal: AbortSignal.timeout(10_000), cache: 'no-store' });
+      if (!currentResponse.ok) throw new Error('Could not check the published content. Your draft is safe; try again.');
+      const current: ContentDocument = await currentResponse.json();
+      const revision = publicationBase(saved, current);
+      if (!revision) throw new Error('These event details changed since you opened them. Download your draft before reloading the published version.');
       const response = await request(`${API}/content`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ revision: saved.revision, content: draft }),
-        signal: AbortSignal.timeout(10_000),
+        body: JSON.stringify({ revision, content: draft }),
+        signal: AbortSignal.timeout(90_000),
       });
       if (!response.ok) throw new Error(await response.text());
       const document: ContentDocument = await response.json();
       setSaved(document);
       setDraft(document.content);
       setStatus(
-        "Published to this server. In Git mode this is committed with the complete public bundle; remote backup is a separate action.",
+        "Published. Visitors can see your changes.",
       );
       onPublish();
     } catch (error) {
@@ -112,27 +120,17 @@ export function EventEditor({ onPublish }: { onPublish: () => void }) {
 
   return (
     <section className="event-editor" aria-labelledby="event-editor-heading">
-      <h2 id="event-editor-heading">Event details & FAQ</h2>
-      <p>
-        These fields edit the same JSON file as repository edits. Schedule,
-        announcements, map and help information still use their existing
-        sources.
-      </p>
-      <p className="editor-caution">
-        Git mode commits the complete public bundle before publishing. File mode writes event.json atomically. Neither action sends a remote backup.
-      </p>
-      {error && (
+      <h2 id="event-editor-heading">{section ?? 'Event details & FAQ'}</h2>
+      <p className="staff-muted">{section === 'FAQ' ? 'Answer the questions visitors ask most often. Answers support Markdown and links.' : 'The event name, date and welcome message visitors see on the website.'}</p>
+      {error && !draft && (
         <p className="editor-error" role="alert">
           {error}
         </p>
       )}
-      <p role="status">
-        {status || (busy ? "Working…" : dirty ? "Unpublished changes" : "")}
-      </p>
       {draft && (
         <form onSubmit={publish}>
           <fieldset disabled={busy}>
-            <div className="editor-fields">
+            <div hidden={section === 'FAQ'}><div className="editor-fields">
               <label>
                 Event name
                 <input
@@ -185,7 +183,9 @@ export function EventEditor({ onPublish }: { onPublish: () => void }) {
                 />
               </label>
             </div>
-            <h3>Frequently asked questions</h3>
+            </div>
+            <div hidden={section === 'Event details'}>
+            {!section && <h3>Frequently asked questions</h3>}
             {draft.faqs.map((faq, index) => (
               <fieldset key={index} className="editor-faq">
                 <legend>Question {index + 1}</legend>
@@ -250,7 +250,10 @@ export function EventEditor({ onPublish }: { onPublish: () => void }) {
             >
               Add question
             </button>
-            <div className="editor-actions">
+            </div>
+            <div className="editor-savebar" ref={feedback} tabIndex={-1}>
+            <p className={error ? 'editor-save-error' : 'editor-save-status'} role={error ? 'alert' : 'status'}>{error || status || (busy ? 'Publishing…' : dirty ? 'Unpublished changes' : 'All changes saved')}</p>
+            <div className="editor-save-actions">
               <button
                 type="button"
                 className="btn-secondary"
@@ -269,11 +272,13 @@ export function EventEditor({ onPublish }: { onPublish: () => void }) {
               <button type="submit" className="btn-primary" disabled={!dirty}>
                 {busy ? "Publishing…" : "Publish event details"}
               </button>
+              <button type="button" className="btn-secondary" disabled={busy} onClick={() => { if (!dirty || window.confirm('Discard your unpublished edits and load the published version?')) void load(); }}>Reload published version</button>
+            </div>
             </div>
           </fieldset>
         </form>
       )}
-      <button
+      {!draft && <button
         type="button"
         className="btn-secondary"
         disabled={busy}
@@ -285,8 +290,8 @@ export function EventEditor({ onPublish }: { onPublish: () => void }) {
             void load();
         }}
       >
-        Reload file
-      </button>
+        {busy ? 'Loading…' : 'Try again'}
+      </button>}
       {preview && draft && (
         <aside
           className="editor-preview prose-copy"

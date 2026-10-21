@@ -87,6 +87,7 @@ struct StoredContent {
 }
 
 pub struct ContentStore {
+    pub remote: std::sync::OnceLock<std::sync::Arc<crate::remote_content::RemoteStore>>,
     path: PathBuf,
     stored: Mutex<StoredContent>,
     published: std::sync::atomic::AtomicBool,
@@ -108,6 +109,7 @@ impl ContentStore {
     pub fn open(path: PathBuf) -> Result<Self, String> {
         let (content, bytes) = read_content(&path)?;
         Ok(Self {
+            remote: std::sync::OnceLock::new(),
             path,
             published: std::sync::atomic::AtomicBool::new(false),
             stored: Mutex::new(StoredContent {
@@ -121,6 +123,13 @@ impl ContentStore {
     }
 
     pub fn snapshot(&self) -> ContentDocument {
+        if let Some(remote) = self.remote.get() {
+            let snapshot = remote.snapshot();
+            return ContentDocument {
+                revision: snapshot.revision,
+                content: snapshot.content.editorial.unwrap().event,
+            };
+        }
         self.stored.lock().unwrap().document.clone()
     }
 
@@ -132,7 +141,7 @@ impl ContentStore {
     }
 
     pub fn reload(&self) -> Result<ContentDocument, String> {
-        if self.published.load(std::sync::atomic::Ordering::SeqCst) {
+        if self.remote.get().is_some() || self.published.load(std::sync::atomic::Ordering::SeqCst) {
             return Ok(self.snapshot());
         }
         let mut stored = self.stored.lock().unwrap();
@@ -148,7 +157,7 @@ impl ContentStore {
     }
 
     pub fn save(&self, input: ContentDocument) -> Result<ContentDocument, ContentError> {
-        if self.published.load(std::sync::atomic::Ordering::SeqCst) {
+        if self.remote.get().is_some() || self.published.load(std::sync::atomic::Ordering::SeqCst) {
             return Err((
                 StatusCode::CONFLICT,
                 "Use the Git publication endpoint.".into(),

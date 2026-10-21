@@ -31,6 +31,12 @@ export async function lostFoundRequest<T>(path: string, init: RequestInit = {}, 
   }
   return response.json() as Promise<T>;
 }
+/** Public form never renders raw errors, even when a custom transport throws one. */
+export function publicReportError(error: unknown): string {
+  const status = error instanceof LostFoundRequestError ? error.status : 0;
+  const keys: Record<number, string> = { 401: 'errorAuth', 403: 'errorAuth', 409: 'errorConflict', 413: 'errorTooLarge', 400: 'errorInvalid', 422: 'errorInvalid', 429: 'errorRateLimited' };
+  return keys[status] ?? 'submitUncertain';
+}
 export function contactHref(report: Pick<LostFoundReport, "email" | "receipt">): string {
   return `mailto:${encodeURIComponent(report.email)}?subject=${encodeURIComponent(`BMT lost-and-found — receipt ${report.receipt}`)}`;
 }

@@ -20,6 +20,10 @@ use std::{
 };
 use uuid::Uuid;
 
+#[path = "lost_found_mail.rs"]
+mod mail;
+pub use mail::MailConfig;
+
 type ApiError = (StatusCode, &'static str);
 type Result<T> = std::result::Result<T, ApiError>;
 const BODY_LIMIT: usize = 12 * 1024;
@@ -81,10 +85,20 @@ pub struct SubmitReport {
     #[serde(default)]
     name: String,
     email: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    phone: String,
+    #[serde(default, skip_serializing_if = "is_false")]
+    confirmation_email: bool,
+}
+fn is_false(value: &bool) -> bool {
+    !value
 }
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Receipt {
     pub receipt: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email_state: Option<String>,
 }
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -133,6 +147,8 @@ pub struct Report {
     revision: u32,
     synthetic: bool,
     history: Vec<AuditEntry>,
+    phone: String,
+    delivery: Option<mail::Delivery>,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -142,6 +158,7 @@ pub struct ReportPage {
     limit: u32,
     offset: u32,
     demo_mode: bool,
+    mail_configuration: String,
 }
 
 struct Bucket {
@@ -182,12 +199,21 @@ pub struct LostFoundStore {
     limiter: Mutex<Limiter>,
     salt: String,
     demo_mode: bool,
+    mail: MailConfig,
 }
 impl LostFoundStore {
     /// `path` MUST be outside STATIC_DIR and the public Git/content directory.
     /// Caller opts in only when DEMO_MODE is exactly "true". Seeding is atomic,
     /// once per database, additive, and never updates an existing report.
     pub fn open(path: impl AsRef<FilePath>, demo_mode: bool) -> std::result::Result<Self, String> {
+        Self::open_with_mail(path, demo_mode, MailConfig::disabled())
+    }
+
+    pub fn open_with_mail(
+        path: impl AsRef<FilePath>,
+        demo_mode: bool,
+        mail: MailConfig,
+    ) -> std::result::Result<Self, String> {
         let path = path.as_ref();
         #[cfg(unix)]
         if path != FilePath::new(":memory:") {
@@ -227,11 +253,32 @@ impl LostFoundStore {
             CREATE INDEX IF NOT EXISTS lf_history_report ON lf_history(report_id, revision);
             CREATE TABLE IF NOT EXISTS lf_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);")
             .map_err(|_| "Cannot initialize private database.".to_string())?;
+        // Additive migration: old rows and original submission hashes are untouched.
+        let has_phone = db
+            .prepare("PRAGMA table_info(lf_reports)")
+            .map_err(|_| "Cannot inspect private schema.")?
+            .query_map([], |r| r.get::<_, String>(1))
+            .map_err(|_| "Cannot inspect private schema.")?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|_| "Cannot inspect private schema.")?
+            .contains(&"phone".into());
+        if !has_phone {
+            db.execute(
+                "ALTER TABLE lf_reports ADD COLUMN phone TEXT NOT NULL DEFAULT ''",
+                [],
+            )
+            .map_err(|_| "Cannot migrate private schema.")?;
+        }
+        mail::initialize(&db).map_err(|_| "Cannot initialize private outbox.")?;
+        if mail.status != "ready" || demo_mode {
+            db.execute("UPDATE lf_outbox SET state='not_configured',next_attempt=NULL,revision=revision+1 WHERE state IN ('queued','retry_wait')", []).map_err(|_| "Cannot pause private outbox.")?;
+        }
         let store = Self {
             db: Mutex::new(db),
             limiter: Mutex::new(Limiter::default()),
             salt: Uuid::new_v4().to_string(),
             demo_mode,
+            mail,
         };
         if demo_mode {
             store
@@ -274,6 +321,8 @@ impl LostFoundStore {
                     occurred_at: "November 14, 2026, around 9:00 am Pacific (demo)".into(),
                     name: "Synthetic demo person".into(),
                     email: email.into(),
+                    phone: String::new(),
+                    confirmation_email: false,
                 };
                 insert_report(&tx, &input, true)?;
             }
@@ -288,8 +337,9 @@ impl LostFoundStore {
 
     fn submit(&self, mut input: SubmitReport) -> Result<Receipt> {
         input.validate()?;
-        let db = self.db.lock().map_err(|_| DB_ERROR)?;
-        let existing: Option<(String, String)> = db
+        let mut db = self.db.lock().map_err(|_| DB_ERROR)?;
+        let tx = db.transaction().map_err(|_| DB_ERROR)?;
+        let existing: Option<(String, String)> = tx
             .query_row(
                 "SELECT receipt,submission_hash FROM lf_reports WHERE submission_key=?1",
                 [&input.idempotency_key],
@@ -299,7 +349,15 @@ impl LostFoundStore {
             .map_err(|_| DB_ERROR)?;
         if let Some((receipt, hash)) = existing {
             return if hash == fingerprint(&input)? {
-                Ok(Receipt { receipt })
+                let email_state = if input.confirmation_email {
+                    mail::public_state(&tx, &receipt)?
+                } else {
+                    None
+                };
+                Ok(Receipt {
+                    receipt,
+                    email_state,
+                })
             } else {
                 Err((StatusCode::CONFLICT, "This submission key belongs to a different report. Do not reuse it for another item."))
             };
@@ -315,7 +373,20 @@ impl LostFoundStore {
         ) {
             return Err((StatusCode::TOO_MANY_REQUESTS, "Too many reports for this contact. Please wait 30 minutes or ask at the help desk."));
         }
-        insert_report(&db, &input, false)
+        // Persist demo provenance so a later non-demo restart cannot enable receipt
+        // sending or manual contact drafts for reports submitted in the sandbox.
+        let mut receipt = insert_report(&tx, &input, self.demo_mode)?;
+        if input.confirmation_email {
+            let state = if self.mail.status == "ready" && !self.demo_mode {
+                "queued"
+            } else {
+                "not_configured"
+            };
+            mail::enqueue(&tx, &receipt.receipt, state)?;
+            receipt.email_state = Some(state.into());
+        }
+        tx.commit().map_err(|_| DB_ERROR)?;
+        Ok(receipt)
     }
 
     fn list(&self, query: ListQuery) -> Result<ReportPage> {
@@ -364,6 +435,7 @@ impl LostFoundStore {
             limit,
             offset: query.offset,
             demo_mode: self.demo_mode,
+            mail_configuration: self.mail.status.into(),
         })
     }
 
@@ -421,6 +493,8 @@ impl SubmitReport {
         self.occurred_at = self.occurred_at.trim().to_string();
         self.name = self.name.trim().to_string();
         self.email = self.email.trim().to_string();
+        self.phone = self.phone.trim().to_string();
+        validate_text(&self.phone, 0, 80, "Phone must be at most 80 characters.")?;
         validate_text(
             &self.description,
             5,
@@ -512,10 +586,18 @@ fn insert_report(db: &Connection, input: &SubmitReport, synthetic: bool) -> Resu
     let receipt = Uuid::new_v4().to_string();
     let now = Utc::now().to_rfc3339();
     db.execute("INSERT INTO lf_reports (id,receipt,submission_key,submission_hash,kind,description,location,occurred_at,name,email,created_at,updated_at,synthetic) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?11,?12)", params![id, receipt, input.idempotency_key, fingerprint(input)?, input.kind.as_str(), input.description, input.location, input.occurred_at, input.name, input.email, now, synthetic]).map_err(|_| DB_ERROR)?;
-    Ok(Receipt { receipt })
+    db.execute(
+        "UPDATE lf_reports SET phone=?2 WHERE id=?1",
+        params![id, input.phone],
+    )
+    .map_err(|_| DB_ERROR)?;
+    Ok(Receipt {
+        receipt,
+        email_state: None,
+    })
 }
 fn read_report(db: &Connection, id: &str) -> Result<Report> {
-    let mut report = db.query_row("SELECT id,receipt,kind,description,location,occurred_at,name,email,status,notes,created_at,updated_at,revision,synthetic FROM lf_reports WHERE id=?1", [id], |r| Ok(Report { id: r.get(0)?, receipt: r.get(1)?, kind: r.get(2)?, description: r.get(3)?, location: r.get(4)?, occurred_at: r.get(5)?, name: r.get(6)?, email: r.get(7)?, status: r.get(8)?, notes: r.get(9)?, created_at: r.get(10)?, updated_at: r.get(11)?, revision: r.get(12)?, synthetic: r.get(13)?, history: vec![] }))
+    let mut report = db.query_row("SELECT id,receipt,kind,description,location,occurred_at,name,email,status,notes,created_at,updated_at,revision,synthetic FROM lf_reports WHERE id=?1", [id], |r| Ok(Report { id: r.get(0)?, receipt: r.get(1)?, kind: r.get(2)?, description: r.get(3)?, location: r.get(4)?, occurred_at: r.get(5)?, name: r.get(6)?, email: r.get(7)?, status: r.get(8)?, notes: r.get(9)?, created_at: r.get(10)?, updated_at: r.get(11)?, revision: r.get(12)?, synthetic: r.get(13)?, history: vec![], phone: String::new(), delivery: None }))
         .optional().map_err(|_| DB_ERROR)?.ok_or((StatusCode::NOT_FOUND, "Report not found. Refresh the inbox."))?;
     let mut statement = db.prepare("SELECT at,actor,from_status,status,notes,revision FROM lf_history WHERE report_id=?1 ORDER BY revision DESC LIMIT 20").map_err(|_| DB_ERROR)?;
     report.history = statement
@@ -532,6 +614,12 @@ fn read_report(db: &Connection, id: &str) -> Result<Report> {
         .map_err(|_| DB_ERROR)?
         .collect::<std::result::Result<Vec<_>, _>>()
         .map_err(|_| DB_ERROR)?;
+    report.phone = db
+        .query_row("SELECT phone FROM lf_reports WHERE id=?1", [id], |r| {
+            r.get(0)
+        })
+        .map_err(|_| DB_ERROR)?;
+    report.delivery = mail::read(db, id)?;
     Ok(report)
 }
 
@@ -547,6 +635,7 @@ pub fn public_router<S: Clone + Send + Sync + 'static>(store: Arc<LostFoundStore
 pub fn admin_router<S: Clone + Send + Sync + 'static>(store: Arc<LostFoundStore>) -> Router<S> {
     Router::new()
         .route("/api/lost-found/staff", get(list_reports))
+        .route("/api/lost-found/staff/{id}/mail", post(mail::action))
         .route(
             "/api/lost-found/staff/{id}",
             axum::routing::patch(update_report),
@@ -663,6 +752,8 @@ mod tests {
             occurred_at: "Nov 14, 9 am Pacific".into(),
             name: String::new(),
             email: "fixture@example.invalid".into(),
+            phone: String::new(),
+            confirmation_email: false,
         }
     }
     fn store() -> LostFoundStore {
@@ -851,7 +942,14 @@ mod tests {
         demo.seed_demo().unwrap();
         let page = demo.list(ListQuery::default()).unwrap();
         assert_eq!(page.total, 3);
-        assert_eq!(page.reports.iter().filter(|r| r.synthetic).count(), 2);
+        assert_eq!(page.reports.iter().filter(|r| r.synthetic).count(), 3);
+        assert_eq!(
+            page.reports
+                .iter()
+                .filter(|r| r.description.starts_with("SYNTHETIC DEMO"))
+                .count(),
+            2
+        );
         assert!(page
             .reports
             .iter()

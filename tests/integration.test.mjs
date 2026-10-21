@@ -88,6 +88,87 @@ async function launch(t, sqlite = false) {
   }
   return { ...(await start()), start, directory, env };
 }
+test('receipt mail settings/actions use Admin and Super authorization, CSRF, and private projections', async t => {
+  const { api, role, origin } = await launch(t);
+  const admin = await role('demo-operator'); const superAdmin = await role('demo-super');
+  const headers = { Origin: origin, 'X-Staff-Request': '1' };
+  assert.equal((await api('/api/settings/lost-found-mail')).status, 401);
+  assert.equal((await api('/api/settings/lost-found-mail', { session: admin })).status, 403);
+  const settings = await expectJson(await api('/api/settings/lost-found-mail', { session: superAdmin }));
+  assert.deepEqual(settings, { status: 'not_configured', from: null, replyTo: null, provider: 'Postmark', deliveryTracking: false });
+  const report = { idempotencyKey: randomUUID(), kind: 'found', description: 'Private receipt marker 982', location: 'Synthetic desk', occurredAt: 'Noon Pacific', email: 'receipt982@example.invalid', phone: '555-0100', confirmationEmail: true };
+  const receipt = await expectJson(await api('/api/lost-found', { method: 'POST', body: report }), 201);
+  assert.deepEqual(Object.keys(receipt).sort(), ['emailState', 'receipt']); assert.equal(receipt.emailState, 'not_configured');
+  const inbox = await expectJson(await api('/api/lost-found/staff', { session: admin }));
+  const item = inbox.reports.find(r => r.receipt === receipt.receipt); assert.ok(item);
+  const path = `/api/lost-found/staff/${item.id}/mail`;
+  const body = { idempotencyKey: randomUUID(), revision: item.delivery.revision, action: 'handled', note: 'Synthetic manual follow-up in person' };
+  assert.equal((await api(path, { method: 'POST', body })).status, 401);
+  assert.equal((await api(path, { method: 'POST', body, headers: { ...headers, Cookie: admin.cookie } })).status, 403);
+  assert.equal((await api(path, { method: 'POST', body, session: admin, headers: { ...headers, Origin: 'https://foreign.invalid' } })).status, 403);
+  const saved = await expectJson(await api(path, { method: 'POST', body, session: admin, headers }));
+  assert.equal(saved.delivery.state, 'handled'); assert.equal(saved.delivery.history.length, 1);
+  assert.deepEqual(await expectJson(await api(path, { method: 'POST', body, session: admin, headers })), saved);
+  assert.equal((await api(path, { method: 'POST', body: { ...body, action: 'retry' }, session: superAdmin, headers })).status, 409);
+  assert.deepEqual(await expectJson(await api('/api/lost-found', { method: 'POST', body: report }), 201), { receipt: receipt.receipt, emailState: 'handled' });
+  for (const path of ['/api/site', '/api/live', '/api/wayfinding']) {
+    const text = await (await api(path)).text();
+    for (const secret of ['receipt982@example.invalid', 'Private receipt marker 982', 'Synthetic manual follow-up in person']) assert.ok(!text.includes(secret));
+  }
+});
+
+test('ContestDojo settings, private mappings and ID-only projection use real staff middleware', async t => {
+  const {api,role,origin} = await launch(t);
+  const admin=await role('demo-operator'); const superAdmin=await role('demo-super');
+  const headers={ Origin: origin, 'X-Staff-Request':'1' };
+  const write=(session,body)=>({session,body,method:'POST',headers});
+  assert.equal((await api('/api/roster')).status,401);
+  assert.equal((await api('/api/settings/contestdojo',{session:admin})).status,403);
+  let settings=await expectJson(await api('/api/settings/contestdojo',{session:superAdmin})); assert.equal(settings.token,undefined);
+  let state=await expectJson(await api('/api/roster',{session:admin})); assert.equal(state.count,1); assert.ok(state.columns.includes('number'));
+  assert.equal((await api('/api/roster/mapping',{method:'POST',body:{revision:state.revision,mapping:state.mapping},session:admin})).status,403);
+  const res=await api('/api/rooms/lookup',{method:'POST',body:{studentId:' demo-1001 '}});
+  assert.equal(res.headers.get('cache-control'),'private, no-store'); assert.equal(res.headers.get('referrer-policy'),'no-referrer');
+  const found=await expectJson(res); assert.equal(found.assignments.length,2); assert.ok(found.assignments.every(a=>a.status==='matched' && a.scheduleId));
+  for (const key of ['number','name','team','org','contact','studentId','token','rows']) assert.ok(!Object.keys(found).includes(key)); assert.ok(!JSON.stringify(found).includes('Synthetic Student'));
+  for (const a of found.assignments) assert.deepEqual(Object.keys(a).sort(),['endTime','roomId','round','scheduleId','startTime','status']);
+  const unknown=await api('/api/rooms/lookup',{method:'POST',body:{studentId:'unknown'}}); const malformed=await api('/api/rooms/lookup',{method:'POST',body:{name:'anything'}}); assert.equal(unknown.status,404); assert.equal(await unknown.text(),await malformed.text());
+  assert.equal((await api('/api/rooms/lookup',{method:'POST',body:{studentId:'DEMO-1001'},headers:{Origin:'https://elsewhere.invalid'}})).status,403);
+  const original=structuredClone(state.mapping); const rounds=Object.keys(original.roomColumns);
+  const variants=[
+    {...original,roomColumns:Object.fromEntries(rounds.map(id=>[id,original.roomColumns[rounds[0]]]))},
+    {...original,roomColumns:{...original.roomColumns,[rounds[0]]:''}},
+    {...original,fields:{tests:'number'}},
+  ];
+  for (let n=0;n<variants.length;n++) {
+    await expectJson(await api('/api/roster/mapping',write(admin,{revision:state.revision,mapping:variants[n]})));
+    const result=await expectJson(await api('/api/rooms/lookup',{method:'POST',body:{studentId:'DEMO-1001'}}));
+    assert.equal(result.assignments.length,[2,1,0][n]);
+    if (n===0) assert.equal(result.assignments[0].roomId,result.assignments[1].roomId);
+    state=await expectJson(await api('/api/roster',{session:admin}));
+  }
+  await expectJson(await api('/api/roster/mapping',write(admin,{revision:state.revision,mapping:original})));
+  state=await expectJson(await api('/api/roster',{session:admin}));
+  const testId=Object.keys(state.mapping.roomColumns)[0];
+  for (const mapping of [{...state.mapping,idColumn:'missing'},{...state.mapping,roomColumns:{unknown:'number'}},{...state.mapping,roomAliases:{UNKNOWN:'not-public'}}]) assert.equal((await api('/api/roster/mapping',write(admin,{revision:state.revision,mapping}))).status,422);
+  const badRoom={...state.mapping,roomColumns:{[testId]:'number'}};
+  await expectJson(await api('/api/roster/mapping',write(admin,{revision:state.revision,mapping:badRoom})));
+  const unmatched=await expectJson(await api('/api/rooms/lookup',{method:'POST',body:{studentId:'DEMO-1001'}})); assert.equal(unmatched.assignments[0].roomId,null); assert.equal(unmatched.assignments[0].status,'unmatched'); assert.ok(!JSON.stringify(unmatched).includes('DEMO-1001'));
+  assert.equal((await api('/api/roster/mapping',write(admin,{revision:state.revision,mapping:state.mapping}))).status,409);
+  state=await expectJson(await api('/api/roster',{session:admin})); assert.equal(state.unmatchedRoomCount,1);
+  settings=await expectJson(await api('/api/settings/contestdojo',{session:superAdmin}));
+  await expectJson(await api('/api/settings/contestdojo',{...write(superAdmin,{revision:settings.revision,eventId:'new-synthetic',token:'SYNTHETIC-SECRET-ONLY',autoSync:false}),method:'PUT'}));
+  const redacted=await expectJson(await api('/api/settings/contestdojo',{session:superAdmin})); assert.equal(redacted.tokenConfigured,true); assert.ok(!JSON.stringify(redacted).includes('SYNTHETIC-SECRET-ONLY'));
+  assert.equal((await expectJson(await api('/api/rooms/status'))).available,false);
+  assert.equal((await api('/api/rooms/lookup',{method:'POST',body:{studentId:'DEMO-1001'}})).status,503);
+  state=await expectJson(await api('/api/roster/sync',write(admin,{}))); assert.equal(state.count,1); assert.equal(state.eventMatches,true);
+  // Legacy endpoint still requires its original check-in code.
+  assert.equal((await api('/api/wayfinding/lookup',{method:'POST',body:{studentId:'DEMO-1001'}})).status,422);
+  await expectJson(await api('/api/roster/clear',write(admin,{confirm:'CLEAR'}))); assert.equal((await expectJson(await api('/api/rooms/status'))).available,false);
+  for(let n=0;n<20;n++) await api('/api/rooms/lookup',{method:'POST',body:{studentId:'limited-synthetic'}});
+  const limited=await api('/api/rooms/lookup',{method:'POST',body:{studentId:'limited-synthetic'}}); assert.equal(limited.status,429); assert.equal(limited.headers.get('retry-after'),'600');
+});
+
 async function expectJson(response, status = 200) {
   assert.equal(response.status, status, await response.clone().text());
   return response.json();
@@ -115,9 +196,17 @@ test("real application demo: roles, private reports, rooms, atomic plans and com
   const dispatcher = await role("demo-dispatcher");
   const live = await expectJson(await api("/api/live"));
   assert.equal(live.event.date, "2026-11-14");
-  assert.match(live.event.notice, /Demonstration/);
+  assert.match(live.event.notice, /Demo.*not official tournament information/i);
   for (const path of [
     "/",
+    "/schedule",
+    "/updates",
+    "/map",
+    "/faq",
+    "/help",
+    "/directions",
+    "/lookup",
+    "/lost-and-found",
     "/guide",
     "/rooms",
     "/lost-found",
@@ -279,7 +368,11 @@ test("real application demo: roles, private reports, rooms, atomic plans and com
   const site = parseSiteDocument(
     await expectJson(await api("/api/site/editor", { session: admin })),
   );
-  site.content.guide.intro = "A reviewed synthetic November guide.";
+  const legacyIntro = site.content.guide.intro;
+  site.content.guide.intro = "This compatibility field is no longer the editor.";
+  assert.equal((await api('/api/site/editor', { method: 'PUT', session: admin, body: site })).status, 422);
+  site.content.guide.intro = legacyIntro;
+  site.content.branding.caption = 'Reviewed synthetic shared branding';
   const published = await expectJson(
     await api("/api/site/editor", {
       method: "PUT",
@@ -290,8 +383,8 @@ test("real application demo: roles, private reports, rooms, atomic plans and com
   parseSiteDocument(published);
   assert.notEqual(published.revision, site.revision);
   assert.equal(
-    (await expectJson(await api("/api/site"))).content.guide.intro,
-    site.content.guide.intro,
+    (await expectJson(await api("/api/site"))).content.branding.caption,
+    site.content.branding.caption,
   );
   assert.equal(
     (
@@ -303,6 +396,11 @@ test("real application demo: roles, private reports, rooms, atomic plans and com
     ).status,
     409,
   );
+  const pageDraft = await expectJson(await api('/api/pages/editor', { session: admin }));
+  assert.deepEqual(Object.keys(pageDraft.files).sort(), ['faq.md', 'guide.md', 'help.md', 'home.md', 'lost-found.md', 'map.md', 'rooms.md', 'schedule.md', 'updates.md']);
+  pageDraft.files['guide.md'] += '\nA reviewed synthetic guide edit.\n';
+  const authored = await expectJson(await api('/api/pages/editor', { method: 'PUT', session: admin, body: { revision: pageDraft.revision, files: pageDraft.files } }));
+  assert.equal(authored.files['guide.md'], await readFile(join(directory, 'content/pages/guide.md'), 'utf8'));
   const event = await expectJson(await api("/api/content", { session: admin }));
   event.content.subtitle = "Published editorial bundle";
   await expectJson(
@@ -330,6 +428,7 @@ test("real application demo: roles, private reports, rooms, atomic plans and com
     "/api/site",
     "/api/wayfinding",
     "/api/publishing/export",
+    "/api/pages",
   ]) {
     const text = await (
       await api(path, { session: path.endsWith("export") ? admin : undefined })
@@ -361,12 +460,14 @@ test("real application demo: roles, private reports, rooms, atomic plans and com
   const tracked = (
     await exec("git", ["-C", join(directory, "content"), "ls-files"])
   ).stdout.trim();
-  assert.equal(tracked, "operations.json");
+  assert.equal(tracked, ['operations.json', ...Object.keys(pageDraft.files).sort().map(name => `pages/${name}`)].join('\n'));
   const before = await readFile(
     join(directory, "content/operations.json"),
     "utf8",
   );
+  const authoredBefore = await readFile(join(directory, 'content/pages/guide.md'), 'utf8');
   await prepareSandbox(directory);
+  assert.equal(await readFile(join(directory, 'content/pages/guide.md'), 'utf8'), authoredBefore, 'existing sandbox pages are never replaced');
   assert.equal(
     await readFile(join(directory, "content/operations.json"), "utf8"),
     before,

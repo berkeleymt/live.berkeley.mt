@@ -12,6 +12,9 @@ use serde_json::{json, Value};
 
 pub fn sync_editorial(state: &AppState) {
     if let Some(store) = &state.operations {
+        if store.remote.is_some() {
+            return;
+        } // Every reader uses the same atomic bundle pointer.
         let snapshot = store.snapshot();
         if let Some(editorial) = snapshot.content.editorial {
             state
@@ -27,7 +30,7 @@ pub fn sync_editorial(state: &AppState) {
     }
 }
 
-/// Auth/CSRF middleware runs outside this layer. Private inbox and uploads never enter Git.
+/// Auth/CSRF middleware runs outside this layer. Only allowlisted public documents enter Git.
 pub async fn editorial_mutation(
     State(state): State<AppState>,
     request: Request,
@@ -38,6 +41,36 @@ pub async fn editorial_mutation(
         ("PUT", "/api/site/editor") => "site",
         ("PUT", "/api/wayfinding/editor") => "wayfinding",
         _ => return next.run(request).await,
+    };
+    let request = if kind == "site" || kind == "event" {
+        let (parts, body) = request.into_parts();
+        let bytes = match to_bytes(body, 1_000_000).await {
+            Ok(bytes) => bytes,
+            Err(_) => return StatusCode::PAYLOAD_TOO_LARGE.into_response(),
+        };
+        let validation = if kind == "site" {
+            let input: crate::site::SiteDocument = match serde_json::from_slice(&bytes) {
+                Ok(input) => input,
+                Err(_) => {
+                    return (StatusCode::BAD_REQUEST, "Invalid site document.").into_response()
+                }
+            };
+            crate::pages::guard_compat(&state, &input.content)
+        } else {
+            let input: crate::content::ContentDocument = match serde_json::from_slice(&bytes) {
+                Ok(input) => input,
+                Err(_) => {
+                    return (StatusCode::BAD_REQUEST, "Invalid event document.").into_response()
+                }
+            };
+            crate::pages::guard_faq(&state, &input.content)
+        };
+        if let Err(error) = validation {
+            return error.into_response();
+        }
+        Request::from_parts(parts, axum::body::Body::from(bytes))
+    } else {
+        request
     };
     let Some(store) = &state.operations else {
         return next.run(request).await;
@@ -119,6 +152,67 @@ pub async fn export(State(state): State<AppState>) -> Result<Response, ContentEr
         Json(content),
     )
         .into_response())
+}
+fn remote(
+    state: &AppState,
+) -> Result<&std::sync::Arc<crate::remote_content::RemoteStore>, ContentError> {
+    state
+        .operations
+        .as_ref()
+        .and_then(|store| store.remote.as_ref())
+        .ok_or((
+            StatusCode::CONFLICT,
+            "Remote-first mode is not enabled. Existing local/SQLite publication is unchanged."
+                .into(),
+        ))
+}
+pub async fn sync_remote(State(state): State<AppState>) -> Result<Json<Value>, ContentError> {
+    remote(&state)?.reload().await?;
+    remote(&state)?.status().await.map(Json)
+}
+pub async fn pending(State(state): State<AppState>) -> Result<Json<Value>, ContentError> {
+    remote(&state)?.pending().await.map(Json)
+}
+pub async fn archive(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<StatusCode, ContentError> {
+    remote(&state)?.archive(revision(&headers)?).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+pub async fn settings(State(state): State<AppState>) -> Json<Value> {
+    Json(remote(&state).map(|store| store.settings()).unwrap_or_else(|_| json!({"mode": if state.operations.is_some() {"git"} else {"sqlite"}, "configuration":"Remote-first mode is opt-in through deployment configuration; existing data is not migrated automatically."})))
+}
+pub async fn remote_media(State(state): State<AppState>, request: Request, next: Next) -> Response {
+    let Ok(remote) = remote(&state) else {
+        return next.run(request).await;
+    };
+    let path = request.uri().path().trim_start_matches('/');
+    let Some(mime) = crate::remote_content::media_mime(path) else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    let bundle = remote.bundle();
+    let Some(bytes) = bundle.files.get(path) else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    if !matches!(request.method().as_str(), "GET" | "HEAD") {
+        return StatusCode::METHOD_NOT_ALLOWED.into_response();
+    }
+    let body = if request.method() == axum::http::Method::HEAD {
+        Vec::new()
+    } else {
+        bytes.clone()
+    };
+    (
+        [
+            (header::CONTENT_TYPE, mime),
+            (header::CACHE_CONTROL, "public, max-age=31536000, immutable"),
+            (header::X_CONTENT_TYPE_OPTIONS, "nosniff"),
+            (header::CONTENT_SECURITY_POLICY, "default-src 'none'"),
+        ],
+        body,
+    )
+        .into_response()
 }
 pub async fn push(
     State(state): State<AppState>,

@@ -4,7 +4,7 @@
 
 “Implemented,” “tests pass,” and “ready for tournament day” are different claims. Record revision, command/scenario, environment, result and untested gaps in [status/log](status/README.md). Code reading establishes behavior but is not a live integration test. Automated accessibility checks do not establish WCAG conformance alone.
 
-This documentation revision uses local-link/reference checks, requirement coverage, whitespace checks and patch-application checks. No application code changed, so it does not claim new runtime/browser/provider/load results. Prior demo results are historical in [status](status/STATUS.md).
+The earlier documentation baseline used only document checks. The slice-1 implementation adds navigation/validator and static React route-render tests to `npm test`, alongside schedule tests. They assert active links, one main/heading per route, real data rendering, subscriptions/guide controls, and loading/stale states; they do **not** run effects, clicks, browser focus/printing or device/accessibility journeys. Current local command results and remaining browser/provider/load gaps are recorded in [status](status/STATUS.md).
 
 ## Current commands (from repository root)
 

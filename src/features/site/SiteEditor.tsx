@@ -5,12 +5,18 @@ import type { EditorDocument, GuideSection, HelpBlock, MediaAsset, MediaList, Si
 import { SiteApiError, siteRequest as baseRequest } from './api';
 import { useStaff } from '../staff';
 import { GuideContent, SiteImage } from './GuidePage';
+import { siteDefaults } from './defaults';
+import { PublicCopyEditor } from './PublicCopyEditor';
+import { publicNavigation } from '../../data/publicNavigation';
+import { publicationBase } from '../../data/publication';
+import { ContentComparison } from '../../components/ContentComparison';
 import './site.css';
 
 const draftKey = 'bmt-site-public-draft-v1';
 const serialize = (content: SiteConfig) => JSON.stringify(content, null, 2) + '\n';
 const tabs = ['Branding', 'Navigation', 'Public copy', 'Guide', 'Help', 'Useful links', 'Images', 'Raw JSON', 'Preview'] as const;
-type Tab = typeof tabs[number];
+export type SiteSection = typeof tabs[number];
+type Tab = SiteSection;
 interface Backup { revision: string; raw: string }
 function readBackup(): Backup | null {
   try {
@@ -35,16 +41,17 @@ function reorder<T>(items: T[], from: number, to: number): T[] {
   const next = [...items]; const [item] = next.splice(from, 1); next.splice(to, 0, item); return next;
 }
 function LinksEditor({ links, onChange }: { links: SiteLink[]; onChange: (value: SiteLink[]) => void }) {
-  return <><p>HTTPS links or known routes such as /guide, /#schedule and /lost-and-found. IDs stay stable when labels change.</p>{links.map((link, index) => <div className="bmt-site-editor-item" key={index}><h3>Link {index + 1}</h3><div className="bmt-site-fields-row">{(['id', 'label', 'href'] as const).map(key => <Field key={key} label={key === 'href' ? 'Destination URL' : key === 'id' ? 'Stable ID' : 'Label'} value={link[key]} onChange={value => onChange(links.map((item, i) => i === index ? { ...item, [key]: value } : item))} />)}</div><MoveButtons name={link.label || `link ${index + 1}`} index={index} count={links.length} move={to => onChange(reorder(links, index, to))} remove={() => onChange(links.filter((_, i) => i !== index))} /></div>)}<button type="button" className="bmt-site-secondary" onClick={() => onChange([...links, { id: `link-${crypto.randomUUID().slice(0, 8)}`, label: 'New link', href: '/guide' }])}><Plus aria-hidden size={18} />Add link</button></>;
+  return <><p>HTTPS links or known routes such as /schedule, /updates, /map, /rooms, /help, /faq, /guide and /lost-found. Old homepage anchors still work. IDs stay stable when labels change. Core public destinations stay reachable; edit their labels here.</p>{links.map((link, index) => <div className="bmt-site-editor-item" key={index}><h3>Link {index + 1}</h3><div className="bmt-site-fields-row">{(['id', 'label', 'href'] as const).map(key => <Field key={key} label={key === 'href' ? 'Destination URL' : key === 'id' ? 'Stable ID' : 'Label'} value={link[key]} onChange={value => onChange(links.map((item, i) => i === index ? { ...item, [key]: value } : item))} />)}</div><MoveButtons name={link.label || `link ${index + 1}`} index={index} count={links.length} move={to => onChange(reorder(links, index, to))} remove={() => onChange(links.filter((_, i) => i !== index))} /></div>)}<button type="button" className="bmt-site-secondary" onClick={() => onChange([...links, { id: `link-${crypto.randomUUID().slice(0, 8)}`, label: 'New link', href: '/guide' }])}><Plus aria-hidden size={18} />Add link</button></>;
 }
 
 /** Mount only inside the staff workspace; all endpoints also enforce authorization on the server. */
-export function SiteEditor() {
+export function SiteEditor({ section }: { section?: SiteSection } = {}) {
   const { request } = useStaff();
   const siteRequest = useCallback((path: string, options?: RequestInit) => baseRequest(path, options, request), [request]);
   const [baseline, setBaseline] = useState<SiteDocument | null>(null);
   const [raw, setRaw] = useState('');
-  const [tab, setTab] = useState<Tab>('Branding');
+  const [selectedTab, setTab] = useState<Tab>('Branding');
+  const tab = section ?? selectedTab;
   const [busy, setBusy] = useState<string | null>(null);
   const inFlight = useRef(false);
   const mounted = useRef(true);
@@ -59,6 +66,11 @@ export function SiteEditor() {
   const [mediaTruncated, setMediaTruncated] = useState(false);
   const [copyFilter, setCopyFilter] = useState('');
   const uploadInput = useRef<HTMLInputElement>(null);
+  const feedback = useRef<HTMLDivElement>(null);
+  const comparison = useRef<HTMLDivElement>(null);
+  const reviewRequested = useRef(false);
+  useEffect(() => { if (error || conflict) feedback.current?.focus(); }, [error, conflict]);
+  useEffect(() => { if (latest && reviewRequested.current) { comparison.current?.focus(); reviewRequested.current = false; } }, [latest]);
   const dirty = !!baseline && raw !== serialize(baseline.content);
   let content: SiteConfig | null = null;
   let validationError: string | null = null;
@@ -113,18 +125,20 @@ export function SiteEditor() {
       const next = parseSiteDocument(response);
       if (!mounted.current) return;
       setReloadError(response.reloadError ?? null);
-      if (keepDraft) { setLatest(next); setNotice('Latest version loaded below. Your draft is unchanged.'); }
+      if (keepDraft) { reviewRequested.current = true; setLatest(next); setNotice('Latest version loaded below. Your draft is unchanged.'); }
       else { setBaseline(next); setRaw(serialize(next.content)); setLatest(null); setConflict(false); setNotice('Latest version loaded.'); }
     });
   }
   async function save() {
     if (!baseline || !content || !dirty || busy) return;
-    if (!window.confirm('Save and publish this public site content now? This publishes locally (a commit in Git mode); remote backup is separate.')) return;
-    const input = { revision: baseline.revision, content };
     await run('Saving public content', async () => {
+      const current = parseSiteDocument(await siteRequest('/api/site/editor'));
+      const revision = publicationBase(baseline, current);
+      if (!revision) { setLatest(current); throw new SiteApiError(409, 'This content changed since you opened it. Review the differences below. Your draft is safe.'); }
+      const input = { revision, content };
       const saved = parseSiteDocument(await siteRequest('/api/site/editor', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }));
       if (!mounted.current) return;
-      setBaseline(saved); setRaw(serialize(saved.content)); setConflict(false); setLatest(null); setReloadError(null); setNotice('Saved successfully. The public content file and live snapshot are updated. Git push is a separate publishing action.');
+      setBaseline(saved); setRaw(serialize(saved.content)); setConflict(false); setLatest(null); setReloadError(null); setNotice('Published. Visitors can see your changes.');
     });
   }
   async function loadMedia() {
@@ -139,7 +153,13 @@ export function SiteEditor() {
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) { setError('Choose a PNG, JPEG or WebP of 5 MiB or less. SVG and HTML are not accepted.'); return; }
     await run('Uploading image', async () => {
       const asset = await siteRequest('/api/site/media', { method: 'POST', headers: { 'Content-Type': file.type }, body: file }) as MediaAsset;
-      if (mounted.current) { setAssets(previous => [asset, ...previous.filter(item => item.url !== asset.url)]); setNotice(`Image uploaded: ${asset.url}. Choose it for a field below or copy its URL. Save the content draft to publish its use.`); }
+      if (mounted.current) {
+        setAssets(previous => [asset, ...previous.filter(item => item.url !== asset.url)]);
+        // Only advance our CAS base for an append-only upload made from this exact bundle.
+        // Never silently rebase over another editor's public-document changes.
+        if (asset.revision && asset.previousRevision) setBaseline(current => current && current.revision === asset.previousRevision ? { ...current, revision: asset.revision! } : current);
+        setNotice(`Image uploaded: ${asset.url}. Choose it for a field below or copy its URL. Save the content draft to publish its use.`);
+      }
     });
     if (uploadInput.current) uploadInput.current.value = '';
   }
@@ -148,19 +168,16 @@ export function SiteEditor() {
   const structured = editable && hasEditableShape(editable) ? editable : null;
   const panelId = useId();
   return <section className="bmt-site bmt-site-editor" aria-labelledby={`${panelId}-title`}>
-    <header className="bmt-site-editor-header"><div><h2 id={`${panelId}-title`}>Public site content</h2><p>Branding, public wording, the visitor guide and help. No student records, credentials or private contact details.</p></div><span className={dirty ? 'bmt-site-unsaved' : ''} role="status">{busy ?? (dirty ? 'Unsaved draft' : baseline ? 'All changes saved' : 'Not loaded')}</span></header>
-    {error && <div className="bmt-site-error" role="alert"><p>{error}</p><p>Your draft is retained. If a save response was interrupted, the file may have saved; load the latest version before retrying.</p>{!baseline && <button type="button" disabled={!!busy} onClick={() => void loadLatest(false)}>Retry loading</button>}</div>}
-    {notice && <p className="bmt-site-success" role="status">{notice}</p>}
+    <header className="bmt-site-editor-header"><div><h2 id={`${panelId}-title`}>{section ?? 'Public site content'}</h2><p>Changes appear on the public website when you publish.</p></div><span className={dirty ? 'bmt-site-unsaved' : ''} role="status">{busy ?? (dirty ? 'Unpublished changes' : baseline ? 'All changes saved' : 'Not loaded')}</span></header>
+    {error && !baseline && <div className="bmt-site-error" role="alert"><p>{error}</p><button type="button" disabled={!!busy} onClick={() => void loadLatest(false)}>Retry loading</button></div>}
     {reloadError && <p className="bmt-site-error" role="alert">The file on disk is invalid or unreadable: {reloadError} Public visitors still see the last valid version. Repair the file before saving.</p>}
     {backup && <div className="bmt-site-notice"><p>A previous unsaved draft is available in this tab. It may be based on an older version.</p><button type="button" disabled={!!busy || dirty} onClick={() => { setRaw(backup.raw); setConflict(backup.revision !== baseline?.revision); setBackup(null); }}>Restore draft</button><button type="button" onClick={() => download(backup.raw, 'site-recovered-draft.json')}>Download previous draft</button><button type="button" onClick={() => setBackup(null)}>Dismiss</button></div>}
-    {conflict && <div className="bmt-site-notice" role="alert"><h3>Another version exists</h3><p>Do not overwrite another editor’s changes blindly. Download your draft, compare with the latest version, and merge deliberately.</p><button type="button" disabled={!!busy} onClick={() => void loadLatest(true)}>Compare with latest</button></div>}
-    {latest && <div className="bmt-site-conflict"><h3>Latest server version · {latest.revision.slice(0, 12)}</h3><textarea aria-label="Latest published JSON for comparison" readOnly rows={10} value={serialize(latest.content)} /><div className="bmt-site-actions"><button type="button" onClick={() => download(serialize(latest.content), 'site-latest.json')}>Download latest</button><button type="button" disabled={!!busy} onClick={() => { if (window.confirm('Replace your draft with the latest version? Download your draft first to keep a copy.')) { setRaw(serialize(latest.content)); setBaseline(latest); setLatest(null); setConflict(false); } }}>Use latest instead</button><button type="button" disabled={!!busy || !content} onClick={() => { if (window.confirm('Have you merged the latest changes into your draft? Saving next will replace the latest version with this draft.')) { setBaseline(latest); setLatest(null); setConflict(false); setNotice('Draft rebased on the latest revision. Review the preview before saving.'); } }}>I merged both versions</button></div></div>}
     {baseline && <>
-      <div className="bmt-site-editor-tabs" aria-label="Content editor sections">{tabs.map(value => <button type="button" key={value} aria-pressed={value === tab} onClick={() => setTab(value)}>{value}</button>)}</div>
+      {!section && <div className="bmt-site-editor-tabs" aria-label="Content editor sections">{tabs.map(value => <button type="button" key={value} aria-pressed={value === tab} onClick={() => setTab(value)}>{value}</button>)}</div>}
       {validationError && <p className="bmt-site-error" role="alert">Draft validation: {validationError} Fix the field or use Raw JSON. Nothing has been saved.</p>}
       <fieldset disabled={!!busy} className="bmt-site-panel"><legend>{tab}</legend>
         {tab === 'Raw JSON' ? <><p>This is the same schema as content/site.json. Formatting and values are preserved until a structured edit or save.</p><textarea className="bmt-site-json" aria-label="Site content JSON" spellCheck={false} rows={24} value={raw} onChange={event => { setRaw(event.target.value); setNotice(null); }} /></> : tab === 'Images' ? <>
-          <p>Uploads are public. Use only licensed, non-sensitive images; remove private EXIF/location metadata before uploading. PNG, JPEG or WebP, at most 5 MiB. SVG and HTML cannot be uploaded. Uploaded files are stored outside Git.</p>
+          <p>Uploads are public. Use only licensed, non-sensitive images; remove private EXIF/location metadata before uploading. PNG, JPEG or WebP, at most 5 MiB. SVG and HTML cannot be uploaded. Remote-first mode publishes hash-named images in Git. Local/file modes keep uploads outside Git and require a separate backup.</p>
           <label className="bmt-site-upload"><UploadSimple aria-hidden size={18} />Upload an image<input ref={uploadInput} type="file" accept="image/png,image/jpeg,image/webp" onChange={event => void upload(event.target.files?.[0])} /></label>
           <button type="button" className="bmt-site-secondary" onClick={() => void loadMedia()}>{mediaLoaded ? 'Refresh image library' : 'Load image library'}</button>
           {mediaLoaded && !assets.length && <p>No images uploaded yet. Existing bundled assets and HTTPS URLs can also be used in image fields.</p>}
@@ -169,9 +186,9 @@ export function SiteEditor() {
         </> : !structured ? <p>The JSON structure is incomplete. Repair it in Raw JSON before using the structured editor.</p> : tab === 'Preview' ? <><p className="bmt-site-notice">Draft preview — not saved. This uses the public guide renderer. Today’s schedule/status is not simulated here.</p><div className="bmt-site-brand-preview"><SiteImage key={structured.branding.logoUrl} src={structured.branding.logoUrl} alt={structured.branding.logoAlt} /><h3>{structured.branding.title}</h3><p>{structured.branding.caption}</p></div><SiteImage key={structured.hero.imageUrl} src={structured.hero.imageUrl} alt={structured.hero.imageAlt} /><GuideContent content={structured} preview /></> : tab === 'Branding' ? <>
           <div className="bmt-site-fields-row">{(['title', 'shortTitle', 'caption', 'homeUrl', 'logoUrl', 'logoAlt'] as const).map(key => <Field key={key} label={{ title: 'Public brand title', shortTitle: 'Short page title', caption: 'Brand caption', homeUrl: 'Brand home URL', logoUrl: 'Logo image URL', logoAlt: 'Logo description' }[key]} value={structured.branding[key]} onChange={value => update(c => ({ ...c, branding: { ...c.branding, [key]: value } }))} />)}</div>
           <h3>Today hero imagery</h3><p>Leave the image URL blank for a text-only hero. Add an accurate description for any image.</p><div className="bmt-site-fields-row">{(['location', 'imageUrl', 'imageAlt'] as const).map(key => <Field key={key} label={{ location: 'Location label', imageUrl: 'Hero image URL', imageAlt: 'Hero image description' }[key]} value={structured.hero[key]} onChange={value => update(c => ({ ...c, hero: { ...c.hero, [key]: value } }))} />)}</div>
-        </> : tab === 'Navigation' ? <LinksEditor links={structured.navigation} onChange={value => update(c => ({ ...c, navigation: value }))} /> : tab === 'Useful links' ? <LinksEditor links={structured.usefulLinks} onChange={value => update(c => ({ ...c, usefulLinks: value }))} /> : tab === 'Public copy' ? <>
-          <Field label="Filter public copy keys" value={copyFilter} onChange={setCopyFilter} hint="Keys correspond to screen labels. {eventTitle} and {count} are plain-text substitutions where supported." />
-          {Object.entries(structured.copy).filter(([key, value]) => `${key} ${value}`.toLowerCase().includes(copyFilter.toLowerCase())).map(([key, value]) => <Field key={key} label={key} value={value} multiline={value.length > 120} onChange={next => update(c => ({ ...c, copy: { ...c.copy, [key]: next } }))} />)}
+        </> : tab === 'Navigation' ? <><p>Up to 20 saved links. Remove custom links first if adding missing destinations would exceed that limit.</p><button type="button" disabled={publicNavigation(structured.navigation, siteDefaults.navigation).length > 20} onClick={() => update(c => ({ ...c, navigation: publicNavigation(c.navigation, siteDefaults.navigation) }))}>Add missing public destinations / migrate old anchors</button><LinksEditor links={structured.navigation} onChange={value => update(c => ({ ...c, navigation: value }))} /></> : tab === 'Useful links' ? <LinksEditor links={structured.usefulLinks} onChange={value => update(c => ({ ...c, usefulLinks: value }))} /> : tab === 'Public copy' ? <>
+          <Field label="Filter public copy keys" value={copyFilter} onChange={setCopyFilter} hint="Keys correspond to screen labels. Keep the {placeholders} shown in defaults: substitutions are plain text, never HTML. See docs/site-content.md for supported values. Blank overrides stay blank." />
+          <PublicCopyEditor copy={structured.copy} filter={copyFilter} onChange={copy => update(c => ({ ...c, copy }))} />
         </> : tab === 'Guide' ? <>
           <Field label="Guide title" value={structured.guide.title} onChange={value => update(c => ({ ...c, guide: { ...c.guide, title: value } }))} /><Field label="Guide introduction" value={structured.guide.intro} multiline onChange={value => update(c => ({ ...c, guide: { ...c.guide, intro: value } }))} /><Field label="Guide notice / demo disclosure" value={structured.guide.notice} multiline onChange={value => update(c => ({ ...c, guide: { ...c.guide, notice: value } }))} />
           {structured.guide.sections.map((section, index) => <div className="bmt-site-editor-item" key={index}><h3>Section {index + 1}</h3>{(['id', 'title', 'markdown', 'imageUrl', 'imageAlt'] as const).map(key => <Field key={key} label={{ id: 'Stable section ID', title: 'Section title', markdown: 'Section Markdown', imageUrl: 'Section image URL', imageAlt: 'Image description' }[key]} value={section[key]} multiline={key === 'markdown'} hint={key === 'markdown' ? 'Markdown only; raw HTML is not rendered. Use HTTPS links or known site routes.' : undefined} onChange={value => update(c => ({ ...c, guide: { ...c.guide, sections: c.guide.sections.map((item, i) => i === index ? { ...item, [key]: value } : item) } }))} />)}<MoveButtons name={section.title || `section ${index + 1}`} index={index} count={structured.guide.sections.length} move={to => update(c => ({ ...c, guide: { ...c.guide, sections: reorder(c.guide.sections, index, to) } }))} remove={() => update(c => ({ ...c, guide: { ...c.guide, sections: c.guide.sections.filter((_, i) => i !== index) } }))} /></div>)}
@@ -181,7 +198,23 @@ export function SiteEditor() {
           <button type="button" className="bmt-site-secondary" onClick={() => update(c => ({ ...c, help: [...c.help, { id: `help-${crypto.randomUUID().slice(0, 8)}`, kind: 'help', title: 'New help block', markdown: 'Draft content — review before publishing.' }] }))}><Plus aria-hidden size={18} />Add help block</button>
         </> : null}
       </fieldset>
-      <div className="bmt-site-savebar"><button type="button" className="bmt-site-primary" disabled={!!busy || !dirty || !content || !!reloadError || conflict} onClick={() => void save()}>Save public content</button><button type="button" className="bmt-site-secondary" disabled={!!busy} onClick={() => download(raw, 'site-draft.json')}><DownloadSimple aria-hidden size={18} />Download draft JSON</button><button type="button" disabled={!!busy} onClick={() => { if (!dirty || window.confirm('Discard unsaved changes and reload the published version?')) void loadLatest(false); }}>Reload published version</button><small>Revision {baseline.revision.slice(0, 12)} · Git mode commits the public bundle; remote backup is separate.</small></div>
+      {latest && <div className="bmt-site-conflict" ref={comparison} tabIndex={-1}>
+        <h3>Review published changes</h3><ContentComparison draft={editable ?? raw} published={latest.content} />
+        <div className="bmt-site-actions">
+          <button type="button" onClick={() => download(serialize(latest.content), 'site-latest.json')}>Download published version</button>
+          <button type="button" disabled={!!busy} onClick={() => { if (window.confirm('Discard your draft and use the published version?')) { setRaw(serialize(latest.content)); setBaseline(latest); setLatest(null); setConflict(false); setError(null); setNotice('Published version loaded.'); } }}>Use published version</button>
+          <button type="button" disabled={!!busy || !content} onClick={() => { if (window.confirm('Keep your reviewed draft? Publishing next will replace the differing fields shown above.')) { setBaseline(latest); setLatest(null); setConflict(false); setError(null); setNotice('Draft kept. Review your changes, then publish.'); } }}>Keep my reviewed draft</button>
+        </div>
+      </div>}
+      <div className="bmt-site-savebar editor-savebar" ref={feedback} tabIndex={-1}>
+        <p className={error || reloadError ? 'editor-save-error' : 'editor-save-status'} role={error ? 'alert' : 'status'}>{busy ?? error ?? reloadError ?? notice ?? (validationError ? 'Fix the highlighted fields before publishing.' : dirty ? 'Unpublished changes' : 'All changes saved')}</p>
+        <div className="editor-save-actions">
+          <button type="button" className="bmt-site-primary" disabled={!!busy || !dirty || !content || !!reloadError || conflict} onClick={() => void save()}>{busy === 'Saving public content' ? 'Publishing…' : 'Save public content'}</button>
+          {(conflict || error) && <button type="button" disabled={!!busy} onClick={() => { if (latest) comparison.current?.focus(); else void loadLatest(true); }}>Review published changes</button>}
+          <button type="button" className="bmt-site-secondary" disabled={!!busy} onClick={() => download(raw, 'site-draft.json')}><DownloadSimple aria-hidden size={18} />Download draft</button>
+          <button type="button" disabled={!!busy} onClick={() => { if (!dirty || window.confirm('Discard unsaved changes and reload the published version?')) void loadLatest(false); }}>Reload published version</button>
+        </div>
+      </div>
     </>}
   </section>;
 }

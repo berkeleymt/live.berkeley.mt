@@ -9,11 +9,11 @@
   "faqs": [
     {
       "question": "Where can I find my testing room?",
-      "answer": "Check your assigned room with your coach. The campus map below shows buildings, not individual room assignments."
+      "answer": "Check your assigned room with your coach. [Map](/map) shows buildings and published room directions; [My rooms](/rooms) provides the available private lookup."
     },
     {
       "question": "Where are schedule changes posted?",
-      "answer": "Check Live updates and the schedule on this page. Adjusted times are labeled in the schedule. You can also subscribe to email notifications below."
+      "answer": "Check [Live updates](/updates) and the [Schedule](/schedule). Adjusted times are labeled in the schedule. Email subscription controls are on Live updates."
     }
   ]
 }

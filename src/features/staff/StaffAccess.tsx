@@ -18,7 +18,7 @@ export function StaffAccess() {
     <section className="staff-panel" aria-labelledby="staff-access-heading">
       <h2 id="staff-access-heading">Your staff access</h2>
       <p><strong>{user.name}</strong> · {ROLE_LABELS[user.role]}{user.demo ? " · Synthetic demo account" : ""}</p>
-      <p className="staff-muted">These permissions come from the server, not the menu. To change a real account, ask the administrator to update the private staff account file and restart BMT Live.</p>
+      <p className="staff-muted">These permissions come from the server, not the menu. {staff.session?.authMode === 'google' ? 'A Super admin manages Live accounts in People. Role changes and removal take effect on the next request; this workspace checks regularly while visible.' : 'Legacy local accounts remain operator-managed in the private staff account file; changes require a restart. Demo roles are synthetic.'}</p>
       <ul className="staff-permissions" aria-label="Your permissions">
         {(Object.entries(CAPABILITY_LABELS) as [StaffCapability, string][]).map(([capability, label]) => <li key={capability}>
           {staff.can(capability) ? <CheckCircle size={20} aria-hidden /> : <MinusCircle size={20} aria-hidden />}
@@ -31,9 +31,9 @@ export function StaffAccess() {
       <p>Switch synthetic accounts to test a permission boundary. The server replaces this session; the previous cookie stops working. No production account or shared Lemon login is created.</p>
       {notice && <p className="staff-note" role="status">{notice}</p>}
       {staff.error && <p className="staff-note staff-error" role="alert">{staff.error}</p>}
-      <div className="staff-demo-choices">{staff.session.demoAccounts.map((account) => <button key={account.id} type="button" className="staff-button" disabled={staff.busy || user.id === account.id} onClick={() => void switchRole(account.id, account.name)}><SignIn size={18} aria-hidden />{ROLE_LABELS[account.role]}{user.id === account.id ? " · Current role" : ""}</button>)}</div>
+      <div className="staff-demo-choices">{staff.session.demoAccounts.map((account) => <button key={account.id} type="button" className="staff-button" disabled={staff.busy || (user.id === account.id || !!user.email && user.email === account.email)} onClick={() => void switchRole(account.id, account.name)}><SignIn size={18} aria-hidden />{ROLE_LABELS[account.role]}{(user.id === account.id || !!user.email && user.email === account.email) ? " · Current role" : ""}</button>)}</div>
       {staff.busy && <p role="status">Switching your staff account…</p>}
     </section>}
-    <section className="staff-panel" aria-labelledby="staff-lemon-heading"><h2 id="staff-lemon-heading">Lemon is a separate workspace</h2><p>Open Lemon for room timers and proctor controls. Sign in there with your Lemon account. BMT Live does not share credentials, cookies or timer controls with Lemon.</p><p className="staff-muted">Shared sign-in is a future integration that needs an agreed identity provider and credentials. It is not enabled in this demo.</p><a className="staff-button" href="https://lemon.berkeley.mt" target="_blank" rel="noopener noreferrer"><ArrowSquareOut size={18} aria-hidden />Open Lemon (new tab)</a></section>
+    <section className="staff-panel" aria-labelledby="staff-lemon-heading"><h2 id="staff-lemon-heading">Lemon is a separate workspace</h2><p>Open Lemon for room timers and proctor controls. Sign in there with your Lemon account. BMT Live does not share credentials, cookies or timer controls with Lemon.</p><p className="staff-muted">Both workspaces can use Google, but their authorized accounts and sessions are independent. Signing out here does not sign you out of Lemon.</p><a className="staff-button" href="https://lemon.berkeley.mt" target="_blank" rel="noopener noreferrer"><ArrowSquareOut size={18} aria-hidden />Open Lemon (new tab)</a></section>
   </div>;
 }

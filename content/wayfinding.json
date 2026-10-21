@@ -1,29 +1,3437 @@
 {
   "title": "Find your room",
-  "intro": "Search a building or room, or use your student ID and private check-in code to find your assigned rooms.",
-  "notice": "November 14, 2026 · Demo preview. Room assignments, entrances and indoor routes below are not event-day directions. Confirm your destination with BMT staff.",
-  "helpText": "Need a step-free route or cannot find your room? Ask the BMT help desk before setting off. Do not rely on an unverified route for accessibility.",
+  "intro": "Find your room, open its floor plan and follow the directions.",
+  "notice": "",
+  "helpText": "If a passage is closed or you need step-free access, ask a volunteer or visit the information desk.",
   "travelUrl": "https://taketransit.berkeley.mt/",
+  "graph": {
+    "demonstration": true,
+    "maps": [
+      {
+        "id": "demo-outside",
+        "label": "Fictional arrival plaza",
+        "floorId": null,
+        "image": null
+      },
+      {
+        "id": "demo-floor",
+        "label": "Fictional ground floor",
+        "floorId": "demo-ground",
+        "image": {
+          "url": "/demo-maps/sample-floor.svg",
+          "alt": "Synthetic ground floor, not a campus plan",
+          "caption": "Demonstration geometry only; not to scale.",
+          "demonstration": true
+        }
+      },
+      {
+        "id": "wheeler-1",
+        "label": "Wheeler Hall \u00b7 Floor 1",
+        "floorId": "wheeler-1",
+        "image": {
+          "url": "/media/2a3f0180bc45894ca9c3f867e9a76dec80ce3263e2d5a10b92dde2d978f23ce7.webp",
+          "alt": "Wheeler Hall, Floor 1: rooms, corridors, stairs, elevators and restrooms.",
+          "caption": "Historical floor plan supplied by BMT, adapted from College of Letters and Science Facilities Office materials.",
+          "demonstration": false
+        }
+      },
+      {
+        "id": "wheeler-2",
+        "label": "Wheeler Hall \u00b7 Floor 2",
+        "floorId": "wheeler-2",
+        "image": {
+          "url": "/media/f017670693aa2bb2e8d3741415947ead755171b5e3635d3d13a0344cf8cb4049.webp",
+          "alt": "Wheeler Hall, Floor 2: rooms, corridors, stairs, elevators and restrooms.",
+          "caption": "Historical floor plan supplied by BMT, adapted from College of Letters and Science Facilities Office materials.",
+          "demonstration": false
+        }
+      },
+      {
+        "id": "wheeler-b",
+        "label": "Wheeler Hall \u00b7 Basement",
+        "floorId": "wheeler-b",
+        "image": {
+          "url": "/media/6df9492130b6f049b2fad94aca290d4d24738008bbd51dce9d1d779583adca2e.webp",
+          "alt": "Wheeler Hall, Basement: rooms, corridors, stairs, elevators and restrooms.",
+          "caption": "Historical floor plan supplied by BMT, adapted from College of Letters and Science Facilities Office materials.",
+          "demonstration": false
+        }
+      },
+      {
+        "id": "dwinelle-d",
+        "label": "Dwinelle Hall \u00b7 Floor D",
+        "floorId": "dwinelle-d",
+        "image": {
+          "url": "/media/9c5af66874deff52f9f1dc4ef026f376ece5f514e3c8604053ba7cfedf6424ad.webp",
+          "alt": "Dwinelle Hall, Floor D: rooms, corridors, stairs, elevators and restrooms.",
+          "caption": "Historical floor plan supplied by BMT, adapted from College of Letters and Science Facilities Office materials.",
+          "demonstration": false
+        }
+      },
+      {
+        "id": "dwinelle-e",
+        "label": "Dwinelle Hall \u00b7 Floor E",
+        "floorId": "dwinelle-e",
+        "image": {
+          "url": "/media/a3b472fafa3ce874347e88cfa364f3abad7271655974cff8320fb4874c96473e.webp",
+          "alt": "Dwinelle Hall, Floor E: rooms, corridors, stairs, elevators and restrooms.",
+          "caption": "Historical floor plan supplied by BMT, adapted from College of Letters and Science Facilities Office materials.",
+          "demonstration": false
+        }
+      },
+      {
+        "id": "dwinelle-c",
+        "label": "Dwinelle Hall \u00b7 Floor C",
+        "floorId": "dwinelle-c",
+        "image": {
+          "url": "/media/18361bccebfd2d6578e1caaaad13a06dd730faa46fb4582395a505fc6f34fc97.webp",
+          "alt": "Dwinelle Hall, Floor C: rooms, corridors, stairs, elevators and restrooms.",
+          "caption": "Historical floor plan supplied by BMT, adapted from College of Letters and Science Facilities Office materials.",
+          "demonstration": false
+        }
+      },
+      {
+        "id": "vlsb-2",
+        "label": "Valley Life Sciences Building \u00b7 Floor 2",
+        "floorId": "vlsb-2",
+        "image": {
+          "url": "/media/57ffa14979914f42689cdec42da6d05c31f96dc57934f3a3a9a02d851ef5ca28.webp",
+          "alt": "Valley Life Sciences Building, Floor 2: rooms, corridors, stairs, elevators and restrooms.",
+          "caption": "Historical floor plan supplied by BMT, adapted from College of Letters and Science Facilities Office materials.",
+          "demonstration": false
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "plaza",
+        "label": "Demo arrival point",
+        "mapId": "demo-outside",
+        "roomId": null,
+        "x": 20,
+        "y": 70
+      },
+      {
+        "id": "entrance",
+        "label": "Demo level entrance",
+        "mapId": "demo-outside",
+        "roomId": null,
+        "x": 70,
+        "y": 30
+      },
+      {
+        "id": "lobby",
+        "label": "Demo lobby",
+        "mapId": "demo-floor",
+        "roomId": null,
+        "x": 50,
+        "y": 70
+      },
+      {
+        "id": "a101",
+        "label": "Demo A101",
+        "mapId": "demo-floor",
+        "roomId": "demo-a101",
+        "x": 26,
+        "y": 34
+      },
+      {
+        "id": "a102",
+        "label": "Demo A102",
+        "mapId": "demo-floor",
+        "roomId": "demo-a102",
+        "x": 73,
+        "y": 34
+      },
+      {
+        "id": "wheeler-1-hall-0",
+        "label": "Main entrance \u00b7 Floor 1",
+        "mapId": "wheeler-1",
+        "roomId": null,
+        "x": 93.575,
+        "y": 43.86
+      },
+      {
+        "id": "wheeler-1-hall-1",
+        "label": "Corridor Floor 1 1",
+        "mapId": "wheeler-1",
+        "roomId": null,
+        "x": 15.157,
+        "y": 21.637
+      },
+      {
+        "id": "wheeler-1-hall-2",
+        "label": "Corridor Floor 1 2",
+        "mapId": "wheeler-1",
+        "roomId": null,
+        "x": 82.702,
+        "y": 21.637
+      },
+      {
+        "id": "wheeler-1-hall-3",
+        "label": "Corridor Floor 1 3",
+        "mapId": "wheeler-1",
+        "roomId": null,
+        "x": 82.702,
+        "y": 79.142
+      },
+      {
+        "id": "wheeler-1-hall-4",
+        "label": "Corridor Floor 1 4",
+        "mapId": "wheeler-1",
+        "roomId": null,
+        "x": 15.157,
+        "y": 79.142
+      },
+      {
+        "id": "wheeler-1-hall-5",
+        "label": "Corridor Floor 1 5",
+        "mapId": "wheeler-1",
+        "roomId": null,
+        "x": 82.702,
+        "y": 43.86
+      },
+      {
+        "id": "wheeler-1-to-108",
+        "label": "Room 108",
+        "mapId": "wheeler-1",
+        "roomId": "wheeler-1-108",
+        "x": 13.674,
+        "y": 21.637
+      },
+      {
+        "id": "wheeler-1-to-104",
+        "label": "Room 104",
+        "mapId": "wheeler-1",
+        "roomId": "wheeler-1-104",
+        "x": 45.799,
+        "y": 21.637
+      },
+      {
+        "id": "wheeler-1-to-102",
+        "label": "Room 102",
+        "mapId": "wheeler-1",
+        "roomId": "wheeler-1-102",
+        "x": 66.227,
+        "y": 21.637
+      },
+      {
+        "id": "wheeler-1-to-120",
+        "label": "Room 120",
+        "mapId": "wheeler-1",
+        "roomId": "wheeler-1-120",
+        "x": 15.157,
+        "y": 79.142
+      },
+      {
+        "id": "wheeler-1-to-124",
+        "label": "Room 124",
+        "mapId": "wheeler-1",
+        "roomId": "wheeler-1-124",
+        "x": 36.244,
+        "y": 79.142
+      },
+      {
+        "id": "wheeler-1-to-126",
+        "label": "Room 126",
+        "mapId": "wheeler-1",
+        "roomId": "wheeler-1-126",
+        "x": 53.871,
+        "y": 79.142
+      },
+      {
+        "id": "wheeler-1-to-130",
+        "label": "Room 130",
+        "mapId": "wheeler-1",
+        "roomId": "wheeler-1-130",
+        "x": 81.054,
+        "y": 79.142
+      },
+      {
+        "id": "wheeler-2-hall-0",
+        "label": "Stair landing \u00b7 upper-left corner",
+        "mapId": "wheeler-2",
+        "roomId": null,
+        "x": 15.486,
+        "y": 25.095
+      },
+      {
+        "id": "wheeler-2-hall-1",
+        "label": "Corridor Floor 2 1",
+        "mapId": "wheeler-2",
+        "roomId": null,
+        "x": 82.702,
+        "y": 22.814
+      },
+      {
+        "id": "wheeler-2-hall-2",
+        "label": "Corridor Floor 2 2",
+        "mapId": "wheeler-2",
+        "roomId": null,
+        "x": 82.702,
+        "y": 80.989
+      },
+      {
+        "id": "wheeler-2-hall-3",
+        "label": "Corridor Floor 2 3",
+        "mapId": "wheeler-2",
+        "roomId": null,
+        "x": 16.804,
+        "y": 80.989
+      },
+      {
+        "id": "wheeler-2-hall-4",
+        "label": "Corridor Floor 2 4",
+        "mapId": "wheeler-2",
+        "roomId": null,
+        "x": 26.689,
+        "y": 25.095
+      },
+      {
+        "id": "wheeler-2-hall-5",
+        "label": "Corridor Floor 2 5",
+        "mapId": "wheeler-2",
+        "roomId": null,
+        "x": 26.689,
+        "y": 80.989
+      },
+      {
+        "id": "wheeler-2-to-200",
+        "label": "Room 200",
+        "mapId": "wheeler-2",
+        "roomId": "wheeler-2-200",
+        "x": 82.702,
+        "y": 22.814
+      },
+      {
+        "id": "wheeler-2-to-202",
+        "label": "Room 202",
+        "mapId": "wheeler-2",
+        "roomId": "wheeler-2-202",
+        "x": 70.016,
+        "y": 22.814
+      },
+      {
+        "id": "wheeler-2-to-204",
+        "label": "Room 204",
+        "mapId": "wheeler-2",
+        "roomId": "wheeler-2-204",
+        "x": 49.918,
+        "y": 22.814
+      },
+      {
+        "id": "wheeler-2-to-220",
+        "label": "Room 220",
+        "mapId": "wheeler-2",
+        "roomId": "wheeler-2-220",
+        "x": 16.804,
+        "y": 80.989
+      },
+      {
+        "id": "wheeler-2-to-222",
+        "label": "Room 222",
+        "mapId": "wheeler-2",
+        "roomId": "wheeler-2-222",
+        "x": 33.608,
+        "y": 80.989
+      },
+      {
+        "id": "wheeler-2-to-224",
+        "label": "Room 224",
+        "mapId": "wheeler-2",
+        "roomId": "wheeler-2-224",
+        "x": 53.707,
+        "y": 80.989
+      },
+      {
+        "id": "wheeler-b-hall-0",
+        "label": "Stair landing \u00b7 upper-left corridor",
+        "mapId": "wheeler-b",
+        "roomId": null,
+        "x": 26.689,
+        "y": 27.273
+      },
+      {
+        "id": "wheeler-b-hall-1",
+        "label": "Corridor Basement 1",
+        "mapId": "wheeler-b",
+        "roomId": null,
+        "x": 15.157,
+        "y": 78.656
+      },
+      {
+        "id": "wheeler-b-hall-2",
+        "label": "Corridor Basement 2",
+        "mapId": "wheeler-b",
+        "roomId": null,
+        "x": 81.054,
+        "y": 78.656
+      },
+      {
+        "id": "wheeler-b-hall-3",
+        "label": "Corridor Basement 3",
+        "mapId": "wheeler-b",
+        "roomId": null,
+        "x": 26.689,
+        "y": 78.656
+      },
+      {
+        "id": "wheeler-b-to-20",
+        "label": "Room 20",
+        "mapId": "wheeler-b",
+        "roomId": "wheeler-b-20",
+        "x": 15.157,
+        "y": 78.656
+      },
+      {
+        "id": "wheeler-b-to-24",
+        "label": "Room 24",
+        "mapId": "wheeler-b",
+        "roomId": "wheeler-b-24",
+        "x": 43.493,
+        "y": 78.656
+      },
+      {
+        "id": "wheeler-b-to-30",
+        "label": "Room 30",
+        "mapId": "wheeler-b",
+        "roomId": "wheeler-b-30",
+        "x": 81.054,
+        "y": 78.656
+      },
+      {
+        "id": "dwinelle-d-hall-0",
+        "label": "Main entrance \u00b7 Floor D",
+        "mapId": "dwinelle-d",
+        "roomId": null,
+        "x": 35.195,
+        "y": 63.366
+      },
+      {
+        "id": "dwinelle-d-hall-1",
+        "label": "Corridor Floor D 1",
+        "mapId": "dwinelle-d",
+        "roomId": null,
+        "x": 16.234,
+        "y": 17.624
+      },
+      {
+        "id": "dwinelle-d-hall-2",
+        "label": "Corridor Floor D 2",
+        "mapId": "dwinelle-d",
+        "roomId": null,
+        "x": 13.636,
+        "y": 51.287
+      },
+      {
+        "id": "dwinelle-d-hall-3",
+        "label": "Corridor Floor D 3",
+        "mapId": "dwinelle-d",
+        "roomId": null,
+        "x": 61.169,
+        "y": 55.446
+      },
+      {
+        "id": "dwinelle-d-hall-4",
+        "label": "Corridor Floor D 4",
+        "mapId": "dwinelle-d",
+        "roomId": null,
+        "x": 12.208,
+        "y": 64.158
+      },
+      {
+        "id": "dwinelle-d-hall-5",
+        "label": "Corridor Floor D 5",
+        "mapId": "dwinelle-d",
+        "roomId": null,
+        "x": 10.26,
+        "y": 89.703
+      },
+      {
+        "id": "dwinelle-d-hall-6",
+        "label": "Corridor Floor D 6",
+        "mapId": "dwinelle-d",
+        "roomId": null,
+        "x": 61.169,
+        "y": 72.277
+      },
+      {
+        "id": "dwinelle-d-hall-7",
+        "label": "Corridor Floor D 7",
+        "mapId": "dwinelle-d",
+        "roomId": null,
+        "x": 61.169,
+        "y": 91.683
+      },
+      {
+        "id": "dwinelle-d-hall-8",
+        "label": "Corridor Floor D 8",
+        "mapId": "dwinelle-d",
+        "roomId": null,
+        "x": 35.195,
+        "y": 53.663
+      },
+      {
+        "id": "dwinelle-d-to-134",
+        "label": "Room 134",
+        "mapId": "dwinelle-d",
+        "roomId": "dwinelle-d-134",
+        "x": 15.325,
+        "y": 21.98
+      },
+      {
+        "id": "dwinelle-d-to-130",
+        "label": "Room 130",
+        "mapId": "dwinelle-d",
+        "roomId": "dwinelle-d-130",
+        "x": 14.545,
+        "y": 31.683
+      },
+      {
+        "id": "dwinelle-d-to-145",
+        "label": "Room 145",
+        "mapId": "dwinelle-d",
+        "roomId": "dwinelle-d-145",
+        "x": 20.779,
+        "y": 51.287
+      },
+      {
+        "id": "dwinelle-d-to-155",
+        "label": "Room 155",
+        "mapId": "dwinelle-d",
+        "roomId": "dwinelle-d-155",
+        "x": 48.442,
+        "y": 54.653
+      },
+      {
+        "id": "dwinelle-d-to-111",
+        "label": "Room 111",
+        "mapId": "dwinelle-d",
+        "roomId": "dwinelle-d-111",
+        "x": 12.338,
+        "y": 63.366
+      },
+      {
+        "id": "dwinelle-d-to-109",
+        "label": "Room 109",
+        "mapId": "dwinelle-d",
+        "roomId": "dwinelle-d-109",
+        "x": 11.299,
+        "y": 74.059
+      },
+      {
+        "id": "dwinelle-d-to-105",
+        "label": "Room 105",
+        "mapId": "dwinelle-d",
+        "roomId": "dwinelle-d-105",
+        "x": 10.649,
+        "y": 81.386
+      },
+      {
+        "id": "dwinelle-d-to-106",
+        "label": "Room 106",
+        "mapId": "dwinelle-d",
+        "roomId": "dwinelle-d-106",
+        "x": 11.039,
+        "y": 77.03
+      },
+      {
+        "id": "dwinelle-d-to-104",
+        "label": "Room 104",
+        "mapId": "dwinelle-d",
+        "roomId": "dwinelle-d-104",
+        "x": 10.39,
+        "y": 83.762
+      },
+      {
+        "id": "dwinelle-d-to-179",
+        "label": "Room 179",
+        "mapId": "dwinelle-d",
+        "roomId": "dwinelle-d-179",
+        "x": 61.169,
+        "y": 62.178
+      },
+      {
+        "id": "dwinelle-d-to-183",
+        "label": "Room 183",
+        "mapId": "dwinelle-d",
+        "roomId": "dwinelle-d-183",
+        "x": 61.169,
+        "y": 70.495
+      },
+      {
+        "id": "dwinelle-d-to-187",
+        "label": "Room 187",
+        "mapId": "dwinelle-d",
+        "roomId": "dwinelle-d-187",
+        "x": 61.169,
+        "y": 78.812
+      },
+      {
+        "id": "dwinelle-d-to-189",
+        "label": "Room 189",
+        "mapId": "dwinelle-d",
+        "roomId": "dwinelle-d-189",
+        "x": 61.169,
+        "y": 86.733
+      },
+      {
+        "id": "dwinelle-d-to-182",
+        "label": "Room 182",
+        "mapId": "dwinelle-d",
+        "roomId": "dwinelle-d-182",
+        "x": 61.169,
+        "y": 75.644
+      },
+      {
+        "id": "dwinelle-e-hall-0",
+        "label": "Stair landing beside Room 242",
+        "mapId": "dwinelle-e",
+        "roomId": null,
+        "x": 13.077,
+        "y": 62.615
+      },
+      {
+        "id": "dwinelle-e-hall-1",
+        "label": "Corridor Floor E 1",
+        "mapId": "dwinelle-e",
+        "roomId": null,
+        "x": 16.538,
+        "y": 21.179
+      },
+      {
+        "id": "dwinelle-e-hall-2",
+        "label": "Corridor Floor E 2",
+        "mapId": "dwinelle-e",
+        "roomId": null,
+        "x": 12.949,
+        "y": 59.853
+      },
+      {
+        "id": "dwinelle-e-hall-3",
+        "label": "Corridor Floor E 3",
+        "mapId": "dwinelle-e",
+        "roomId": null,
+        "x": 60.0,
+        "y": 63.536
+      },
+      {
+        "id": "dwinelle-e-hall-4",
+        "label": "Corridor Floor E 4",
+        "mapId": "dwinelle-e",
+        "roomId": null,
+        "x": 60.0,
+        "y": 57.643
+      },
+      {
+        "id": "dwinelle-e-to-235",
+        "label": "Room 235",
+        "mapId": "dwinelle-e",
+        "roomId": "dwinelle-e-235",
+        "x": 16.154,
+        "y": 25.783
+      },
+      {
+        "id": "dwinelle-e-to-234",
+        "label": "Room 234",
+        "mapId": "dwinelle-e",
+        "roomId": "dwinelle-e-234",
+        "x": 15.897,
+        "y": 28.177
+      },
+      {
+        "id": "dwinelle-e-to-229",
+        "label": "Room 229",
+        "mapId": "dwinelle-e",
+        "roomId": "dwinelle-e-229",
+        "x": 15.256,
+        "y": 36.832
+      },
+      {
+        "id": "dwinelle-e-to-228",
+        "label": "Room 228",
+        "mapId": "dwinelle-e",
+        "roomId": "dwinelle-e-228",
+        "x": 15.256,
+        "y": 36.832
+      },
+      {
+        "id": "dwinelle-e-to-243",
+        "label": "Room 243",
+        "mapId": "dwinelle-e",
+        "roomId": "dwinelle-e-243",
+        "x": 22.564,
+        "y": 60.589
+      },
+      {
+        "id": "dwinelle-e-to-247",
+        "label": "Room 247",
+        "mapId": "dwinelle-e",
+        "roomId": "dwinelle-e-247",
+        "x": 28.846,
+        "y": 61.142
+      },
+      {
+        "id": "dwinelle-e-to-251",
+        "label": "Room 251",
+        "mapId": "dwinelle-e",
+        "roomId": "dwinelle-e-251",
+        "x": 34.359,
+        "y": 61.51
+      },
+      {
+        "id": "dwinelle-e-to-255",
+        "label": "Room 255",
+        "mapId": "dwinelle-e",
+        "roomId": "dwinelle-e-255",
+        "x": 40.0,
+        "y": 61.878
+      },
+      {
+        "id": "dwinelle-e-to-259",
+        "label": "Room 259",
+        "mapId": "dwinelle-e",
+        "roomId": "dwinelle-e-259",
+        "x": 45.513,
+        "y": 62.247
+      },
+      {
+        "id": "dwinelle-e-to-263",
+        "label": "Room 263",
+        "mapId": "dwinelle-e",
+        "roomId": "dwinelle-e-263",
+        "x": 50.897,
+        "y": 62.615
+      },
+      {
+        "id": "dwinelle-e-to-242",
+        "label": "Room 242",
+        "mapId": "dwinelle-e",
+        "roomId": "dwinelle-e-242",
+        "x": 22.179,
+        "y": 60.589
+      },
+      {
+        "id": "dwinelle-e-to-246",
+        "label": "Room 246",
+        "mapId": "dwinelle-e",
+        "roomId": "dwinelle-e-246",
+        "x": 28.077,
+        "y": 61.142
+      },
+      {
+        "id": "dwinelle-e-to-250",
+        "label": "Room 250",
+        "mapId": "dwinelle-e",
+        "roomId": "dwinelle-e-250",
+        "x": 34.231,
+        "y": 61.51
+      },
+      {
+        "id": "dwinelle-e-to-254",
+        "label": "Room 254",
+        "mapId": "dwinelle-e",
+        "roomId": "dwinelle-e-254",
+        "x": 39.744,
+        "y": 61.878
+      },
+      {
+        "id": "dwinelle-e-to-258",
+        "label": "Room 258",
+        "mapId": "dwinelle-e",
+        "roomId": "dwinelle-e-258",
+        "x": 45.385,
+        "y": 62.247
+      },
+      {
+        "id": "dwinelle-e-to-262",
+        "label": "Room 262",
+        "mapId": "dwinelle-e",
+        "roomId": "dwinelle-e-262",
+        "x": 50.641,
+        "y": 62.615
+      },
+      {
+        "id": "dwinelle-c-hall-0",
+        "label": "Stair landing \u00b7 upper-left corridor",
+        "mapId": "dwinelle-c",
+        "roomId": null,
+        "x": 16.808,
+        "y": 10.482
+      },
+      {
+        "id": "dwinelle-c-hall-1",
+        "label": "Corridor Floor C 1",
+        "mapId": "dwinelle-c",
+        "roomId": null,
+        "x": 12.994,
+        "y": 49.686
+      },
+      {
+        "id": "dwinelle-c-hall-2",
+        "label": "Corridor Floor C 2",
+        "mapId": "dwinelle-c",
+        "roomId": null,
+        "x": 60.734,
+        "y": 54.507
+      },
+      {
+        "id": "dwinelle-c-hall-3",
+        "label": "Corridor Floor C 3",
+        "mapId": "dwinelle-c",
+        "roomId": null,
+        "x": 60.734,
+        "y": 86.792
+      },
+      {
+        "id": "dwinelle-c-hall-4",
+        "label": "Corridor Floor C 4",
+        "mapId": "dwinelle-c",
+        "roomId": null,
+        "x": 9.322,
+        "y": 84.906
+      },
+      {
+        "id": "dwinelle-c-to-155",
+        "label": "Room 155",
+        "mapId": "dwinelle-c",
+        "roomId": "dwinelle-c-155",
+        "x": 40.113,
+        "y": 53.04
+      },
+      {
+        "id": "dwinelle-c-to-79",
+        "label": "Room 79",
+        "mapId": "dwinelle-c",
+        "roomId": "dwinelle-c-79",
+        "x": 60.734,
+        "y": 58.281
+      },
+      {
+        "id": "dwinelle-c-to-83",
+        "label": "Room 83",
+        "mapId": "dwinelle-c",
+        "roomId": "dwinelle-c-83",
+        "x": 60.734,
+        "y": 67.086
+      },
+      {
+        "id": "dwinelle-c-to-87",
+        "label": "Room 87",
+        "mapId": "dwinelle-c",
+        "roomId": "dwinelle-c-87",
+        "x": 60.734,
+        "y": 75.262
+      },
+      {
+        "id": "dwinelle-c-to-89",
+        "label": "Room 89",
+        "mapId": "dwinelle-c",
+        "roomId": "dwinelle-c-89",
+        "x": 60.734,
+        "y": 82.809
+      },
+      {
+        "id": "dwinelle-c-to-88",
+        "label": "Room 88",
+        "mapId": "dwinelle-c",
+        "roomId": "dwinelle-c-88",
+        "x": 60.734,
+        "y": 80.713
+      },
+      {
+        "id": "vlsb-2-hall-0",
+        "label": "Main entrance \u00b7 Floor 2",
+        "mapId": "vlsb-2",
+        "roomId": null,
+        "x": 75.476,
+        "y": 93.115
+      },
+      {
+        "id": "vlsb-2-hall-1",
+        "label": "Corridor Floor 2 1",
+        "mapId": "vlsb-2",
+        "roomId": null,
+        "x": 75.476,
+        "y": 62.623
+      },
+      {
+        "id": "vlsb-2-hall-2",
+        "label": "Corridor Floor 2 2",
+        "mapId": "vlsb-2",
+        "roomId": null,
+        "x": 75.476,
+        "y": 6.557
+      },
+      {
+        "id": "vlsb-2-hall-3",
+        "label": "Corridor Floor 2 3",
+        "mapId": "vlsb-2",
+        "roomId": null,
+        "x": 82.778,
+        "y": 62.623
+      },
+      {
+        "id": "vlsb-2-hall-4",
+        "label": "Corridor Floor 2 4",
+        "mapId": "vlsb-2",
+        "roomId": null,
+        "x": 83.571,
+        "y": 62.623
+      },
+      {
+        "id": "vlsb-2-hall-5",
+        "label": "Corridor Floor 2 5",
+        "mapId": "vlsb-2",
+        "roomId": null,
+        "x": 82.778,
+        "y": 60.328
+      },
+      {
+        "id": "vlsb-2-to-2030",
+        "label": "Room 2030",
+        "mapId": "vlsb-2",
+        "roomId": "vlsb-2-2030",
+        "x": 75.476,
+        "y": 9.016
+      },
+      {
+        "id": "vlsb-2-to-2032",
+        "label": "Room 2032",
+        "mapId": "vlsb-2",
+        "roomId": "vlsb-2-2032",
+        "x": 75.476,
+        "y": 18.852
+      },
+      {
+        "id": "vlsb-2-to-2038",
+        "label": "Room 2038",
+        "mapId": "vlsb-2",
+        "roomId": "vlsb-2-2038",
+        "x": 75.476,
+        "y": 31.803
+      },
+      {
+        "id": "vlsb-2-to-2050",
+        "label": "Room 2050",
+        "mapId": "vlsb-2",
+        "roomId": "vlsb-2-2050",
+        "x": 83.571,
+        "y": 60.328
+      },
+      {
+        "id": "vlsb-2-to-2060",
+        "label": "Room 2060",
+        "mapId": "vlsb-2",
+        "roomId": "vlsb-2-2060",
+        "x": 83.571,
+        "y": 62.623
+      },
+      {
+        "id": "vlsb-2-to-2062",
+        "label": "Room 2062",
+        "mapId": "vlsb-2",
+        "roomId": "vlsb-2-2062",
+        "x": 75.476,
+        "y": 68.361
+      },
+      {
+        "id": "vlsb-2-to-2066",
+        "label": "Room 2066",
+        "mapId": "vlsb-2",
+        "roomId": "vlsb-2-2066",
+        "x": 75.476,
+        "y": 82.295
+      },
+      {
+        "id": "vlsb-2-to-2070",
+        "label": "Room 2070",
+        "mapId": "vlsb-2",
+        "roomId": "vlsb-2-2070",
+        "x": 75.476,
+        "y": 91.639
+      }
+    ],
+    "edges": [
+      {
+        "id": "arrival",
+        "from": "plaza",
+        "to": "entrance",
+        "kind": "path",
+        "cost": 20,
+        "stepFree": true,
+        "closed": false,
+        "status": "demo",
+        "verificationNote": "Fictional mechanics only.",
+        "instruction": "Follow the fictional plaza to the demo entrance."
+      },
+      {
+        "id": "enter",
+        "from": "entrance",
+        "to": "lobby",
+        "kind": "entrance",
+        "cost": 5,
+        "stepFree": true,
+        "closed": false,
+        "status": "demo",
+        "verificationNote": "Fictional mechanics only.",
+        "instruction": "Enter the fictional building and switch to the ground-floor plan."
+      },
+      {
+        "id": "left",
+        "from": "lobby",
+        "to": "a101",
+        "kind": "path",
+        "cost": 10,
+        "stepFree": true,
+        "closed": false,
+        "status": "demo",
+        "verificationNote": "Fictional mechanics only.",
+        "instruction": "Continue left along the sample corridor to A101."
+      },
+      {
+        "id": "right",
+        "from": "lobby",
+        "to": "a102",
+        "kind": "path",
+        "cost": 10,
+        "stepFree": true,
+        "closed": false,
+        "status": "demo",
+        "verificationNote": "Fictional mechanics only.",
+        "instruction": "Continue right along the sample corridor to A102."
+      },
+      {
+        "id": "return-left",
+        "from": "a101",
+        "to": "lobby",
+        "kind": "path",
+        "cost": 10,
+        "stepFree": true,
+        "closed": false,
+        "status": "demo",
+        "verificationNote": "Fictional mechanics only.",
+        "instruction": "Return from A101 to the sample lobby."
+      },
+      {
+        "id": "return-right",
+        "from": "a102",
+        "to": "lobby",
+        "kind": "path",
+        "cost": 10,
+        "stepFree": true,
+        "closed": false,
+        "status": "demo",
+        "verificationNote": "Fictional mechanics only.",
+        "instruction": "Return from A102 to the sample lobby."
+      },
+      {
+        "id": "exit",
+        "from": "lobby",
+        "to": "entrance",
+        "kind": "entrance",
+        "cost": 5,
+        "stepFree": true,
+        "closed": false,
+        "status": "demo",
+        "verificationNote": "Fictional mechanics only.",
+        "instruction": "Exit to the fictional plaza map."
+      },
+      {
+        "id": "depart",
+        "from": "entrance",
+        "to": "plaza",
+        "kind": "path",
+        "cost": 20,
+        "stepFree": true,
+        "closed": false,
+        "status": "demo",
+        "verificationNote": "Fictional mechanics only.",
+        "instruction": "Return to the demo arrival point."
+      },
+      {
+        "id": "wheeler-1-hall-0-to-wheeler-1-hall-5",
+        "from": "wheeler-1-hall-0",
+        "to": "wheeler-1-hall-5",
+        "kind": "path",
+        "cost": 109,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor 1."
+      },
+      {
+        "id": "wheeler-1-hall-5-to-wheeler-1-hall-0",
+        "from": "wheeler-1-hall-5",
+        "to": "wheeler-1-hall-0",
+        "kind": "path",
+        "cost": 109,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Main entrance \u00b7 Floor 1."
+      },
+      {
+        "id": "wheeler-1-hall-5-to-wheeler-1-hall-2",
+        "from": "wheeler-1-hall-5",
+        "to": "wheeler-1-hall-2",
+        "kind": "path",
+        "cost": 222,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor 1."
+      },
+      {
+        "id": "wheeler-1-hall-2-to-wheeler-1-hall-5",
+        "from": "wheeler-1-hall-2",
+        "to": "wheeler-1-hall-5",
+        "kind": "path",
+        "cost": 222,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 1 5."
+      },
+      {
+        "id": "wheeler-1-hall-5-to-wheeler-1-hall-3",
+        "from": "wheeler-1-hall-5",
+        "to": "wheeler-1-hall-3",
+        "kind": "path",
+        "cost": 353,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor 1."
+      },
+      {
+        "id": "wheeler-1-hall-3-to-wheeler-1-hall-5",
+        "from": "wheeler-1-hall-3",
+        "to": "wheeler-1-hall-5",
+        "kind": "path",
+        "cost": 353,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 1 5."
+      },
+      {
+        "id": "wheeler-1-hall-2-to-wheeler-1-hall-1",
+        "from": "wheeler-1-hall-2",
+        "to": "wheeler-1-hall-1",
+        "kind": "path",
+        "cost": 675,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor 1."
+      },
+      {
+        "id": "wheeler-1-hall-1-to-wheeler-1-hall-2",
+        "from": "wheeler-1-hall-1",
+        "to": "wheeler-1-hall-2",
+        "kind": "path",
+        "cost": 675,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 1 2."
+      },
+      {
+        "id": "wheeler-1-hall-3-to-wheeler-1-hall-4",
+        "from": "wheeler-1-hall-3",
+        "to": "wheeler-1-hall-4",
+        "kind": "path",
+        "cost": 675,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor 1."
+      },
+      {
+        "id": "wheeler-1-hall-4-to-wheeler-1-hall-3",
+        "from": "wheeler-1-hall-4",
+        "to": "wheeler-1-hall-3",
+        "kind": "path",
+        "cost": 675,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 1 3."
+      },
+      {
+        "id": "wheeler-1-hall-1-to-wheeler-1-to-108",
+        "from": "wheeler-1-hall-1",
+        "to": "wheeler-1-to-108",
+        "kind": "path",
+        "cost": 15,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 108 beside this corridor."
+      },
+      {
+        "id": "wheeler-1-to-108-to-wheeler-1-hall-1",
+        "from": "wheeler-1-to-108",
+        "to": "wheeler-1-hall-1",
+        "kind": "path",
+        "cost": 15,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 1 1."
+      },
+      {
+        "id": "wheeler-1-hall-1-to-wheeler-1-to-104",
+        "from": "wheeler-1-hall-1",
+        "to": "wheeler-1-to-104",
+        "kind": "path",
+        "cost": 306,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 104 beside this corridor."
+      },
+      {
+        "id": "wheeler-1-to-104-to-wheeler-1-hall-1",
+        "from": "wheeler-1-to-104",
+        "to": "wheeler-1-hall-1",
+        "kind": "path",
+        "cost": 306,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 1 1."
+      },
+      {
+        "id": "wheeler-1-hall-2-to-wheeler-1-to-102",
+        "from": "wheeler-1-hall-2",
+        "to": "wheeler-1-to-102",
+        "kind": "path",
+        "cost": 165,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 102 beside this corridor."
+      },
+      {
+        "id": "wheeler-1-to-102-to-wheeler-1-hall-2",
+        "from": "wheeler-1-to-102",
+        "to": "wheeler-1-hall-2",
+        "kind": "path",
+        "cost": 165,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 1 2."
+      },
+      {
+        "id": "wheeler-1-hall-4-to-wheeler-1-to-120",
+        "from": "wheeler-1-hall-4",
+        "to": "wheeler-1-to-120",
+        "kind": "path",
+        "cost": 1,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 120 beside this corridor."
+      },
+      {
+        "id": "wheeler-1-to-120-to-wheeler-1-hall-4",
+        "from": "wheeler-1-to-120",
+        "to": "wheeler-1-hall-4",
+        "kind": "path",
+        "cost": 1,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 1 4."
+      },
+      {
+        "id": "wheeler-1-hall-4-to-wheeler-1-to-124",
+        "from": "wheeler-1-hall-4",
+        "to": "wheeler-1-to-124",
+        "kind": "path",
+        "cost": 211,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 124 beside this corridor."
+      },
+      {
+        "id": "wheeler-1-to-124-to-wheeler-1-hall-4",
+        "from": "wheeler-1-to-124",
+        "to": "wheeler-1-hall-4",
+        "kind": "path",
+        "cost": 211,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 1 4."
+      },
+      {
+        "id": "wheeler-1-hall-4-to-wheeler-1-to-126",
+        "from": "wheeler-1-hall-4",
+        "to": "wheeler-1-to-126",
+        "kind": "path",
+        "cost": 387,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 126 beside this corridor."
+      },
+      {
+        "id": "wheeler-1-to-126-to-wheeler-1-hall-4",
+        "from": "wheeler-1-to-126",
+        "to": "wheeler-1-hall-4",
+        "kind": "path",
+        "cost": 387,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 1 4."
+      },
+      {
+        "id": "wheeler-1-hall-3-to-wheeler-1-to-130",
+        "from": "wheeler-1-hall-3",
+        "to": "wheeler-1-to-130",
+        "kind": "path",
+        "cost": 16,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 130 beside this corridor."
+      },
+      {
+        "id": "wheeler-1-to-130-to-wheeler-1-hall-3",
+        "from": "wheeler-1-to-130",
+        "to": "wheeler-1-hall-3",
+        "kind": "path",
+        "cost": 16,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 1 3."
+      },
+      {
+        "id": "wheeler-2-hall-0-to-wheeler-2-hall-4",
+        "from": "wheeler-2-hall-0",
+        "to": "wheeler-2-hall-4",
+        "kind": "path",
+        "cost": 112,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor 2."
+      },
+      {
+        "id": "wheeler-2-hall-4-to-wheeler-2-hall-0",
+        "from": "wheeler-2-hall-4",
+        "to": "wheeler-2-hall-0",
+        "kind": "path",
+        "cost": 112,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Stair landing \u00b7 upper-left corner."
+      },
+      {
+        "id": "wheeler-2-hall-4-to-wheeler-2-hall-1",
+        "from": "wheeler-2-hall-4",
+        "to": "wheeler-2-hall-1",
+        "kind": "path",
+        "cost": 561,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor 2."
+      },
+      {
+        "id": "wheeler-2-hall-1-to-wheeler-2-hall-4",
+        "from": "wheeler-2-hall-1",
+        "to": "wheeler-2-hall-4",
+        "kind": "path",
+        "cost": 561,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 4."
+      },
+      {
+        "id": "wheeler-2-hall-1-to-wheeler-2-hall-2",
+        "from": "wheeler-2-hall-1",
+        "to": "wheeler-2-hall-2",
+        "kind": "path",
+        "cost": 582,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor 2."
+      },
+      {
+        "id": "wheeler-2-hall-2-to-wheeler-2-hall-1",
+        "from": "wheeler-2-hall-2",
+        "to": "wheeler-2-hall-1",
+        "kind": "path",
+        "cost": 582,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 1."
+      },
+      {
+        "id": "wheeler-2-hall-2-to-wheeler-2-hall-5",
+        "from": "wheeler-2-hall-2",
+        "to": "wheeler-2-hall-5",
+        "kind": "path",
+        "cost": 560,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor 2."
+      },
+      {
+        "id": "wheeler-2-hall-5-to-wheeler-2-hall-2",
+        "from": "wheeler-2-hall-5",
+        "to": "wheeler-2-hall-2",
+        "kind": "path",
+        "cost": 560,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 2."
+      },
+      {
+        "id": "wheeler-2-hall-5-to-wheeler-2-hall-3",
+        "from": "wheeler-2-hall-5",
+        "to": "wheeler-2-hall-3",
+        "kind": "path",
+        "cost": 99,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor 2."
+      },
+      {
+        "id": "wheeler-2-hall-3-to-wheeler-2-hall-5",
+        "from": "wheeler-2-hall-3",
+        "to": "wheeler-2-hall-5",
+        "kind": "path",
+        "cost": 99,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 5."
+      },
+      {
+        "id": "wheeler-2-hall-5-to-wheeler-2-hall-4",
+        "from": "wheeler-2-hall-5",
+        "to": "wheeler-2-hall-4",
+        "kind": "path",
+        "cost": 559,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor 2."
+      },
+      {
+        "id": "wheeler-2-hall-4-to-wheeler-2-hall-5",
+        "from": "wheeler-2-hall-4",
+        "to": "wheeler-2-hall-5",
+        "kind": "path",
+        "cost": 559,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 5."
+      },
+      {
+        "id": "wheeler-2-hall-1-to-wheeler-2-to-200",
+        "from": "wheeler-2-hall-1",
+        "to": "wheeler-2-to-200",
+        "kind": "path",
+        "cost": 1,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 200 beside this corridor."
+      },
+      {
+        "id": "wheeler-2-to-200-to-wheeler-2-hall-1",
+        "from": "wheeler-2-to-200",
+        "to": "wheeler-2-hall-1",
+        "kind": "path",
+        "cost": 1,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 1."
+      },
+      {
+        "id": "wheeler-2-hall-1-to-wheeler-2-to-202",
+        "from": "wheeler-2-hall-1",
+        "to": "wheeler-2-to-202",
+        "kind": "path",
+        "cost": 127,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 202 beside this corridor."
+      },
+      {
+        "id": "wheeler-2-to-202-to-wheeler-2-hall-1",
+        "from": "wheeler-2-to-202",
+        "to": "wheeler-2-hall-1",
+        "kind": "path",
+        "cost": 127,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 1."
+      },
+      {
+        "id": "wheeler-2-hall-1-to-wheeler-2-to-204",
+        "from": "wheeler-2-hall-1",
+        "to": "wheeler-2-to-204",
+        "kind": "path",
+        "cost": 328,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 204 beside this corridor."
+      },
+      {
+        "id": "wheeler-2-to-204-to-wheeler-2-hall-1",
+        "from": "wheeler-2-to-204",
+        "to": "wheeler-2-hall-1",
+        "kind": "path",
+        "cost": 328,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 1."
+      },
+      {
+        "id": "wheeler-2-hall-3-to-wheeler-2-to-220",
+        "from": "wheeler-2-hall-3",
+        "to": "wheeler-2-to-220",
+        "kind": "path",
+        "cost": 1,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 220 beside this corridor."
+      },
+      {
+        "id": "wheeler-2-to-220-to-wheeler-2-hall-3",
+        "from": "wheeler-2-to-220",
+        "to": "wheeler-2-hall-3",
+        "kind": "path",
+        "cost": 1,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 3."
+      },
+      {
+        "id": "wheeler-2-hall-3-to-wheeler-2-to-222",
+        "from": "wheeler-2-hall-3",
+        "to": "wheeler-2-to-222",
+        "kind": "path",
+        "cost": 168,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 222 beside this corridor."
+      },
+      {
+        "id": "wheeler-2-to-222-to-wheeler-2-hall-3",
+        "from": "wheeler-2-to-222",
+        "to": "wheeler-2-hall-3",
+        "kind": "path",
+        "cost": 168,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 3."
+      },
+      {
+        "id": "wheeler-2-hall-3-to-wheeler-2-to-224",
+        "from": "wheeler-2-hall-3",
+        "to": "wheeler-2-to-224",
+        "kind": "path",
+        "cost": 369,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 224 beside this corridor."
+      },
+      {
+        "id": "wheeler-2-to-224-to-wheeler-2-hall-3",
+        "from": "wheeler-2-to-224",
+        "to": "wheeler-2-hall-3",
+        "kind": "path",
+        "cost": 369,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 3."
+      },
+      {
+        "id": "wheeler-b-hall-0-to-wheeler-b-hall-3",
+        "from": "wheeler-b-hall-0",
+        "to": "wheeler-b-hall-3",
+        "kind": "path",
+        "cost": 514,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Basement."
+      },
+      {
+        "id": "wheeler-b-hall-3-to-wheeler-b-hall-0",
+        "from": "wheeler-b-hall-3",
+        "to": "wheeler-b-hall-0",
+        "kind": "path",
+        "cost": 514,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Stair landing \u00b7 upper-left corridor."
+      },
+      {
+        "id": "wheeler-b-hall-3-to-wheeler-b-hall-1",
+        "from": "wheeler-b-hall-3",
+        "to": "wheeler-b-hall-1",
+        "kind": "path",
+        "cost": 115,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Basement."
+      },
+      {
+        "id": "wheeler-b-hall-1-to-wheeler-b-hall-3",
+        "from": "wheeler-b-hall-1",
+        "to": "wheeler-b-hall-3",
+        "kind": "path",
+        "cost": 115,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Basement 3."
+      },
+      {
+        "id": "wheeler-b-hall-3-to-wheeler-b-hall-2",
+        "from": "wheeler-b-hall-3",
+        "to": "wheeler-b-hall-2",
+        "kind": "path",
+        "cost": 544,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Basement."
+      },
+      {
+        "id": "wheeler-b-hall-2-to-wheeler-b-hall-3",
+        "from": "wheeler-b-hall-2",
+        "to": "wheeler-b-hall-3",
+        "kind": "path",
+        "cost": 544,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Basement 3."
+      },
+      {
+        "id": "wheeler-b-hall-1-to-wheeler-b-to-20",
+        "from": "wheeler-b-hall-1",
+        "to": "wheeler-b-to-20",
+        "kind": "path",
+        "cost": 1,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 20 beside this corridor."
+      },
+      {
+        "id": "wheeler-b-to-20-to-wheeler-b-hall-1",
+        "from": "wheeler-b-to-20",
+        "to": "wheeler-b-hall-1",
+        "kind": "path",
+        "cost": 1,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Basement 1."
+      },
+      {
+        "id": "wheeler-b-hall-1-to-wheeler-b-to-24",
+        "from": "wheeler-b-hall-1",
+        "to": "wheeler-b-to-24",
+        "kind": "path",
+        "cost": 283,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 24 beside this corridor."
+      },
+      {
+        "id": "wheeler-b-to-24-to-wheeler-b-hall-1",
+        "from": "wheeler-b-to-24",
+        "to": "wheeler-b-hall-1",
+        "kind": "path",
+        "cost": 283,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Basement 1."
+      },
+      {
+        "id": "wheeler-b-hall-2-to-wheeler-b-to-30",
+        "from": "wheeler-b-hall-2",
+        "to": "wheeler-b-to-30",
+        "kind": "path",
+        "cost": 1,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 30 beside this corridor."
+      },
+      {
+        "id": "wheeler-b-to-30-to-wheeler-b-hall-2",
+        "from": "wheeler-b-to-30",
+        "to": "wheeler-b-hall-2",
+        "kind": "path",
+        "cost": 1,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Basement 2."
+      },
+      {
+        "id": "dwinelle-d-hall-0-to-dwinelle-d-hall-8",
+        "from": "dwinelle-d-hall-0",
+        "to": "dwinelle-d-hall-8",
+        "kind": "path",
+        "cost": 97,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor D."
+      },
+      {
+        "id": "dwinelle-d-hall-8-to-dwinelle-d-hall-0",
+        "from": "dwinelle-d-hall-8",
+        "to": "dwinelle-d-hall-0",
+        "kind": "path",
+        "cost": 97,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Main entrance \u00b7 Floor D."
+      },
+      {
+        "id": "dwinelle-d-hall-8-to-dwinelle-d-hall-3",
+        "from": "dwinelle-d-hall-8",
+        "to": "dwinelle-d-hall-3",
+        "kind": "path",
+        "cost": 260,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor D."
+      },
+      {
+        "id": "dwinelle-d-hall-3-to-dwinelle-d-hall-8",
+        "from": "dwinelle-d-hall-3",
+        "to": "dwinelle-d-hall-8",
+        "kind": "path",
+        "cost": 260,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 8."
+      },
+      {
+        "id": "dwinelle-d-hall-8-to-dwinelle-d-hall-2",
+        "from": "dwinelle-d-hall-8",
+        "to": "dwinelle-d-hall-2",
+        "kind": "path",
+        "cost": 217,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor D."
+      },
+      {
+        "id": "dwinelle-d-hall-2-to-dwinelle-d-hall-8",
+        "from": "dwinelle-d-hall-2",
+        "to": "dwinelle-d-hall-8",
+        "kind": "path",
+        "cost": 217,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 8."
+      },
+      {
+        "id": "dwinelle-d-hall-2-to-dwinelle-d-hall-1",
+        "from": "dwinelle-d-hall-2",
+        "to": "dwinelle-d-hall-1",
+        "kind": "path",
+        "cost": 338,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor D."
+      },
+      {
+        "id": "dwinelle-d-hall-1-to-dwinelle-d-hall-2",
+        "from": "dwinelle-d-hall-1",
+        "to": "dwinelle-d-hall-2",
+        "kind": "path",
+        "cost": 338,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 2."
+      },
+      {
+        "id": "dwinelle-d-hall-2-to-dwinelle-d-hall-4",
+        "from": "dwinelle-d-hall-2",
+        "to": "dwinelle-d-hall-4",
+        "kind": "path",
+        "cost": 129,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor D."
+      },
+      {
+        "id": "dwinelle-d-hall-4-to-dwinelle-d-hall-2",
+        "from": "dwinelle-d-hall-4",
+        "to": "dwinelle-d-hall-2",
+        "kind": "path",
+        "cost": 129,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 2."
+      },
+      {
+        "id": "dwinelle-d-hall-4-to-dwinelle-d-hall-5",
+        "from": "dwinelle-d-hall-4",
+        "to": "dwinelle-d-hall-5",
+        "kind": "path",
+        "cost": 256,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor D."
+      },
+      {
+        "id": "dwinelle-d-hall-5-to-dwinelle-d-hall-4",
+        "from": "dwinelle-d-hall-5",
+        "to": "dwinelle-d-hall-4",
+        "kind": "path",
+        "cost": 256,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 4."
+      },
+      {
+        "id": "dwinelle-d-hall-3-to-dwinelle-d-hall-6",
+        "from": "dwinelle-d-hall-3",
+        "to": "dwinelle-d-hall-6",
+        "kind": "path",
+        "cost": 168,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor D."
+      },
+      {
+        "id": "dwinelle-d-hall-6-to-dwinelle-d-hall-3",
+        "from": "dwinelle-d-hall-6",
+        "to": "dwinelle-d-hall-3",
+        "kind": "path",
+        "cost": 168,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 3."
+      },
+      {
+        "id": "dwinelle-d-hall-6-to-dwinelle-d-hall-7",
+        "from": "dwinelle-d-hall-6",
+        "to": "dwinelle-d-hall-7",
+        "kind": "path",
+        "cost": 194,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor D."
+      },
+      {
+        "id": "dwinelle-d-hall-7-to-dwinelle-d-hall-6",
+        "from": "dwinelle-d-hall-7",
+        "to": "dwinelle-d-hall-6",
+        "kind": "path",
+        "cost": 194,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 6."
+      },
+      {
+        "id": "dwinelle-d-hall-1-to-dwinelle-d-to-134",
+        "from": "dwinelle-d-hall-1",
+        "to": "dwinelle-d-to-134",
+        "kind": "path",
+        "cost": 44,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 134 beside this corridor."
+      },
+      {
+        "id": "dwinelle-d-to-134-to-dwinelle-d-hall-1",
+        "from": "dwinelle-d-to-134",
+        "to": "dwinelle-d-hall-1",
+        "kind": "path",
+        "cost": 44,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 1."
+      },
+      {
+        "id": "dwinelle-d-hall-1-to-dwinelle-d-to-130",
+        "from": "dwinelle-d-hall-1",
+        "to": "dwinelle-d-to-130",
+        "kind": "path",
+        "cost": 142,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 130 beside this corridor."
+      },
+      {
+        "id": "dwinelle-d-to-130-to-dwinelle-d-hall-1",
+        "from": "dwinelle-d-to-130",
+        "to": "dwinelle-d-hall-1",
+        "kind": "path",
+        "cost": 142,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 1."
+      },
+      {
+        "id": "dwinelle-d-hall-2-to-dwinelle-d-to-145",
+        "from": "dwinelle-d-hall-2",
+        "to": "dwinelle-d-to-145",
+        "kind": "path",
+        "cost": 71,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 145 beside this corridor."
+      },
+      {
+        "id": "dwinelle-d-to-145-to-dwinelle-d-hall-2",
+        "from": "dwinelle-d-to-145",
+        "to": "dwinelle-d-hall-2",
+        "kind": "path",
+        "cost": 71,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 2."
+      },
+      {
+        "id": "dwinelle-d-hall-3-to-dwinelle-d-to-155",
+        "from": "dwinelle-d-hall-3",
+        "to": "dwinelle-d-to-155",
+        "kind": "path",
+        "cost": 128,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 155 beside this corridor."
+      },
+      {
+        "id": "dwinelle-d-to-155-to-dwinelle-d-hall-3",
+        "from": "dwinelle-d-to-155",
+        "to": "dwinelle-d-hall-3",
+        "kind": "path",
+        "cost": 128,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 3."
+      },
+      {
+        "id": "dwinelle-d-hall-4-to-dwinelle-d-to-111",
+        "from": "dwinelle-d-hall-4",
+        "to": "dwinelle-d-to-111",
+        "kind": "path",
+        "cost": 8,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 111 beside this corridor."
+      },
+      {
+        "id": "dwinelle-d-to-111-to-dwinelle-d-hall-4",
+        "from": "dwinelle-d-to-111",
+        "to": "dwinelle-d-hall-4",
+        "kind": "path",
+        "cost": 8,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 4."
+      },
+      {
+        "id": "dwinelle-d-hall-4-to-dwinelle-d-to-109",
+        "from": "dwinelle-d-hall-4",
+        "to": "dwinelle-d-to-109",
+        "kind": "path",
+        "cost": 99,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 109 beside this corridor."
+      },
+      {
+        "id": "dwinelle-d-to-109-to-dwinelle-d-hall-4",
+        "from": "dwinelle-d-to-109",
+        "to": "dwinelle-d-hall-4",
+        "kind": "path",
+        "cost": 99,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 4."
+      },
+      {
+        "id": "dwinelle-d-hall-5-to-dwinelle-d-to-105",
+        "from": "dwinelle-d-hall-5",
+        "to": "dwinelle-d-to-105",
+        "kind": "path",
+        "cost": 83,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 105 beside this corridor."
+      },
+      {
+        "id": "dwinelle-d-to-105-to-dwinelle-d-hall-5",
+        "from": "dwinelle-d-to-105",
+        "to": "dwinelle-d-hall-5",
+        "kind": "path",
+        "cost": 83,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 5."
+      },
+      {
+        "id": "dwinelle-d-hall-5-to-dwinelle-d-to-106",
+        "from": "dwinelle-d-hall-5",
+        "to": "dwinelle-d-to-106",
+        "kind": "path",
+        "cost": 127,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 106 beside this corridor."
+      },
+      {
+        "id": "dwinelle-d-to-106-to-dwinelle-d-hall-5",
+        "from": "dwinelle-d-to-106",
+        "to": "dwinelle-d-hall-5",
+        "kind": "path",
+        "cost": 127,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 5."
+      },
+      {
+        "id": "dwinelle-d-hall-5-to-dwinelle-d-to-104",
+        "from": "dwinelle-d-hall-5",
+        "to": "dwinelle-d-to-104",
+        "kind": "path",
+        "cost": 59,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 104 beside this corridor."
+      },
+      {
+        "id": "dwinelle-d-to-104-to-dwinelle-d-hall-5",
+        "from": "dwinelle-d-to-104",
+        "to": "dwinelle-d-hall-5",
+        "kind": "path",
+        "cost": 59,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 5."
+      },
+      {
+        "id": "dwinelle-d-hall-6-to-dwinelle-d-to-179",
+        "from": "dwinelle-d-hall-6",
+        "to": "dwinelle-d-to-179",
+        "kind": "path",
+        "cost": 101,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 179 beside this corridor."
+      },
+      {
+        "id": "dwinelle-d-to-179-to-dwinelle-d-hall-6",
+        "from": "dwinelle-d-to-179",
+        "to": "dwinelle-d-hall-6",
+        "kind": "path",
+        "cost": 101,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 6."
+      },
+      {
+        "id": "dwinelle-d-hall-6-to-dwinelle-d-to-183",
+        "from": "dwinelle-d-hall-6",
+        "to": "dwinelle-d-to-183",
+        "kind": "path",
+        "cost": 18,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 183 beside this corridor."
+      },
+      {
+        "id": "dwinelle-d-to-183-to-dwinelle-d-hall-6",
+        "from": "dwinelle-d-to-183",
+        "to": "dwinelle-d-hall-6",
+        "kind": "path",
+        "cost": 18,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 6."
+      },
+      {
+        "id": "dwinelle-d-hall-6-to-dwinelle-d-to-187",
+        "from": "dwinelle-d-hall-6",
+        "to": "dwinelle-d-to-187",
+        "kind": "path",
+        "cost": 65,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 187 beside this corridor."
+      },
+      {
+        "id": "dwinelle-d-to-187-to-dwinelle-d-hall-6",
+        "from": "dwinelle-d-to-187",
+        "to": "dwinelle-d-hall-6",
+        "kind": "path",
+        "cost": 65,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 6."
+      },
+      {
+        "id": "dwinelle-d-hall-7-to-dwinelle-d-to-189",
+        "from": "dwinelle-d-hall-7",
+        "to": "dwinelle-d-to-189",
+        "kind": "path",
+        "cost": 50,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 189 beside this corridor."
+      },
+      {
+        "id": "dwinelle-d-to-189-to-dwinelle-d-hall-7",
+        "from": "dwinelle-d-to-189",
+        "to": "dwinelle-d-hall-7",
+        "kind": "path",
+        "cost": 50,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 7."
+      },
+      {
+        "id": "dwinelle-d-hall-6-to-dwinelle-d-to-182",
+        "from": "dwinelle-d-hall-6",
+        "to": "dwinelle-d-to-182",
+        "kind": "path",
+        "cost": 34,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 182 beside this corridor."
+      },
+      {
+        "id": "dwinelle-d-to-182-to-dwinelle-d-hall-6",
+        "from": "dwinelle-d-to-182",
+        "to": "dwinelle-d-hall-6",
+        "kind": "path",
+        "cost": 34,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor D 6."
+      },
+      {
+        "id": "dwinelle-e-hall-0-to-dwinelle-e-hall-2",
+        "from": "dwinelle-e-hall-0",
+        "to": "dwinelle-e-hall-2",
+        "kind": "path",
+        "cost": 28,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor E."
+      },
+      {
+        "id": "dwinelle-e-hall-2-to-dwinelle-e-hall-0",
+        "from": "dwinelle-e-hall-2",
+        "to": "dwinelle-e-hall-0",
+        "kind": "path",
+        "cost": 28,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Stair landing beside Room 242."
+      },
+      {
+        "id": "dwinelle-e-hall-2-to-dwinelle-e-hall-1",
+        "from": "dwinelle-e-hall-2",
+        "to": "dwinelle-e-hall-1",
+        "kind": "path",
+        "cost": 388,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor E."
+      },
+      {
+        "id": "dwinelle-e-hall-1-to-dwinelle-e-hall-2",
+        "from": "dwinelle-e-hall-1",
+        "to": "dwinelle-e-hall-2",
+        "kind": "path",
+        "cost": 388,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 2."
+      },
+      {
+        "id": "dwinelle-e-hall-2-to-dwinelle-e-hall-3",
+        "from": "dwinelle-e-hall-2",
+        "to": "dwinelle-e-hall-3",
+        "kind": "path",
+        "cost": 472,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor E."
+      },
+      {
+        "id": "dwinelle-e-hall-3-to-dwinelle-e-hall-2",
+        "from": "dwinelle-e-hall-3",
+        "to": "dwinelle-e-hall-2",
+        "kind": "path",
+        "cost": 472,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 2."
+      },
+      {
+        "id": "dwinelle-e-hall-3-to-dwinelle-e-hall-4",
+        "from": "dwinelle-e-hall-3",
+        "to": "dwinelle-e-hall-4",
+        "kind": "path",
+        "cost": 59,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor E."
+      },
+      {
+        "id": "dwinelle-e-hall-4-to-dwinelle-e-hall-3",
+        "from": "dwinelle-e-hall-4",
+        "to": "dwinelle-e-hall-3",
+        "kind": "path",
+        "cost": 59,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 3."
+      },
+      {
+        "id": "dwinelle-e-hall-1-to-dwinelle-e-to-235",
+        "from": "dwinelle-e-hall-1",
+        "to": "dwinelle-e-to-235",
+        "kind": "path",
+        "cost": 46,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 235 beside this corridor."
+      },
+      {
+        "id": "dwinelle-e-to-235-to-dwinelle-e-hall-1",
+        "from": "dwinelle-e-to-235",
+        "to": "dwinelle-e-hall-1",
+        "kind": "path",
+        "cost": 46,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 1."
+      },
+      {
+        "id": "dwinelle-e-hall-1-to-dwinelle-e-to-234",
+        "from": "dwinelle-e-hall-1",
+        "to": "dwinelle-e-to-234",
+        "kind": "path",
+        "cost": 70,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 234 beside this corridor."
+      },
+      {
+        "id": "dwinelle-e-to-234-to-dwinelle-e-hall-1",
+        "from": "dwinelle-e-to-234",
+        "to": "dwinelle-e-hall-1",
+        "kind": "path",
+        "cost": 70,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 1."
+      },
+      {
+        "id": "dwinelle-e-hall-1-to-dwinelle-e-to-229",
+        "from": "dwinelle-e-hall-1",
+        "to": "dwinelle-e-to-229",
+        "kind": "path",
+        "cost": 157,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 229 beside this corridor."
+      },
+      {
+        "id": "dwinelle-e-to-229-to-dwinelle-e-hall-1",
+        "from": "dwinelle-e-to-229",
+        "to": "dwinelle-e-hall-1",
+        "kind": "path",
+        "cost": 157,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 1."
+      },
+      {
+        "id": "dwinelle-e-hall-1-to-dwinelle-e-to-228",
+        "from": "dwinelle-e-hall-1",
+        "to": "dwinelle-e-to-228",
+        "kind": "path",
+        "cost": 157,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 228 beside this corridor."
+      },
+      {
+        "id": "dwinelle-e-to-228-to-dwinelle-e-hall-1",
+        "from": "dwinelle-e-to-228",
+        "to": "dwinelle-e-hall-1",
+        "kind": "path",
+        "cost": 157,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 1."
+      },
+      {
+        "id": "dwinelle-e-hall-2-to-dwinelle-e-to-243",
+        "from": "dwinelle-e-hall-2",
+        "to": "dwinelle-e-to-243",
+        "kind": "path",
+        "cost": 96,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 243 beside this corridor."
+      },
+      {
+        "id": "dwinelle-e-to-243-to-dwinelle-e-hall-2",
+        "from": "dwinelle-e-to-243",
+        "to": "dwinelle-e-hall-2",
+        "kind": "path",
+        "cost": 96,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 2."
+      },
+      {
+        "id": "dwinelle-e-hall-2-to-dwinelle-e-to-247",
+        "from": "dwinelle-e-hall-2",
+        "to": "dwinelle-e-to-247",
+        "kind": "path",
+        "cost": 159,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 247 beside this corridor."
+      },
+      {
+        "id": "dwinelle-e-to-247-to-dwinelle-e-hall-2",
+        "from": "dwinelle-e-to-247",
+        "to": "dwinelle-e-hall-2",
+        "kind": "path",
+        "cost": 159,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 2."
+      },
+      {
+        "id": "dwinelle-e-hall-2-to-dwinelle-e-to-251",
+        "from": "dwinelle-e-hall-2",
+        "to": "dwinelle-e-to-251",
+        "kind": "path",
+        "cost": 215,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 251 beside this corridor."
+      },
+      {
+        "id": "dwinelle-e-to-251-to-dwinelle-e-hall-2",
+        "from": "dwinelle-e-to-251",
+        "to": "dwinelle-e-hall-2",
+        "kind": "path",
+        "cost": 215,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 2."
+      },
+      {
+        "id": "dwinelle-e-hall-2-to-dwinelle-e-to-255",
+        "from": "dwinelle-e-hall-2",
+        "to": "dwinelle-e-to-255",
+        "kind": "path",
+        "cost": 271,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 255 beside this corridor."
+      },
+      {
+        "id": "dwinelle-e-to-255-to-dwinelle-e-hall-2",
+        "from": "dwinelle-e-to-255",
+        "to": "dwinelle-e-hall-2",
+        "kind": "path",
+        "cost": 271,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 2."
+      },
+      {
+        "id": "dwinelle-e-hall-2-to-dwinelle-e-to-259",
+        "from": "dwinelle-e-hall-2",
+        "to": "dwinelle-e-to-259",
+        "kind": "path",
+        "cost": 327,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 259 beside this corridor."
+      },
+      {
+        "id": "dwinelle-e-to-259-to-dwinelle-e-hall-2",
+        "from": "dwinelle-e-to-259",
+        "to": "dwinelle-e-hall-2",
+        "kind": "path",
+        "cost": 327,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 2."
+      },
+      {
+        "id": "dwinelle-e-hall-3-to-dwinelle-e-to-263",
+        "from": "dwinelle-e-hall-3",
+        "to": "dwinelle-e-to-263",
+        "kind": "path",
+        "cost": 91,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 263 beside this corridor."
+      },
+      {
+        "id": "dwinelle-e-to-263-to-dwinelle-e-hall-3",
+        "from": "dwinelle-e-to-263",
+        "to": "dwinelle-e-hall-3",
+        "kind": "path",
+        "cost": 91,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 3."
+      },
+      {
+        "id": "dwinelle-e-hall-2-to-dwinelle-e-to-242",
+        "from": "dwinelle-e-hall-2",
+        "to": "dwinelle-e-to-242",
+        "kind": "path",
+        "cost": 93,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 242 beside this corridor."
+      },
+      {
+        "id": "dwinelle-e-to-242-to-dwinelle-e-hall-2",
+        "from": "dwinelle-e-to-242",
+        "to": "dwinelle-e-hall-2",
+        "kind": "path",
+        "cost": 93,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 2."
+      },
+      {
+        "id": "dwinelle-e-hall-2-to-dwinelle-e-to-246",
+        "from": "dwinelle-e-hall-2",
+        "to": "dwinelle-e-to-246",
+        "kind": "path",
+        "cost": 152,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 246 beside this corridor."
+      },
+      {
+        "id": "dwinelle-e-to-246-to-dwinelle-e-hall-2",
+        "from": "dwinelle-e-to-246",
+        "to": "dwinelle-e-hall-2",
+        "kind": "path",
+        "cost": 152,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 2."
+      },
+      {
+        "id": "dwinelle-e-hall-2-to-dwinelle-e-to-250",
+        "from": "dwinelle-e-hall-2",
+        "to": "dwinelle-e-to-250",
+        "kind": "path",
+        "cost": 213,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 250 beside this corridor."
+      },
+      {
+        "id": "dwinelle-e-to-250-to-dwinelle-e-hall-2",
+        "from": "dwinelle-e-to-250",
+        "to": "dwinelle-e-hall-2",
+        "kind": "path",
+        "cost": 213,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 2."
+      },
+      {
+        "id": "dwinelle-e-hall-2-to-dwinelle-e-to-254",
+        "from": "dwinelle-e-hall-2",
+        "to": "dwinelle-e-to-254",
+        "kind": "path",
+        "cost": 269,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 254 beside this corridor."
+      },
+      {
+        "id": "dwinelle-e-to-254-to-dwinelle-e-hall-2",
+        "from": "dwinelle-e-to-254",
+        "to": "dwinelle-e-hall-2",
+        "kind": "path",
+        "cost": 269,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 2."
+      },
+      {
+        "id": "dwinelle-e-hall-2-to-dwinelle-e-to-258",
+        "from": "dwinelle-e-hall-2",
+        "to": "dwinelle-e-to-258",
+        "kind": "path",
+        "cost": 325,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 258 beside this corridor."
+      },
+      {
+        "id": "dwinelle-e-to-258-to-dwinelle-e-hall-2",
+        "from": "dwinelle-e-to-258",
+        "to": "dwinelle-e-hall-2",
+        "kind": "path",
+        "cost": 325,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 2."
+      },
+      {
+        "id": "dwinelle-e-hall-3-to-dwinelle-e-to-262",
+        "from": "dwinelle-e-hall-3",
+        "to": "dwinelle-e-to-262",
+        "kind": "path",
+        "cost": 94,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 262 beside this corridor."
+      },
+      {
+        "id": "dwinelle-e-to-262-to-dwinelle-e-hall-3",
+        "from": "dwinelle-e-to-262",
+        "to": "dwinelle-e-hall-3",
+        "kind": "path",
+        "cost": 94,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor E 3."
+      },
+      {
+        "id": "dwinelle-c-hall-0-to-dwinelle-c-hall-1",
+        "from": "dwinelle-c-hall-0",
+        "to": "dwinelle-c-hall-1",
+        "kind": "path",
+        "cost": 394,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor C."
+      },
+      {
+        "id": "dwinelle-c-hall-1-to-dwinelle-c-hall-0",
+        "from": "dwinelle-c-hall-1",
+        "to": "dwinelle-c-hall-0",
+        "kind": "path",
+        "cost": 394,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Stair landing \u00b7 upper-left corridor."
+      },
+      {
+        "id": "dwinelle-c-hall-1-to-dwinelle-c-hall-2",
+        "from": "dwinelle-c-hall-1",
+        "to": "dwinelle-c-hall-2",
+        "kind": "path",
+        "cost": 480,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor C."
+      },
+      {
+        "id": "dwinelle-c-hall-2-to-dwinelle-c-hall-1",
+        "from": "dwinelle-c-hall-2",
+        "to": "dwinelle-c-hall-1",
+        "kind": "path",
+        "cost": 480,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor C 1."
+      },
+      {
+        "id": "dwinelle-c-hall-2-to-dwinelle-c-hall-3",
+        "from": "dwinelle-c-hall-2",
+        "to": "dwinelle-c-hall-3",
+        "kind": "path",
+        "cost": 323,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor C."
+      },
+      {
+        "id": "dwinelle-c-hall-3-to-dwinelle-c-hall-2",
+        "from": "dwinelle-c-hall-3",
+        "to": "dwinelle-c-hall-2",
+        "kind": "path",
+        "cost": 323,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor C 2."
+      },
+      {
+        "id": "dwinelle-c-hall-1-to-dwinelle-c-hall-4",
+        "from": "dwinelle-c-hall-1",
+        "to": "dwinelle-c-hall-4",
+        "kind": "path",
+        "cost": 354,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor C."
+      },
+      {
+        "id": "dwinelle-c-hall-4-to-dwinelle-c-hall-1",
+        "from": "dwinelle-c-hall-4",
+        "to": "dwinelle-c-hall-1",
+        "kind": "path",
+        "cost": 354,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor C 1."
+      },
+      {
+        "id": "dwinelle-c-hall-1-to-dwinelle-c-to-155",
+        "from": "dwinelle-c-hall-1",
+        "to": "dwinelle-c-to-155",
+        "kind": "path",
+        "cost": 273,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 155 beside this corridor."
+      },
+      {
+        "id": "dwinelle-c-to-155-to-dwinelle-c-hall-1",
+        "from": "dwinelle-c-to-155",
+        "to": "dwinelle-c-hall-1",
+        "kind": "path",
+        "cost": 273,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor C 1."
+      },
+      {
+        "id": "dwinelle-c-hall-2-to-dwinelle-c-to-79",
+        "from": "dwinelle-c-hall-2",
+        "to": "dwinelle-c-to-79",
+        "kind": "path",
+        "cost": 38,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 79 beside this corridor."
+      },
+      {
+        "id": "dwinelle-c-to-79-to-dwinelle-c-hall-2",
+        "from": "dwinelle-c-to-79",
+        "to": "dwinelle-c-hall-2",
+        "kind": "path",
+        "cost": 38,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor C 2."
+      },
+      {
+        "id": "dwinelle-c-hall-2-to-dwinelle-c-to-83",
+        "from": "dwinelle-c-hall-2",
+        "to": "dwinelle-c-to-83",
+        "kind": "path",
+        "cost": 126,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 83 beside this corridor."
+      },
+      {
+        "id": "dwinelle-c-to-83-to-dwinelle-c-hall-2",
+        "from": "dwinelle-c-to-83",
+        "to": "dwinelle-c-hall-2",
+        "kind": "path",
+        "cost": 126,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor C 2."
+      },
+      {
+        "id": "dwinelle-c-hall-3-to-dwinelle-c-to-87",
+        "from": "dwinelle-c-hall-3",
+        "to": "dwinelle-c-to-87",
+        "kind": "path",
+        "cost": 115,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 87 beside this corridor."
+      },
+      {
+        "id": "dwinelle-c-to-87-to-dwinelle-c-hall-3",
+        "from": "dwinelle-c-to-87",
+        "to": "dwinelle-c-hall-3",
+        "kind": "path",
+        "cost": 115,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor C 3."
+      },
+      {
+        "id": "dwinelle-c-hall-3-to-dwinelle-c-to-89",
+        "from": "dwinelle-c-hall-3",
+        "to": "dwinelle-c-to-89",
+        "kind": "path",
+        "cost": 40,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 89 beside this corridor."
+      },
+      {
+        "id": "dwinelle-c-to-89-to-dwinelle-c-hall-3",
+        "from": "dwinelle-c-to-89",
+        "to": "dwinelle-c-hall-3",
+        "kind": "path",
+        "cost": 40,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor C 3."
+      },
+      {
+        "id": "dwinelle-c-hall-3-to-dwinelle-c-to-88",
+        "from": "dwinelle-c-hall-3",
+        "to": "dwinelle-c-to-88",
+        "kind": "path",
+        "cost": 61,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 88 beside this corridor."
+      },
+      {
+        "id": "dwinelle-c-to-88-to-dwinelle-c-hall-3",
+        "from": "dwinelle-c-to-88",
+        "to": "dwinelle-c-hall-3",
+        "kind": "path",
+        "cost": 61,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor C 3."
+      },
+      {
+        "id": "vlsb-2-hall-0-to-vlsb-2-hall-1",
+        "from": "vlsb-2-hall-0",
+        "to": "vlsb-2-hall-1",
+        "kind": "path",
+        "cost": 305,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor 2."
+      },
+      {
+        "id": "vlsb-2-hall-1-to-vlsb-2-hall-0",
+        "from": "vlsb-2-hall-1",
+        "to": "vlsb-2-hall-0",
+        "kind": "path",
+        "cost": 305,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Main entrance \u00b7 Floor 2."
+      },
+      {
+        "id": "vlsb-2-hall-1-to-vlsb-2-hall-2",
+        "from": "vlsb-2-hall-1",
+        "to": "vlsb-2-hall-2",
+        "kind": "path",
+        "cost": 561,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor 2."
+      },
+      {
+        "id": "vlsb-2-hall-2-to-vlsb-2-hall-1",
+        "from": "vlsb-2-hall-2",
+        "to": "vlsb-2-hall-1",
+        "kind": "path",
+        "cost": 561,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 1."
+      },
+      {
+        "id": "vlsb-2-hall-1-to-vlsb-2-hall-3",
+        "from": "vlsb-2-hall-1",
+        "to": "vlsb-2-hall-3",
+        "kind": "path",
+        "cost": 73,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor 2."
+      },
+      {
+        "id": "vlsb-2-hall-3-to-vlsb-2-hall-1",
+        "from": "vlsb-2-hall-3",
+        "to": "vlsb-2-hall-1",
+        "kind": "path",
+        "cost": 73,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 1."
+      },
+      {
+        "id": "vlsb-2-hall-3-to-vlsb-2-hall-4",
+        "from": "vlsb-2-hall-3",
+        "to": "vlsb-2-hall-4",
+        "kind": "path",
+        "cost": 8,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor 2."
+      },
+      {
+        "id": "vlsb-2-hall-4-to-vlsb-2-hall-3",
+        "from": "vlsb-2-hall-4",
+        "to": "vlsb-2-hall-3",
+        "kind": "path",
+        "cost": 8,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 3."
+      },
+      {
+        "id": "vlsb-2-hall-3-to-vlsb-2-hall-5",
+        "from": "vlsb-2-hall-3",
+        "to": "vlsb-2-hall-5",
+        "kind": "path",
+        "cost": 23,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor on Floor 2."
+      },
+      {
+        "id": "vlsb-2-hall-5-to-vlsb-2-hall-3",
+        "from": "vlsb-2-hall-5",
+        "to": "vlsb-2-hall-3",
+        "kind": "path",
+        "cost": 23,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 3."
+      },
+      {
+        "id": "vlsb-2-hall-2-to-vlsb-2-to-2030",
+        "from": "vlsb-2-hall-2",
+        "to": "vlsb-2-to-2030",
+        "kind": "path",
+        "cost": 25,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 2030 beside this corridor."
+      },
+      {
+        "id": "vlsb-2-to-2030-to-vlsb-2-hall-2",
+        "from": "vlsb-2-to-2030",
+        "to": "vlsb-2-hall-2",
+        "kind": "path",
+        "cost": 25,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 2."
+      },
+      {
+        "id": "vlsb-2-hall-2-to-vlsb-2-to-2032",
+        "from": "vlsb-2-hall-2",
+        "to": "vlsb-2-to-2032",
+        "kind": "path",
+        "cost": 123,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 2032 beside this corridor."
+      },
+      {
+        "id": "vlsb-2-to-2032-to-vlsb-2-hall-2",
+        "from": "vlsb-2-to-2032",
+        "to": "vlsb-2-hall-2",
+        "kind": "path",
+        "cost": 123,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 2."
+      },
+      {
+        "id": "vlsb-2-hall-2-to-vlsb-2-to-2038",
+        "from": "vlsb-2-hall-2",
+        "to": "vlsb-2-to-2038",
+        "kind": "path",
+        "cost": 252,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 2038 beside this corridor."
+      },
+      {
+        "id": "vlsb-2-to-2038-to-vlsb-2-hall-2",
+        "from": "vlsb-2-to-2038",
+        "to": "vlsb-2-hall-2",
+        "kind": "path",
+        "cost": 252,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 2."
+      },
+      {
+        "id": "vlsb-2-hall-5-to-vlsb-2-to-2050",
+        "from": "vlsb-2-hall-5",
+        "to": "vlsb-2-to-2050",
+        "kind": "path",
+        "cost": 8,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 2050 beside this corridor."
+      },
+      {
+        "id": "vlsb-2-to-2050-to-vlsb-2-hall-5",
+        "from": "vlsb-2-to-2050",
+        "to": "vlsb-2-hall-5",
+        "kind": "path",
+        "cost": 8,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 5."
+      },
+      {
+        "id": "vlsb-2-hall-4-to-vlsb-2-to-2060",
+        "from": "vlsb-2-hall-4",
+        "to": "vlsb-2-to-2060",
+        "kind": "path",
+        "cost": 1,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 2060 beside this corridor."
+      },
+      {
+        "id": "vlsb-2-to-2060-to-vlsb-2-hall-4",
+        "from": "vlsb-2-to-2060",
+        "to": "vlsb-2-hall-4",
+        "kind": "path",
+        "cost": 1,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Corridor Floor 2 4."
+      },
+      {
+        "id": "vlsb-2-hall-0-to-vlsb-2-to-2062",
+        "from": "vlsb-2-hall-0",
+        "to": "vlsb-2-to-2062",
+        "kind": "path",
+        "cost": 248,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 2062 beside this corridor."
+      },
+      {
+        "id": "vlsb-2-to-2062-to-vlsb-2-hall-0",
+        "from": "vlsb-2-to-2062",
+        "to": "vlsb-2-hall-0",
+        "kind": "path",
+        "cost": 248,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Main entrance \u00b7 Floor 2."
+      },
+      {
+        "id": "vlsb-2-hall-0-to-vlsb-2-to-2066",
+        "from": "vlsb-2-hall-0",
+        "to": "vlsb-2-to-2066",
+        "kind": "path",
+        "cost": 108,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 2066 beside this corridor."
+      },
+      {
+        "id": "vlsb-2-to-2066-to-vlsb-2-hall-0",
+        "from": "vlsb-2-to-2066",
+        "to": "vlsb-2-hall-0",
+        "kind": "path",
+        "cost": 108,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Main entrance \u00b7 Floor 2."
+      },
+      {
+        "id": "vlsb-2-hall-0-to-vlsb-2-to-2070",
+        "from": "vlsb-2-hall-0",
+        "to": "vlsb-2-to-2070",
+        "kind": "path",
+        "cost": 15,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Find Room 2070 beside this corridor."
+      },
+      {
+        "id": "vlsb-2-to-2070-to-vlsb-2-hall-0",
+        "from": "vlsb-2-to-2070",
+        "to": "vlsb-2-hall-0",
+        "kind": "path",
+        "cost": 15,
+        "stepFree": false,
+        "closed": false,
+        "status": "mapped",
+        "verificationNote": "BMT-supplied historical floor plan; not an on-site access or accessibility check.",
+        "instruction": "Follow the highlighted corridor back toward Main entrance \u00b7 Floor 2."
+      }
+    ]
+  },
   "buildings": [
     {
       "id": "demo-learning-center",
       "name": "Demo Learning Center",
-      "aliases": ["Demo", "Sample building"],
-      "coordinates": [37.8706, -122.2607],
+      "aliases": [
+        "Demo",
+        "Sample building"
+      ],
+      "coordinates": [
+        37.8706,
+        -122.2607
+      ],
       "status": "demo",
-      "verificationNote": "Fictional building placed near campus only to demonstrate the room finder. This is not Dwinelle Hall, a real floor plan, or a real entrance location.",
+      "verificationNote": "Sample building \u2014 not a campus destination.",
       "entrances": [
-        {"id": "demo-main", "name": "Demo main entrance", "coordinates": [37.8705, -122.2607], "accessible": false, "notes": "Illustration only: this sample entrance uses steps.", "steps": ["In this demonstration, start at the entrance marked Main.", "Follow the sample lobby sign to the ground-floor corridor."]},
-        {"id": "demo-step-free", "name": "Demo step-free entrance", "coordinates": [37.8706, -122.2608], "accessible": true, "notes": "Demonstration of an accessible route, not a verified campus access point.", "steps": ["In this demonstration, use the entrance marked Step-free.", "Continue along the level sample corridor; no stairs are shown."]}
+        {
+          "id": "demo-main",
+          "name": "Demo main entrance",
+          "coordinates": [
+            37.8705,
+            -122.2607
+          ],
+          "accessible": false,
+          "notes": "Illustration only: this sample entrance uses steps.",
+          "steps": [
+            "In this demonstration, start at the entrance marked Main.",
+            "Follow the sample lobby sign to the ground-floor corridor."
+          ]
+        },
+        {
+          "id": "demo-step-free",
+          "name": "Demo step-free entrance",
+          "coordinates": [
+            37.8706,
+            -122.2608
+          ],
+          "accessible": true,
+          "notes": "Demonstration of an accessible route, not a verified campus access point.",
+          "steps": [
+            "In this demonstration, use the entrance marked Step-free.",
+            "Continue along the level sample corridor; no stairs are shown."
+          ]
+        }
       ],
       "floors": [
         {
           "id": "demo-ground",
-          "name": "Ground floor · demonstration",
-          "image": {"url": "/demo-maps/sample-floor.svg", "alt": "Demonstration only: a fictional rectangular ground floor with rooms A101 and A102 on either side of a corridor, a main entrance and a step-free entrance.", "caption": "Illustrative layout only. Not to scale and not a real campus floor plan.", "demonstration": true},
+          "name": "Ground floor \u00b7 demonstration",
+          "image": {
+            "url": "/demo-maps/sample-floor.svg",
+            "alt": "Demonstration only: a fictional rectangular ground floor with rooms A101 and A102 on either side of a corridor, a main entrance and a step-free entrance.",
+            "caption": "Illustrative layout only. Not to scale and not a real campus floor plan.",
+            "demonstration": true
+          },
           "rooms": [
-            {"id": "demo-a101", "code": "A101", "name": "Sample test room", "route": {"entranceId": "demo-main", "steps": ["From the sample lobby, take the corridor to the left.", "Look for the door labeled A101, marked 1 on the demonstration plan."]}, "accessibleRoute": {"entranceId": "demo-step-free", "steps": ["Continue along the sample level corridor.", "Enter A101 through the marked door on your left."]}, "hotspot": {"x": 26, "y": 34}},
-            {"id": "demo-a102", "code": "A102", "name": "Sample team room", "route": {"entranceId": "demo-main", "steps": ["From the sample lobby, follow the corridor to the right.", "Look for A102, marked 2 on the demonstration plan."]}, "accessibleRoute": {"entranceId": "demo-step-free", "steps": ["Follow the sample level corridor past A101.", "Use the door marked A102 on the right."]}, "hotspot": {"x": 73, "y": 34}}
+            {
+              "id": "demo-a101",
+              "code": "A101",
+              "name": "Sample test room",
+              "route": {
+                "entranceId": "demo-main",
+                "steps": [
+                  "From the sample lobby, take the corridor to the left.",
+                  "Look for the door labeled A101, marked 1 on the demonstration plan."
+                ]
+              },
+              "accessibleRoute": {
+                "entranceId": "demo-step-free",
+                "steps": [
+                  "Continue along the sample level corridor.",
+                  "Enter A101 through the marked door on your left."
+                ]
+              },
+              "hotspot": {
+                "x": 26,
+                "y": 34
+              }
+            },
+            {
+              "id": "demo-a102",
+              "code": "A102",
+              "name": "Sample team room",
+              "route": {
+                "entranceId": "demo-main",
+                "steps": [
+                  "From the sample lobby, follow the corridor to the right.",
+                  "Look for A102, marked 2 on the demonstration plan."
+                ]
+              },
+              "accessibleRoute": {
+                "entranceId": "demo-step-free",
+                "steps": [
+                  "Follow the sample level corridor past A101.",
+                  "Use the door marked A102 on the right."
+                ]
+              },
+              "hotspot": {
+                "x": 73,
+                "y": 34
+              }
+            }
           ]
         }
       ]
@@ -31,22 +3439,1197 @@
     {
       "id": "dwinelle",
       "name": "Dwinelle Hall",
-      "aliases": ["Dwinelle"],
-      "coordinates": [37.8707, -122.2607],
-      "status": "unverified",
-      "verificationNote": "Approximate building location from the existing campus map. Entrances, floors and tournament room allocations have not been verified for November 14, 2026. Ask staff for directions; no indoor route is published yet.",
-      "entrances": [],
-      "floors": []
+      "aliases": [
+        "Dwinelle"
+      ],
+      "coordinates": [
+        37.8707,
+        -122.2607
+      ],
+      "status": "mapped",
+      "verificationNote": "Based on the historical floor plan supplied by BMT. Follow posted signs and staff instructions if access changes.",
+      "entrances": [
+        {
+          "id": "dwinelle-main",
+          "name": "Main entrance",
+          "coordinates": [
+            37.8707,
+            -122.2607
+          ],
+          "accessible": false,
+          "notes": "Use the entrance marked on the floor plan. For step-free access, ask a volunteer.",
+          "steps": [
+            "Follow the building signs to the main entrance shown on the plan."
+          ]
+        }
+      ],
+      "floors": [
+        {
+          "id": "dwinelle-d",
+          "name": "Floor D",
+          "image": {
+            "url": "/media/9c5af66874deff52f9f1dc4ef026f376ece5f514e3c8604053ba7cfedf6424ad.webp",
+            "alt": "Dwinelle Hall, Floor D: rooms, corridors, stairs, elevators and restrooms.",
+            "caption": "Historical floor plan supplied by BMT, adapted from College of Letters and Science Facilities Office materials.",
+            "demonstration": false
+          },
+          "rooms": [
+            {
+              "id": "dwinelle-d-134",
+              "code": "134",
+              "name": "Room 134",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor D using the building's signs.",
+                  "Find Room 134 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 18.831,
+                "y": 21.98
+              }
+            },
+            {
+              "id": "dwinelle-d-130",
+              "code": "130",
+              "name": "Room 130",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor D using the building's signs.",
+                  "Find Room 130 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 18.182,
+                "y": 31.683
+              }
+            },
+            {
+              "id": "dwinelle-d-145",
+              "code": "145",
+              "name": "Auditorium",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor D using the building's signs.",
+                  "Find Room 145 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 25.974,
+                "y": 40.396
+              }
+            },
+            {
+              "id": "dwinelle-d-155",
+              "code": "155",
+              "name": "Auditorium",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor D using the building's signs.",
+                  "Find Room 155 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 48.442,
+                "y": 38.812
+              }
+            },
+            {
+              "id": "dwinelle-d-111",
+              "code": "111",
+              "name": "Room 111",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor D using the building's signs.",
+                  "Find Room 111 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 7.013,
+                "y": 63.366
+              }
+            },
+            {
+              "id": "dwinelle-d-109",
+              "code": "109",
+              "name": "Room 109",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor D using the building's signs.",
+                  "Find Room 109 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 6.104,
+                "y": 74.059
+              }
+            },
+            {
+              "id": "dwinelle-d-105",
+              "code": "105",
+              "name": "Room 105",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor D using the building's signs.",
+                  "Find Room 105 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 5.325,
+                "y": 81.386
+              }
+            },
+            {
+              "id": "dwinelle-d-106",
+              "code": "106",
+              "name": "Room 106",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor D using the building's signs.",
+                  "Find Room 106 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 14.416,
+                "y": 77.03
+              }
+            },
+            {
+              "id": "dwinelle-d-104",
+              "code": "104",
+              "name": "Room 104",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor D using the building's signs.",
+                  "Find Room 104 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 14.026,
+                "y": 83.762
+              }
+            },
+            {
+              "id": "dwinelle-d-179",
+              "code": "179",
+              "name": "Room 179",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor D using the building's signs.",
+                  "Find Room 179 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 64.675,
+                "y": 62.178
+              }
+            },
+            {
+              "id": "dwinelle-d-183",
+              "code": "183",
+              "name": "Room 183",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor D using the building's signs.",
+                  "Find Room 183 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 64.545,
+                "y": 70.495
+              }
+            },
+            {
+              "id": "dwinelle-d-187",
+              "code": "187",
+              "name": "Room 187",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor D using the building's signs.",
+                  "Find Room 187 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 64.416,
+                "y": 78.812
+              }
+            },
+            {
+              "id": "dwinelle-d-189",
+              "code": "189",
+              "name": "Room 189",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor D using the building's signs.",
+                  "Find Room 189 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 64.286,
+                "y": 86.733
+              }
+            },
+            {
+              "id": "dwinelle-d-182",
+              "code": "182",
+              "name": "Room 182",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor D using the building's signs.",
+                  "Find Room 182 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 56.234,
+                "y": 75.644
+              }
+            }
+          ]
+        },
+        {
+          "id": "dwinelle-e",
+          "name": "Floor E",
+          "image": {
+            "url": "/media/a3b472fafa3ce874347e88cfa364f3abad7271655974cff8320fb4874c96473e.webp",
+            "alt": "Dwinelle Hall, Floor E: rooms, corridors, stairs, elevators and restrooms.",
+            "caption": "Historical floor plan supplied by BMT, adapted from College of Letters and Science Facilities Office materials.",
+            "demonstration": false
+          },
+          "rooms": [
+            {
+              "id": "dwinelle-e-235",
+              "code": "235",
+              "name": "Room 235",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor E using the building's signs.",
+                  "Find Room 235 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 10.897,
+                "y": 24.862
+              }
+            },
+            {
+              "id": "dwinelle-e-234",
+              "code": "234",
+              "name": "Room 234",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor E using the building's signs.",
+                  "Find Room 234 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 19.359,
+                "y": 27.993
+              }
+            },
+            {
+              "id": "dwinelle-e-229",
+              "code": "229",
+              "name": "Room 229",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor E using the building's signs.",
+                  "Find Room 229 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 10.128,
+                "y": 36.28
+              }
+            },
+            {
+              "id": "dwinelle-e-228",
+              "code": "228",
+              "name": "Room 228",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor E using the building's signs.",
+                  "Find Room 228 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 18.462,
+                "y": 36.28
+              }
+            },
+            {
+              "id": "dwinelle-e-243",
+              "code": "243",
+              "name": "Room 243",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor E using the building's signs.",
+                  "Find Room 243 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 22.564,
+                "y": 55.801
+              }
+            },
+            {
+              "id": "dwinelle-e-247",
+              "code": "247",
+              "name": "Room 247",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor E using the building's signs.",
+                  "Find Room 247 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 28.846,
+                "y": 56.538
+              }
+            },
+            {
+              "id": "dwinelle-e-251",
+              "code": "251",
+              "name": "Room 251",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor E using the building's signs.",
+                  "Find Room 251 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 34.359,
+                "y": 57.09
+              }
+            },
+            {
+              "id": "dwinelle-e-255",
+              "code": "255",
+              "name": "Room 255",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor E using the building's signs.",
+                  "Find Room 255 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 40.0,
+                "y": 57.643
+              }
+            },
+            {
+              "id": "dwinelle-e-259",
+              "code": "259",
+              "name": "Room 259",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor E using the building's signs.",
+                  "Find Room 259 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 45.513,
+                "y": 58.379
+              }
+            },
+            {
+              "id": "dwinelle-e-263",
+              "code": "263",
+              "name": "Room 263",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor E using the building's signs.",
+                  "Find Room 263 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 50.897,
+                "y": 58.932
+              }
+            },
+            {
+              "id": "dwinelle-e-242",
+              "code": "242",
+              "name": "Room 242",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor E using the building's signs.",
+                  "Find Room 242 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 22.179,
+                "y": 65.93
+              }
+            },
+            {
+              "id": "dwinelle-e-246",
+              "code": "246",
+              "name": "Room 246",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor E using the building's signs.",
+                  "Find Room 246 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 28.077,
+                "y": 66.667
+              }
+            },
+            {
+              "id": "dwinelle-e-250",
+              "code": "250",
+              "name": "Room 250",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor E using the building's signs.",
+                  "Find Room 250 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 34.231,
+                "y": 67.219
+              }
+            },
+            {
+              "id": "dwinelle-e-254",
+              "code": "254",
+              "name": "Room 254",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor E using the building's signs.",
+                  "Find Room 254 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 39.744,
+                "y": 67.772
+              }
+            },
+            {
+              "id": "dwinelle-e-258",
+              "code": "258",
+              "name": "Room 258",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor E using the building's signs.",
+                  "Find Room 258 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 45.385,
+                "y": 68.508
+              }
+            },
+            {
+              "id": "dwinelle-e-262",
+              "code": "262",
+              "name": "Room 262",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor E using the building's signs.",
+                  "Find Room 262 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 50.641,
+                "y": 69.061
+              }
+            }
+          ]
+        },
+        {
+          "id": "dwinelle-c",
+          "name": "Floor C",
+          "image": {
+            "url": "/media/18361bccebfd2d6578e1caaaad13a06dd730faa46fb4582395a505fc6f34fc97.webp",
+            "alt": "Dwinelle Hall, Floor C: rooms, corridors, stairs, elevators and restrooms.",
+            "caption": "Historical floor plan supplied by BMT, adapted from College of Letters and Science Facilities Office materials.",
+            "demonstration": false
+          },
+          "rooms": [
+            {
+              "id": "dwinelle-c-155",
+              "code": "155",
+              "name": "Auditorium, lower level",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor C using the building's signs.",
+                  "Find Room 155 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 49.011,
+                "y": 35.22
+              }
+            },
+            {
+              "id": "dwinelle-c-79",
+              "code": "79",
+              "name": "Room 79",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor C using the building's signs.",
+                  "Find Room 79 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 64.407,
+                "y": 58.281
+              }
+            },
+            {
+              "id": "dwinelle-c-83",
+              "code": "83",
+              "name": "Room 83",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor C using the building's signs.",
+                  "Find Room 83 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 64.548,
+                "y": 67.086
+              }
+            },
+            {
+              "id": "dwinelle-c-87",
+              "code": "87",
+              "name": "Room 87",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor C using the building's signs.",
+                  "Find Room 87 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 64.689,
+                "y": 75.262
+              }
+            },
+            {
+              "id": "dwinelle-c-89",
+              "code": "89",
+              "name": "Room 89",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor C using the building's signs.",
+                  "Find Room 89 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 64.689,
+                "y": 82.809
+              }
+            },
+            {
+              "id": "dwinelle-c-88",
+              "code": "88",
+              "name": "Room 88",
+              "route": {
+                "entranceId": "dwinelle-main",
+                "steps": [
+                  "Locate Floor C using the building's signs.",
+                  "Find Room 88 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 56.215,
+                "y": 80.713
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "wheeler",
       "name": "Wheeler Hall",
-      "aliases": ["Wheeler"],
-      "coordinates": [37.8713, -122.2592],
-      "status": "unverified",
-      "verificationNote": "Approximate building location from the existing campus map. Tournament rooms and accessible entrances await an on-site check; ask staff before traveling to a room.",
-      "entrances": [],
-      "floors": []
+      "aliases": [
+        "Wheeler"
+      ],
+      "coordinates": [
+        37.8713,
+        -122.2592
+      ],
+      "status": "mapped",
+      "verificationNote": "Based on the historical floor plan supplied by BMT. Follow posted signs and staff instructions if access changes.",
+      "entrances": [
+        {
+          "id": "wheeler-main",
+          "name": "Main entrance",
+          "coordinates": [
+            37.8713,
+            -122.2592
+          ],
+          "accessible": false,
+          "notes": "Use the entrance marked on the floor plan. For step-free access, ask a volunteer.",
+          "steps": [
+            "Follow the building signs to the main entrance shown on the plan."
+          ]
+        }
+      ],
+      "floors": [
+        {
+          "id": "wheeler-1",
+          "name": "Floor 1",
+          "image": {
+            "url": "/media/2a3f0180bc45894ca9c3f867e9a76dec80ce3263e2d5a10b92dde2d978f23ce7.webp",
+            "alt": "Wheeler Hall, Floor 1: rooms, corridors, stairs, elevators and restrooms.",
+            "caption": "Historical floor plan supplied by BMT, adapted from College of Letters and Science Facilities Office materials.",
+            "demonstration": false
+          },
+          "rooms": [
+            {
+              "id": "wheeler-1-108",
+              "code": "108",
+              "name": "Room 108",
+              "route": {
+                "entranceId": "wheeler-main",
+                "steps": [
+                  "Locate Floor 1 using the building's signs.",
+                  "Find Room 108 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 12.026,
+                "y": 9.552
+              }
+            },
+            {
+              "id": "wheeler-1-104",
+              "code": "104",
+              "name": "Room 104",
+              "route": {
+                "entranceId": "wheeler-main",
+                "steps": [
+                  "Locate Floor 1 using the building's signs.",
+                  "Find Room 104 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 45.799,
+                "y": 10.916
+              }
+            },
+            {
+              "id": "wheeler-1-102",
+              "code": "102",
+              "name": "Room 102",
+              "route": {
+                "entranceId": "wheeler-main",
+                "steps": [
+                  "Locate Floor 1 using the building's signs.",
+                  "Find Room 102 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 66.227,
+                "y": 10.721
+              }
+            },
+            {
+              "id": "wheeler-1-120",
+              "code": "120",
+              "name": "Room 120",
+              "route": {
+                "entranceId": "wheeler-main",
+                "steps": [
+                  "Locate Floor 1 using the building's signs.",
+                  "Find Room 120 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 11.367,
+                "y": 89.864
+              }
+            },
+            {
+              "id": "wheeler-1-124",
+              "code": "124",
+              "name": "Room 124",
+              "route": {
+                "entranceId": "wheeler-main",
+                "steps": [
+                  "Locate Floor 1 using the building's signs.",
+                  "Find Room 124 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 36.244,
+                "y": 87.719
+              }
+            },
+            {
+              "id": "wheeler-1-126",
+              "code": "126",
+              "name": "Room 126",
+              "route": {
+                "entranceId": "wheeler-main",
+                "steps": [
+                  "Locate Floor 1 using the building's signs.",
+                  "Find Room 126 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 53.871,
+                "y": 87.914
+              }
+            },
+            {
+              "id": "wheeler-1-130",
+              "code": "130",
+              "name": "Room 130",
+              "route": {
+                "entranceId": "wheeler-main",
+                "steps": [
+                  "Locate Floor 1 using the building's signs.",
+                  "Find Room 130 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 86.82,
+                "y": 91.228
+              }
+            }
+          ]
+        },
+        {
+          "id": "wheeler-2",
+          "name": "Floor 2",
+          "image": {
+            "url": "/media/f017670693aa2bb2e8d3741415947ead755171b5e3635d3d13a0344cf8cb4049.webp",
+            "alt": "Wheeler Hall, Floor 2: rooms, corridors, stairs, elevators and restrooms.",
+            "caption": "Historical floor plan supplied by BMT, adapted from College of Letters and Science Facilities Office materials.",
+            "demonstration": false
+          },
+          "rooms": [
+            {
+              "id": "wheeler-2-200",
+              "code": "200",
+              "name": "Room 200",
+              "route": {
+                "entranceId": "wheeler-main",
+                "steps": [
+                  "Locate Floor 2 using the building's signs.",
+                  "Find Room 200 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 88.303,
+                "y": 10.646
+              }
+            },
+            {
+              "id": "wheeler-2-202",
+              "code": "202",
+              "name": "Room 202",
+              "route": {
+                "entranceId": "wheeler-main",
+                "steps": [
+                  "Locate Floor 2 using the building's signs.",
+                  "Find Room 202 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 70.016,
+                "y": 13.688
+              }
+            },
+            {
+              "id": "wheeler-2-204",
+              "code": "204",
+              "name": "Room 204",
+              "route": {
+                "entranceId": "wheeler-main",
+                "steps": [
+                  "Locate Floor 2 using the building's signs.",
+                  "Find Room 204 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 49.918,
+                "y": 13.688
+              }
+            },
+            {
+              "id": "wheeler-2-220",
+              "code": "220",
+              "name": "Room 220",
+              "route": {
+                "entranceId": "wheeler-main",
+                "steps": [
+                  "Locate Floor 2 using the building's signs.",
+                  "Find Room 220 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 11.862,
+                "y": 93.156
+              }
+            },
+            {
+              "id": "wheeler-2-222",
+              "code": "222",
+              "name": "Room 222",
+              "route": {
+                "entranceId": "wheeler-main",
+                "steps": [
+                  "Locate Floor 2 using the building's signs.",
+                  "Find Room 222 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 33.608,
+                "y": 89.924
+              }
+            },
+            {
+              "id": "wheeler-2-224",
+              "code": "224",
+              "name": "Room 224",
+              "route": {
+                "entranceId": "wheeler-main",
+                "steps": [
+                  "Locate Floor 2 using the building's signs.",
+                  "Find Room 224 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 53.707,
+                "y": 89.924
+              }
+            }
+          ]
+        },
+        {
+          "id": "wheeler-b",
+          "name": "Basement",
+          "image": {
+            "url": "/media/6df9492130b6f049b2fad94aca290d4d24738008bbd51dce9d1d779583adca2e.webp",
+            "alt": "Wheeler Hall, Basement: rooms, corridors, stairs, elevators and restrooms.",
+            "caption": "Historical floor plan supplied by BMT, adapted from College of Letters and Science Facilities Office materials.",
+            "demonstration": false
+          },
+          "rooms": [
+            {
+              "id": "wheeler-b-20",
+              "code": "20",
+              "name": "Room 20",
+              "route": {
+                "entranceId": "wheeler-main",
+                "steps": [
+                  "Locate Basement using the building's signs.",
+                  "Find Room 20 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 12.026,
+                "y": 90.119
+              }
+            },
+            {
+              "id": "wheeler-b-24",
+              "code": "24",
+              "name": "Room 24",
+              "route": {
+                "entranceId": "wheeler-main",
+                "steps": [
+                  "Locate Basement using the building's signs.",
+                  "Find Room 24 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 43.493,
+                "y": 90.316
+              }
+            },
+            {
+              "id": "wheeler-b-30",
+              "code": "30",
+              "name": "Room 30",
+              "route": {
+                "entranceId": "wheeler-main",
+                "steps": [
+                  "Locate Basement using the building's signs.",
+                  "Find Room 30 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 86.161,
+                "y": 90.514
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vlsb",
+      "name": "Valley Life Sciences Building",
+      "aliases": [
+        "VLSB",
+        "Valley Life Sciences"
+      ],
+      "coordinates": [
+        37.8715,
+        -122.2624
+      ],
+      "status": "mapped",
+      "verificationNote": "Based on the historical floor plan supplied by BMT. Follow posted signs and staff instructions if access changes.",
+      "entrances": [
+        {
+          "id": "vlsb-main",
+          "name": "Main entrance",
+          "coordinates": [
+            37.8715,
+            -122.2624
+          ],
+          "accessible": false,
+          "notes": "Use the entrance marked on the floor plan. For step-free access, ask a volunteer.",
+          "steps": [
+            "Follow the building signs to the main entrance shown on the plan."
+          ]
+        }
+      ],
+      "floors": [
+        {
+          "id": "vlsb-2",
+          "name": "Floor 2",
+          "image": {
+            "url": "/media/57ffa14979914f42689cdec42da6d05c31f96dc57934f3a3a9a02d851ef5ca28.webp",
+            "alt": "Valley Life Sciences Building, Floor 2: rooms, corridors, stairs, elevators and restrooms.",
+            "caption": "Historical floor plan supplied by BMT, adapted from College of Letters and Science Facilities Office materials.",
+            "demonstration": false
+          },
+          "rooms": [
+            {
+              "id": "vlsb-2-2030",
+              "code": "2030",
+              "name": "Room 2030",
+              "route": {
+                "entranceId": "vlsb-main",
+                "steps": [
+                  "Locate Floor 2 using the building's signs.",
+                  "Find Room 2030 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 79.127,
+                "y": 9.016
+              }
+            },
+            {
+              "id": "vlsb-2-2032",
+              "code": "2032",
+              "name": "Room 2032",
+              "route": {
+                "entranceId": "vlsb-main",
+                "steps": [
+                  "Locate Floor 2 using the building's signs.",
+                  "Find Room 2032 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 79.127,
+                "y": 18.852
+              }
+            },
+            {
+              "id": "vlsb-2-2038",
+              "code": "2038",
+              "name": "Room 2038",
+              "route": {
+                "entranceId": "vlsb-main",
+                "steps": [
+                  "Locate Floor 2 using the building's signs.",
+                  "Find Room 2038 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 79.127,
+                "y": 31.803
+              }
+            },
+            {
+              "id": "vlsb-2-2050",
+              "code": "2050",
+              "name": "Auditorium",
+              "route": {
+                "entranceId": "vlsb-main",
+                "steps": [
+                  "Locate Floor 2 using the building's signs.",
+                  "Find Room 2050 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 88.889,
+                "y": 49.508
+              }
+            },
+            {
+              "id": "vlsb-2-2060",
+              "code": "2060",
+              "name": "Auditorium",
+              "route": {
+                "entranceId": "vlsb-main",
+                "steps": [
+                  "Locate Floor 2 using the building's signs.",
+                  "Find Room 2060 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 88.889,
+                "y": 71.475
+              }
+            },
+            {
+              "id": "vlsb-2-2062",
+              "code": "2062",
+              "name": "Room 2062",
+              "route": {
+                "entranceId": "vlsb-main",
+                "steps": [
+                  "Locate Floor 2 using the building's signs.",
+                  "Find Room 2062 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 79.127,
+                "y": 68.361
+              }
+            },
+            {
+              "id": "vlsb-2-2066",
+              "code": "2066",
+              "name": "Room 2066",
+              "route": {
+                "entranceId": "vlsb-main",
+                "steps": [
+                  "Locate Floor 2 using the building's signs.",
+                  "Find Room 2066 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 79.127,
+                "y": 82.295
+              }
+            },
+            {
+              "id": "vlsb-2-2070",
+              "code": "2070",
+              "name": "Room 2070",
+              "route": {
+                "entranceId": "vlsb-main",
+                "steps": [
+                  "Locate Floor 2 using the building's signs.",
+                  "Find Room 2070 on the highlighted plan. The route planner can guide you from a marked point on this floor."
+                ]
+              },
+              "accessibleRoute": null,
+              "hotspot": {
+                "x": 79.127,
+                "y": 91.639
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

@@ -32,6 +32,15 @@ test('isolated Rust wayfinding module and HTTP security contract', { timeout: 24
   await writeFile(join(directory, 'src/main.rs'), `
 #[path = ${JSON.stringify(join(root, 'server/src/wayfinding.rs'))}]
 mod wayfinding;
+// File-mode-only harness: remote source is uninhabited, never a remote mock.
+// Production remote behavior is covered by remote-content.test.mjs.
+mod remote_content {
+    pub enum RemoteStore {}
+    pub struct Snapshot { pub revision: String, pub content: Content }
+    pub struct Content { pub editorial: Option<Editorial> }
+    pub struct Editorial { pub wayfinding: crate::wayfinding::WayfindingContent }
+    impl RemoteStore { pub fn snapshot(&self) -> Snapshot { match *self {} } }
+}
 use axum::{extract::Request, middleware::{self, Next}, response::Response, Router};
 use std::{sync::Arc, net::SocketAddr};
 // Only this disposable test harness accepts x-test-role. Production never does.

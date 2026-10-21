@@ -6,6 +6,8 @@
   --live-paper: #fafaf7;
   --live-line: #dce2e5;
   --live-error: #9d2b1c;
+  --live-radius-panel: 10px;
+  --live-space-card: 20px;
 }
 .today-page {
   min-height: 100dvh;

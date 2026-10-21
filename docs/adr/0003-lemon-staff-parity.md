@@ -1,6 +1,6 @@
 # ADR 0003 — Match Lemon's staff sign-in and account behavior
 
-Recorded: 2026-10-20. Status: **accepted requirement; implementation pending**.
+Recorded: 2026-10-20. Status: **accepted; slice-2 server/web implementation present, local synthetic verification only**.
 
 Source: [Ian's follow-up](https://app.devin.ai/sessions/0f4621a2ac6c419c810bc8a367883024): “yes but it should behave and function the same way lemon should,” confirming Google-only sign-in and Admin operations / Super admin People and settings. Resolves D1/D2; it does not add Lemon's PM/TO roles or shared services.
 
@@ -21,8 +21,8 @@ Follow Lemon [ADR 0048](https://github.com/berkeleymt/proctor-suite/blob/77721d0
 
 Live owns its Google configuration, account list, sessions and cookies. Links to Lemon are navigation, not shared authentication or access to Lemon's timers. Reuse interaction/security semantics, not Lemon's database, cookies or proctor-only controls.
 
-Current Live still uses local named accounts, owner fallback and demo role switching. Do not claim Google parity in its demo or change authentication merely by applying this documentation patch. Implement and verify the replacement before removing working access; map old accounts deliberately, never automatically promote every old role to Super. Existing Live URLs need a reviewed redirect/migration decision rather than copying Lemon's historical path removal blindly.
+Live now selects Google mode when a client ID is configured (or explicitly requested); that mode disables local/owner/demo fallback. Separate private SQLite People/session state supports per-request roles, fixed 24-hour sessions and transaction-checked People changes. Local named accounts, owner Basic and historical demo API IDs remain only in the documented Google-unconfigured legacy/demo path. The modern synthetic chooser exposes only Admin/Super. Existing Live URLs remain; `/admin/people` is additive. See [operator setup and deliberate migration/rollback](../staff-access.md). No old account is automatically promoted or deleted, and no deployment/account migration was performed.
 
 ## Acceptance
 
-Test verified/unknown accounts, both role tab sets and denied direct API requests, People add/change/remove, protected self/bootstrap accounts, session expiry/logout, live revocation/navigation changes, shared-read loading, Google outage and keyboard/mobile sign-in. Test-only identity bypasses must be isolated and impossible to enable accidentally in production. No real Google integration or browser parity test is claimed by this ADR.
+Test verified/unknown accounts, both role tab sets and denied direct API requests, People add/change/remove, protected self/bootstrap accounts, session expiry/logout, live revocation/navigation changes, shared-read loading, Google outage and keyboard/mobile sign-in. Test-only identity bypasses must be isolated and impossible to enable accidentally in production. Synthetic signed-JWT and People unit tests, direct API boundary/lifecycle tests and browserless GIS/identity/navigation/People tests implement these checks without a provider bypass in production. The fixed JWKS verifier has bounded responses/timeouts/cache and fails closed when credentials cannot be verified. Existing valid sessions are independent of Google availability. Desktop/sidebar, tablet rail/account panel and phone menu styles are implemented; JSDOM is not visual/device/assistive-technology verification. No real Google integration or browser parity test is claimed. Authorized real-origin GIS/FedCM, human keyboard/mobile review and real-account migration rehearsal remain release checks. [Evidence and limits](../status/log/2026-10-20-staff-google-slice-2.md).

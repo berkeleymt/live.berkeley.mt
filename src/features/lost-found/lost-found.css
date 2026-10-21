@@ -114,6 +114,9 @@
 .lf-history li { margin-top: .8rem; font-size: .875rem; }
 .lf-note-text { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: .3rem; }
 .lf-pagination { font-size: .875rem; }
+.lf-mail { border-top: 1px solid var(--live-line, var(--color-separator)); margin-block: 1.5rem; padding-block: 1rem; overflow-wrap: anywhere; }
+.lf-form label.lf-checkbox { display: flex; gap: .75rem; align-items: center; min-height: 3rem; cursor: pointer; }
+.lf-checkbox input { width: 1.2rem; height: 1.2rem; flex: 0 0 auto; accent-color: var(--live-blue, var(--color-berkeley-blue)); }
 @media (max-width: 600px) {
   .lf-two-fields,
   .lf-details { grid-template-columns: 1fr; }

@@ -198,6 +198,8 @@ pub fn valid_link_url(value: &str) -> bool {
     let known = matches!(
         path,
         "" | "/"
+            | "/schedule"
+            | "/updates"
             | "/guide"
             | "/help"
             | "/faq"
@@ -239,9 +241,9 @@ impl SiteConfig {
             || self.useful_links.len() > 40
             || self.help.len() > 30
             || self.guide.sections.len() > 60
-            || self.copy.len() > 200
+            || self.copy.len() > 500
         {
-            return Err("Too many items: at most 20 navigation links, 40 useful links, 30 help blocks, 60 guide sections, and 200 copy keys.".into());
+            return Err("Too many items: at most 20 navigation links, 40 useful links, 30 help blocks, 60 guide sections, and 500 copy keys.".into());
         }
         for links in [&self.navigation, &self.useful_links] {
             unique_ids(links.iter().map(|link| link.id.as_str()))?;
@@ -311,6 +313,7 @@ fn document(bytes: &[u8]) -> Result<SiteDocument, String> {
 }
 
 pub struct SiteStore {
+    pub remote: std::sync::OnceLock<std::sync::Arc<crate::remote_content::RemoteStore>>,
     path: PathBuf,
     media_dir: PathBuf,
     stored: Mutex<SiteDocument>,
@@ -324,6 +327,7 @@ impl SiteStore {
         fs::create_dir_all(&media_dir)
             .map_err(|_| "Cannot create the media directory.".to_string())?;
         Ok(Self {
+            remote: std::sync::OnceLock::new(),
             path,
             media_dir,
             stored: Mutex::new(stored),
@@ -336,6 +340,13 @@ impl SiteStore {
     }
 
     pub fn snapshot(&self) -> SiteDocument {
+        if let Some(remote) = self.remote.get() {
+            let snapshot = remote.snapshot();
+            return SiteDocument {
+                revision: snapshot.revision,
+                content: snapshot.content.editorial.unwrap().site,
+            };
+        }
         self.stored.lock().unwrap().clone()
     }
 
@@ -347,7 +358,7 @@ impl SiteStore {
     }
 
     pub fn reload(&self) -> Result<SiteDocument, String> {
-        if self.published.load(std::sync::atomic::Ordering::SeqCst) {
+        if self.remote.get().is_some() || self.published.load(std::sync::atomic::Ordering::SeqCst) {
             return Ok(self.snapshot());
         }
         let mut stored = self.stored.lock().unwrap();
@@ -357,7 +368,7 @@ impl SiteStore {
     }
 
     pub fn save(&self, input: SiteDocument) -> Result<SiteDocument, SiteError> {
-        if self.published.load(std::sync::atomic::Ordering::SeqCst) {
+        if self.remote.get().is_some() || self.published.load(std::sync::atomic::Ordering::SeqCst) {
             return Err((
                 StatusCode::CONFLICT,
                 "Use the Git publication endpoint.".into(),
@@ -450,10 +461,27 @@ impl SiteStore {
         Ok(MediaAsset {
             url: format!("/media/{filename}"),
             bytes: bytes.len() as u64,
+            ..Default::default()
         })
     }
 
     fn media(&self) -> Result<MediaList, SiteError> {
+        if let Some(remote) = self.remote.get() {
+            return Ok(MediaList {
+                assets: remote
+                    .bundle()
+                    .files
+                    .iter()
+                    .filter(|(name, _)| name.starts_with("media/"))
+                    .map(|(name, bytes)| MediaAsset {
+                        url: format!("/{name}"),
+                        bytes: bytes.len() as u64,
+                        ..Default::default()
+                    })
+                    .collect(),
+                truncated: false,
+            });
+        }
         let entries = fs::read_dir(&self.media_dir).map_err(|_| {
             (
                 StatusCode::SERVICE_UNAVAILABLE,
@@ -480,6 +508,7 @@ impl SiteStore {
                 assets.push(MediaAsset {
                     url: format!("/media/{name}"),
                     bytes: metadata.len(),
+                    ..Default::default()
                 });
             }
         }
@@ -488,7 +517,7 @@ impl SiteStore {
     }
 }
 
-fn image_extension(mime: &str, bytes: &[u8]) -> Option<&'static str> {
+pub(crate) fn image_extension(mime: &str, bytes: &[u8]) -> Option<&'static str> {
     match mime {
         "image/png"
             if bytes.len() >= 33
@@ -517,10 +546,15 @@ fn image_extension(mime: &str, bytes: &[u8]) -> Option<&'static str> {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct MediaAsset {
     pub url: String,
     pub bytes: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub revision: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub previous_revision: Option<String>,
 }
 #[derive(Serialize)]
 pub struct MediaList {
@@ -671,6 +705,12 @@ async fn upload_media(
         .and_then(|value| value.to_str().ok())
         .unwrap_or("")
         .to_owned();
+    if let Some(remote) = state.site.remote.get() {
+        return remote
+            .upload(&mime, &bytes)
+            .await
+            .map(|asset| (StatusCode::CREATED, Json(asset)));
+    }
     tokio::task::spawn_blocking(move || state.site.upload(&mime, &bytes))
         .await
         .map_err(|_| {
@@ -738,6 +778,44 @@ mod tests {
     }
 
     #[test]
+    fn copy_limits_allow_old_documents_blanks_and_bounded_extensions() {
+        let mut content = fixture();
+        // No automatic server migration: old documents keep precisely their authored keys.
+        content.copy.clear();
+        content.copy.insert("rooms.title".into(), "".into());
+        content
+            .copy
+            .insert("custom.future".into(), "Keep me".into());
+        content.validate().unwrap();
+        assert_eq!(content.copy["rooms.title"], "");
+        for index in 0..498 {
+            content
+                .copy
+                .insert(format!("custom.key{index}"), "Value".into());
+        }
+        content.validate().unwrap();
+        content
+            .copy
+            .insert("custom.overflow".into(), "Value".into());
+        assert!(content.validate().is_err());
+        content.copy.remove("custom.overflow");
+        content.copy.insert("rooms.title".into(), "x".repeat(4001));
+        assert!(content.validate().is_err());
+        for value in content.copy.values_mut() {
+            *value = "x".repeat(2000);
+        }
+        let temp = Temp::new();
+        let store = temp.store();
+        let mut input = store.snapshot();
+        input.content = content;
+        // Aggregate size is checked by the file/HTTP publication boundary, not field validation.
+        assert_eq!(
+            store.save(input).unwrap_err().0,
+            StatusCode::UNPROCESSABLE_ENTITY
+        );
+    }
+
+    #[test]
     fn unsafe_urls_and_duplicate_ids_are_rejected() {
         for url in [
             "javascript:alert(1)",
@@ -765,6 +843,33 @@ mod tests {
             "/api/site",
             "/../../etc/passwd",
             "mailto:staff@example.test",
+        ] {
+            assert!(!valid_link_url(url), "{url}");
+        }
+        for url in [
+            "/",
+            "/schedule",
+            "/updates",
+            "/map",
+            "/rooms",
+            "/guide",
+            "/faq",
+            "/help",
+            "/lost-found",
+            "/classic",
+            "/#schedule",
+            "/guide#guide-before-you-arrive",
+        ] {
+            assert!(valid_link_url(url), "{url}");
+            let mut content = fixture();
+            content.navigation[0].href = url.into();
+            content.validate().unwrap();
+        }
+        for url in [
+            "/not-a-page",
+            "/schedule/../admin",
+            "/schedule#one#two",
+            "/schedule?redirect=evil",
         ] {
             assert!(!valid_link_url(url), "{url}");
         }

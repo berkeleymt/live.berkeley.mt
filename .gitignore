@@ -35,4 +35,11 @@ data.db-wal
 .demo/
 private.db*
 media/
+!content/media/
+!content/media/*
 private/
+# Runtime page transaction recovery; never authored content
+.pages-last-good.json
+.pages-cache-*
+.pages-stage-*
+.pages-previous-*

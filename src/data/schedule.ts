@@ -64,5 +64,5 @@ export function scheduleState(
       : phase === "today"
         ? events.find((item) => toMins(item.startTime) > minutes)
         : undefined;
-  return { phase, current, next, events };
+  return { phase, current, next, events, minutes };
 }

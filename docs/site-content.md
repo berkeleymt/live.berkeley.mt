@@ -1,173 +1,96 @@
 # Public site content and visitor guide
 
-> **Current implementation reference.** This describes the existing schema/editor, not completion of the all-public-copy/images requirement. [Architecture](architecture.md) specifies the proposed canonical GitHub files/media pipeline; [localization](localization.md) specifies English-source automatic translation. Both need implementation. Use [status](status/STATUS.md) rather than builder-stage TODOs below.
+> **Implementation scope:** This guide describes current editable public content and compatibility, not blanket R05 completion or production readiness. Remaining exceptions and unverified provider/browser behavior are explicit below; use [current status](status/STATUS.md) and [requirements](specs.md) for accepted direction.
 
-**Integrated:** shared state/routes and session/CSRF editor transport are now wired. The complete demo stores this document in the Git editorial bundle; file mode remains supported. The wiring instructions below are retained builder-stage notes, not outstanding work. See [demo.md](demo.md) for current operation and verification.
+## Markdown foundation
 
-This slice owns `server/src/site.rs`, `content/site.json`, `src/features/site/`, and `tests/site.test.mjs`. It does **not** wire shared application files, change schedules, connect Lemon, deploy, or operate Git. The shipped public guide explicitly labels all unconfirmed November information as a **demo**. It contains no accounts, roster, private contacts, credentials, invented check-in times, or Wi-Fi credentials. November 14, 2026 is the event date; the existing event/schedule data still needs the integration stage's November configuration.
+`content/pages/*.md` now supplies authored public composition, including shipped Home/Guide. `/admin/content` is the generic page-list/metadata/source/preview/publish editor. Shared structured settings moved to `/admin/site-settings`; this is not a removal of Event/FAQ/branding/copy/media. [Exact syntax, API, ownership and deliberate migration](markdown-pages.md). Legacy installations with no pages retain existing views; explicit Home/Guide/Help conversion produces only a draft. Once an authored Guide/Help route exists, server-side structured saves reject edits to its retained compatibility fields. No default overwrite or blanket R05 completion is implied.
 
-## Server integration (required)
+## Current scope and canonical sources
 
-Add `mod site;` to `server/src/main.rs`. Add this exact field to `routes::AppState` (existing fields remain):
+The routed public hub, guide, room finder (ID-only and legacy check-in-code lookup), graph planner, private-report form and subscription widget use editable public copy. This is **not** a claim that every classic, browser, provider or server-generated string is editable; the remaining R05 exceptions are listed below. English remains authoritative. D3/D4 do not authorize a translation provider or language rollout.
 
-```rust
-pub site: std::sync::Arc<crate::site::SiteStore>,
-```
+- `content/pages/*.md`: authored public page metadata/prose and allowlisted live blocks, not operational records.
+- `content/site.json`: shared branding, fallback navigation, legacy hero composition, UI `copy`, compatibility guide/help and useful links. Schema version remains **1**.
+- `content/event.json` / Event Editor: event title/date/timezone/notices, event/travel URLs and FAQ questions/answers.
+- Operations store: schedules, delays and announcements; do not duplicate these as static UI text.
+- `content/wayfinding.json` / Room Editor: title/intro/notices/help text, buildings, rooms, entrances, coordinates, floor images/alt/captions, graph nodes/edges/verification/closures and written instructions. These remain structured operational content, not duplicated into `site.copy`.
+- Private roster/settings, report/contact/receipt data, staff identity and mail outbox never belong in public files or Git.
 
-Construct before creating `AppState`; paths are configurable and must not point at production while rehearsing:
+## Copy resolution and migration
 
-```rust
-let site_path = std::env::var("SITE_CONTENT_PATH")
-    .unwrap_or_else(|_| "content/site.json".into());
-let media_path = std::env::var("SITE_MEDIA_DIR")
-    .expect("Set SITE_MEDIA_DIR to a writable directory outside the source checkout");
-let site = std::sync::Arc::new(site::SiteStore::open(
-    site_path.into(), media_path.into(),
-).expect("Invalid public site content or media directory"));
-// Include `site` in the AppState initializer.
-```
+`siteText(content, key, values?)` uses an authored string when present, otherwise the bundled canonical `content/site.json` value. An intentional `""` remains blank. No automatic read/save migration mutates an older installed document. Unknown-but-valid keys survive parsing and editing.
 
-For a disposable local demo, `SITE_MEDIA_DIR=/tmp/bmt-live-demo-media` is sufficient. For a deployment use a persistent directory such as `/var/lib/bmt-live/media`, with permissions for the server user. `open` creates the media directory but never creates/replaces a missing or invalid content document. Mount the **parent directory** of `site.json`, not a single file, because save uses an atomic sibling-file rename. Back up media separately from Git.
+`src/features/site/text.ts` provides `useSiteText(explicitContent?)` and `SiteTextContext`. `PublicLayout` supplies its already-loaded content; the hook starts **no requests, effects or pollers**. Standalone components and previews use the bundled defaults when no provider exists. Explicit content/copy props remain supported. The shell owns one site loop, one live-data loop and now one authored-page loop; guide preview uses the real renderer without starting another loop. Defaults are UI fallback, not confirmation that bundled event/guide facts are published.
 
-The module uses already-declared `sha2`, `uuid`, `reqwest`, `axum`, `tokio`, `serde`, and `serde_json`; **no new dependency is required**.
+In **Site settings → Public copy**, filter/edit individual fields or choose **Merge missing default copy keys**. This explicit draft-only action adds missing defaults, preserves overrides (including blanks) and custom keys, and disables itself if the combined key count would exceed the bound. Review and use the existing save/confirmation/publication flow; merging alone does not publish. Raw JSON can deliberately remove a key to restore fallback behavior. Navigation retains its separate explicit missing-destination/old-anchor migration.
 
-Merge these routers **before** the SPA fallback:
+The catalog now exceeds the old 200-key ceiling. Both TypeScript and Rust accept at most **500 copy keys**, each key 1–100 ASCII letters/digits/dots, each value at most **4000 UTF-8 bytes**. Existing **512 KiB** document/publication bounds remain. Upgrade server and client together before publishing the expanded catalog: older 200-key servers reject it. Older sparse v1 documents remain valid on the updated server/client. Back up and review authored overrides rather than replacing an installed file with the seed.
 
-```rust
-use axum::{middleware, Router};
-use tower_http::services::ServeDir;
+### Plain-text substitutions
 
-let media = Router::new()
-    .nest_service(
-        "/media",
-        ServeDir::new(state.site.media_dir()).append_index_html_on_directories(false),
-    )
-    .layer(middleware::map_response(site::media_headers));
+Only single-pass `{letters}` replacements are supported. No HTML, expressions, eval or recursive template expansion. Unknown placeholders stay visible. React escapes the resulting text. Keep supported placeholders when editing:
 
-let app = Router::new()
-    // Existing routes/merges stay in place.
-    .merge(site::public_router())
-    .merge(site::admin_router())
-    .merge(media)
-    // Existing SPA fallback, middleware, with_state(state), etc.
-    ;
-```
+| Keys | Values supplied by renderer |
+| --- | --- |
+| `hero.afterSummary` | `{eventTitle}` |
+| `updates.older`, `guide.results`, `rooms.firstMatches`, `rooms.matches`, `rooms.buildings` | `{count}` |
+| `hub.lastReceived`, `lookup.checkedAt` | `{time}` |
+| `rooms.hotspot` | `{code}`, `{name}` |
+| `rooms.continue` | `{code}` |
+| `rooms.coordinates` | `{latitude}`, `{longitude}` |
+| `rooms.mapLabel` | `{name}` |
+| `lookup.demoBody` | `{id}` (synthetic ID only) |
+| `lookup.scheduled` | `{start}`, `{end}` |
+| `lookup.directions` | `{round}` |
+| `route.overlay`, `route.selected` | `{label}` |
+| `route.result` | `{route}`, `{filter}` (resolved UI labels) |
 
-`public_router() -> Router<AppState>` and `admin_router() -> Router<AppState>` are independent. No shared `routes.rs` handlers are needed. Apply `site::media_headers` **only** to the media router: it sends `X-Content-Type-Options: nosniff` and `Content-Security-Policy: default-src 'none'; sandbox`. Never serve the content directory, repository root, private uploads, or a SPA fallback under `/media`. `/media/` must return 404, not an index listing.
+### Coverage inventory
 
-Add a periodic last-good reload like the existing event-content poller:
+| Public renderer | Editable fields / keys |
+| --- | --- |
+| App/PublicFrame, Home/Schedule/Updates/FAQ/Help | `branding`, `navigation`, `hero`, `help`, `usefulLinks`; `a11y.*`, `hub.*`, `hero.*`, `status.*`, `quick.*`, `schedule.*`, `updates.*`, `faq.*`, `map.*`, `help.*`, `footer.*`, `loading.*`, `staff.signIn` |
+| Guide and safe images | Structured `guide`; `guide.*`, including image-failure fallback used by Help Markdown |
+| RoomFinder/FloorPlan/CampusMap | `rooms.*`, `map.loading`: search/empty/results, statuses, image/map failures, entrance/route controls, aria labels and privacy notices |
+| IdLookup / StudentLookup | `lookup.*`, `legacy.*`: labels, demo/availability, privacy, clear/help, errors, result metadata; no private ID/code substitutions |
+| RoutePlanner/layers | `route.*`: selectors, demonstration/verified notices, reload/closure caveats, no-network/no-route/same-point states, result/step labels, overlay aria and image failures |
+| LostFoundPage | `lostFound.*`: form, privacy, receipt/mail states, paused editing and safe status-based error copy. Compatibility `copy` props and `defaultLostFoundCopy` export remain; defaults now derive from this catalog |
+| EmailSubscribe (also reused in classic) | `subscription.*`: label/action/loading, success/already-subscribed/invalid/rate-limited/failure |
 
-```rust
-let site = state.site.clone();
-tokio::spawn(async move {
-    let mut interval = tokio::time::interval(std::time::Duration::from_secs(5));
-    let mut previous_error = None;
-    loop {
-        interval.tick().await;
-        let site = site.clone();
-        let error = tokio::task::spawn_blocking(move || site.reload())
-            .await.expect("site reload task").err();
-        if error != previous_error {
-            if let Some(ref message) = error {
-                eprintln!("[site] Keeping last valid public content: {message}");
-            }
-            previous_error = error;
-        }
-    }
-});
-```
+Public lookup/report errors select canonical keys by HTTP status, never render thrown/provider message text. ID-only public transport ignores error bodies. Unknown/transient failures use generic guidance; missing/unmatched ID outcomes remain non-enumerating. Subscription API keeps `{ok,message}` for compatibility; the widget recognizes only fixed existing already-subscribed/invalid results and renders canonical copy, never arbitrary response text. No private retry, visibility clearing, receipt idempotency or subscription endpoint is changed by copy edits.
 
-Public reads use `snapshot()` only. Disk I/O for editor reads/saves/uploads is dispatched through `spawn_blocking`. The initial file must be valid; after startup, invalid/missing/oversized file edits preserve the last good public document. A repaired file can reload normally. One process is assumed; saves/reloads serialize within `SiteStore`. External file writers should use atomic replacement and avoid racing active saves.
+## Remaining R05 exceptions (explicit, not completed)
 
-### Authorization and staff roles
+- `/classic` retains its legacy-only cards, overlays, venue/help labels and statuses (`ClassicApp.tsx`, legacy components), apart from the shared subscription widget. No aesthetic rewrite/removal was made.
+- Staff/login/editor/inbox/publication diagnostics, validation messages and browser-native required-field/password/unload/print UI are not public editorial copy. Staff UI remains English.
+- Server-rendered unsubscribe HTML and outgoing announcement/receipt email subjects/bodies (`server/src/routes.rs`, `email.rs`, `lost_found_mail.rs`) are not site-editor copy. API protocol/status/validation strings and legacy `sourceLabel` remain fixed for older clients; current lookup/report/subscription UI maps safe states instead of rendering those messages. Legacy import UI identifies the private-import mode generically rather than echoing a provider source label.
+- Leaflet/OpenStreetMap attribution, third-party zoom-control titles and map-library errors are library/legal text. Campus wrapper aria/fictional suffix and application fallback notices are editable; license attribution is intentionally not arbitrary HTML copy.
+- Pre-shell route-loading/not-found views use bundled canonical `loading.*` defaults (there is no loaded site provider there). Editing these defaults requires a client build; installed runtime copy is not fetched by an extra poller. Initial HTML metadata/boot errors and locale-generated date/time formatting are not runtime editorial text.
+- Structured operational values and authored Markdown/image descriptions remain editable in their proper source, not duplicated UI keys. Placeholder examples, safety/privacy notices and accessibility claims still require staff review: editable copy does not verify November route facts.
 
-The module currently enforces existing staff Basic Auth **inside every private handler**, independently of the legacy admin middleware. Missing/empty `ADMIN_PASSWORD` gives 403; missing/incorrect credentials give 401. This is deliberate: the legacy middleware alone fails open when a password is not configured.
+## Publication modes and migration
 
-**Named-role integration gate:** replace only the authentication portion of `site.rs::authorize` with the staff module's server-side `content editor/admin` capability check. Do not merely hide `SiteEditor`, remove the internal guard, or leave a session-authenticated editor behind a second Basic-only check. Keep the mutation checks: `X-Site-Editor: 1`, reject `Sec-Fetch-Site: cross-site`, and reject an `Origin` whose authority differs from `Host`. Ensure a reverse proxy preserves the external Host. The frontend uses same-origin credentials and never reads/stores passwords. Test an unauthorized role against GET, PUT, image GET/list, and image POST after adapting auth.
+The former builder-stage “Git integration still required” warning is obsolete. Shared server/auth/editor/publication integration is implemented; activation/migration remains deliberate. See [Git publishing](git-publishing.md), [staff access](staff-access.md), [protocol](protocol.md) and [status](status/STATUS.md).
 
-### API contract
+| Configuration | Actual save/authority boundary |
+| --- | --- |
+| No repository variable | SQLite operations plus atomic file-backed event/site/wayfinding documents; durable separate media; no Git commit/push claim |
+| `LIVE_CONTENT_REPO` | Retained local-first dedicated checkout and `operations.json` editorial bundle; local commit becomes live, explicit push is separate |
+| `LIVE_CONTENT_REMOTE_REPO` | Implemented opt-in bare repo / canonical `content/` manifest, operations, event, site, wayfinding and hash-named media. Staff writes/direct remote commits share validation; only confirmed remote publication activates the bundle. Last-good/pending/archive recovery remains available |
 
-| Method/path | Input | Result |
-|---|---|---|
-| `GET /api/site` | Public | `{ revision, content }`, public data only, `Cache-Control: no-store` |
-| `GET /api/site/editor` | Authenticated | `{ revision, content, reloadError }`; reloads disk, returns last-good document plus a staff-only error when invalid |
-| `PUT /api/site/editor` | Authenticated, `X-Site-Editor: 1`, JSON `{ revision, content }` | Saved `{ revision, content }` or 409 conflict / 422 validation / 503 write failure |
-| `GET /api/site/media` | Authenticated | `{ assets: [{url, bytes}], truncated }`, at most 200 entries |
-| `POST /api/site/media` | Authenticated, `X-Site-Editor: 1`, **raw bytes**, `Content-Type: image/png`, `image/jpeg`, or `image/webp` | 201 `{ url: "/media/<uuid>.<extension>", bytes }`; 413 over 5 MiB, 415 for mismatched/disallowed signatures/types |
+Never set both repo variables or point a private store at public/static/Git paths. Follow the Git guide's explicit data/media migration, branch protection, single-writer/durable storage and rollback steps. Runtime repo/auth knobs are deployment-owned; `.env.example` is commented guidance, not activation. `LIVE_CONTENT_RUNTIME_RELOAD` is an **Actions repository variable**, not a server environment variable; leave it off until runtime convergence is verified. No production GitHub, Google, sender, provider or deployment approval is implied.
 
-The content file is the **plain SiteConfig**, not the `{revision,content}` envelope. It has `schemaVersion: 1`; unknown fields are rejected in typed objects. Arrays and string lengths are bounded; complete site content is limited to 512 KiB. Stable lowercase/hyphen IDs must be unique per list. Revisions are SHA-256 of exact file bytes and survive restart. A save checks both the editor revision and current disk bytes, writes/fsyncs a randomized sibling temp file, renames, then updates memory. Directory fsync is best effort. No timer state is involved.
+## API, editor and media invariants
 
-Image URLs may be HTTPS without credentials, known bundled assets (`/bmt-logo.svg`, `/favicon.svg`, `/bg-doodles.png`, `/campus-map.png`), or a single safe raster filename under `/media/` or `/demo-guide/`. Traversal, scheme-relative URLs, `data:`, `javascript:`, arbitrary source paths, SVG/HTML uploads, and original client filenames are not accepted. HTTPS URLs are rendered by the browser; the server never fetches them. Uploads perform MIME/signature checks, **not** full image decoding, transcoding, virus scanning, or EXIF stripping. Staff must remove private metadata and use licensed non-sensitive images. Image-load failure is visible in the UI. Uploaded images become public immediately, independently of saving their use in content. No deletion API is included: removing a URL from content does not delete files or break an older publication. Prune unreferenced assets deliberately after checking all published revisions.
+Public `GET /api/site` returns `{revision,content}`, no-store. Staff `GET/PUT /api/site/editor` retains session/capability/CSRF guards, revision-safe writes, conflict/draft preservation and safe last-good reload. Unknown object fields, unsafe URLs and invalid IDs fail validation. File mode saves plain `SiteConfig`, not an API envelope, by atomic replacement; mount the parent directory, not just the file. Remote revisions are shared bundle SHAs; mode-specific details are in the protocol/Git guide.
 
-## Frontend integration (required)
+`GET/POST /api/site/media` remains protected and bounded (200 listed assets; 5 MiB PNG/JPEG/WebP uploads with signature checks). Public images must have safe HTTPS/known bundled or raster media URLs. No SVG/HTML, traversal, credentials-in-URLs or arbitrary local paths. Uploaded images become public; remove private metadata and obtain image rights before upload. Validation is not decoding, malware scanning or EXIF removal. No deletion API silently breaks older content. Remote media is hash-named/versioned; legacy/file media remains separately durable. Remote bundle validation resolves local image/Markdown destinations, including reference-style links and entities, rather than searching every string for `/media/`. Approved external HTTPS paths and plain-text/code mentions remain valid; missing local assets cannot publish. Markdown uses safe URL transforms and skips raw HTML.
 
-Import from `src/features/site/index.ts`:
-
-```tsx
-import {
-  GuidePage, SiteEditor, useSite, siteDefaults, siteText,
-  SafeSiteMarkdown, SiteImage,
-} from './features/site';
-```
-
-- Route `/guide` to `<GuidePage />` in `SiteRoutes.tsx`. It owns a public header/back link, loading/error/retry/stale state, demo notice, guide search, section TOC, help, useful links and print styling. Print clears the current search so the complete guide prints.
-- Mount `<SiteEditor />` in a staff `Site content` screen, using the same staff navigation/role pattern as the rest of the demo. It edits branding, navigation, every copy key, guide sections, help blocks, links and image fields. Each list supports add/remove/reorder. Its Images tab uploads, lists, previews and assigns images. Raw JSON provides full file parity; Preview renders the actual guide.
-- The editor shows unsaved state; keeps failed/conflicting drafts; confirms publication; reports saved success; can download draft/latest JSON; and offers explicit latest-versus-draft conflict reconciliation. It keeps a **public-content-only** draft in tab-local `sessionStorage` and warns before closing with changes. Storage-disabled browsers still retain the in-memory draft. JSON download works without a backend.
-- `useSite()` returns `{ document, content, loading, error, stale, refresh }`. `content` is the last-good API content, or public bundled defaults until the first load. `document === null` distinguishes defaults from confirmed server content; do not label defaults as a successful publication. One request is in flight per mounted hook; requests time out after 15 seconds, normal polling is every 30 seconds, failures use full-jitter exponential backoff up to 60 seconds. For Today call it once and pass `content` to children, rather than starting a hook per label.
-- `siteText(content, key, values?)` uses the configured key or the same key from bundled defaults. It replaces only plain-text `{eventTitle}` / `{count}` values; it does not evaluate code or HTML. All default content comes from `content/site.json?raw`, so no separate hardcoded TS default fixture can drift.
-- Module-local types: `SiteConfig`, `SiteDocument`, `SiteLink`, `GuideSection`, `HelpBlock`, `HelpKind`, `MediaAsset`, `MediaList`. Runtime validators and URL helpers are also exported. `GuideContent` is the preview renderer.
-- CSS is under `.bmt-site*`, uses the existing `--live-*` palette with self-contained fallbacks, supports mobile/tablet/desktop, and does not modify global Today or staff CSS. No external assets/fonts are requested by this module unless a staff-configured HTTPS image is used. Markdown uses `react-markdown` with `skipHtml`, safe URL transforms, and **no** `rehype-raw`.
-
-### Today/App editorial mapping
-
-Keep computed times, event titles, schedule/delay records and announcement bodies in their existing operational source; do not turn them into static site text. Keep `event.date`, `event.title`, `event.subtitle`, `event.notice`, `event.timeZone`, `event.eventUrl`, `event.travelUrl`, and FAQ question/answer content in the existing `content/event.json` + Event Editor. The site document adds all remaining public editorial copy from the current `App.tsx`:
-
-| Current App area | Site fields / copy keys |
-|---|---|
-| Header/logo/brand caption, loading logo | `branding.{title,shortTitle,caption,logoUrl,logoAlt,homeUrl}`; `staff.signIn` |
-| Skip link and nav accessibility labels | `a11y.skip`, `a11y.navigation`, `a11y.next` |
-| Public navigation links | `navigation[]` (`id`, `label`, `href`); includes `/guide` |
-| Location and hero image | `hero.{location,imageUrl,imageAlt}`; omit image element when URL empty |
-| Title's Live suffix | `brand.live` |
-| Unpublished/before/up-next/after headlines | `hero.unpublished`, `hero.before`, `hero.nextPrefix`, `hero.after` |
-| Unpublished/after summary | `hero.unpublishedSummary`, `hero.afterSummary` with `{eventTitle: event.title}`; before summary stays `event.subtitle` |
-| Before/complete/now/overview eyebrow | `hero.beforeLabel`, `hero.afterLabel`, `hero.nowLabel`, `hero.overviewLabel` |
-| Schedule action/next panel | `hero.scheduleAction`, `hero.firstLabel`, `hero.nextLabel`, `hero.noDetails`, `hero.noMoreEvents`, `hero.nextEmpty` |
-| Updated-time label, original time prefix, Pacific label | `status.timeUpdated`, `status.timeWas`, `status.timeZone` |
-| Disconnection/reconnect/refresh status | `status.stale`, `status.reconnecting`, `status.refresh` |
-| Map/travel/help quick links | `quick.{mapTitle,mapDescription,travelTitle,travelDescription,helpTitle,helpDescription}`; travel destination remains `event.travelUrl` (TakeTransit) |
-| Schedule header/empty/details/current badge | `schedule.{eyebrow,title,timeZone,empty,details}`; current badge is `hero.nowLabel` |
-| Updates header/empty/urgency/pin/show-more | `updates.{eyebrow,title,empty,urgent,pinned,older}` with `{count: sorted.length - visible.length}` |
-| Map header/external label/introduction/loading | `map.{eyebrow,title,externalLabel,intro,loading}`; external URL is `usefulLinks.find(link => link.id === 'campus-map')?.href` |
-| Help header and public help blocks | `help.eyebrow`, `help.title`, `help.faqTitle`; `content.help[]` rendered with `SafeSiteMarkdown` instead of hardcoded help prose |
-| Footer | `footer.{credit,website,classic,staff}`; destinations retain their current routes / event URL |
-| Initial loading/error/fallback view | `loading.{title,failure,mismatch,pending,retry,classic}` |
-| EmailSubscribe public UI (`InfoCard.tsx`) | `subscription.{label,placeholder,action,pending,failure}`; keep subscription endpoint/state and its server result messages unchanged |
-| Guide UI | `guide.*`; guide title/intro/notice/sections are structured `guide` fields |
-
-Use `SiteImage` with `key={url}` and accurate alt text when adding the hero/logo rendering; the key resets failure state when an editor selects a new image. To preserve existing help while migrating, choose one canonical source per screen. Do not display both archived `live.info` and new demo `site.help` as if they are independently confirmed November instructions. The existing Event Editor remains the FAQ authority; do not silently drop existing FAQs.
-
-## Git publishing boundary (integration work still required)
-
-This store publishes an atomic **file** save; it does not commit, push or rollback Git. The editor explicitly says so. The in-progress `OperationsStore` currently versions only `operations.json`, and its clean-worktree check rejects unrelated modified files. **Do not point `SITE_CONTENT_PATH` inside `LIVE_CONTENT_REPO` and claim its existing Push/Restore controls handle this document.** That would dirty the checkout and can block operational publishing.
-
-The integration stage must choose and implement a shared public-content publication boundary: validate/version `site.json` alongside operations and event metadata, serialize their writes with the publisher, expose revision/history/rollback semantics, and keep media URLs stable with separately durable media. On Git restore, reload the site store (and the event store) from the restored validated files. Until that is built, keep `SITE_CONTENT_PATH` outside the dedicated operations checkout and describe site saves as file-backed, not Git-published. No private inbox or roster belongs in that public checkout.
+The editor retains public-only tab-local draft backup, unsaved/unload warnings, conflict recovery and draft/latest JSON downloads. Storage-disabled environments retain in-memory drafts. Guide preview/search/contents/print and stable section anchors remain supported. Do not store private report drafts in these public backups.
 
 ## Verification
 
-Run from the repository root:
+Run `npm test`, `npm run lint`, `npm run build`, `npm run test:api`, `cargo test --locked --manifest-path server/Cargo.toml` and scoped Rust format checks. `tests/public-copy.test.mjs` covers pure/static rendering, overrides, substitutions, explicit migration, blanks/custom keys and safe error classification without browser workflows. `tests/public-pages.test.mjs` covers shared-shell propagation. `tests/site.test.mjs` and embedded Rust tests cover validation bounds, sparse old documents, public/editor parity and revision safety with disposable localhost hosts. Existing integration tests cover legacy APIs, role/CSRF boundaries, publication/media and private lookup/report contracts.
 
-```sh
-cargo build --locked --manifest-path server/Cargo.toml
-node --experimental-strip-types --test tests/site.test.mjs
-npx tsc -b --pretty false
-npx eslint src/features/site
-cargo test --locked --manifest-path server/Cargo.toml
-rustfmt --edition 2021 --check --config skip_children=true server/src/site.rs src/features/site/server-test-harness.rs
-```
-
-The Node suite compiles the **real** `site.rs` in `src/features/site/server-test-harness.rs`, with only the anticipated AppState fields. It uses existing dependency artifacts, fresh temporary content/media directories and short-lived localhost children, never an existing server or production. It exercises authentication, CSRF checks, save/file/public parity, conflicts, validation, direct edits, last-good reload, uploads, limits, nosniff/CSP headers and media-directory 404s. Seven embedded Rust unit tests exercise persistence/restart, unsafe URLs/schema, stale writers, invalid file fallback, missing/oversized files and randomized uploads. A standalone Vite library build and React static-render unit test exercise the feature bundle and safe Markdown/TOC rendering without browser automation. Pure TypeScript tests cover schema, fixture labeling, URL safety, search and text substitution.
-
-Builder verification passed: 13 Node tests (including the seven embedded Rust unit tests and standalone feature/static-render checks), full-project TypeScript checking, scoped site ESLint, Rust formatting with `skip_children=true`, and the current shared server's 12 existing Rust tests. These results do not mean the unwired feature is already available in the running app. Use `--locked` for Cargo and `skip_children=true` for the isolated Rust host to avoid unrelated lockfile or imported-module formatting changes.
-
-After main/AppState wiring, `cargo test` includes the site tests naturally; the isolated harness remains useful as module-level coverage. Existing app API tests which launch a fresh server must now provide a temporary `SITE_CONTENT_PATH` and `SITE_MEDIA_DIR`, because startup intentionally does not invent a fallback document. The full baseline lint issues in ExpandableOverlay/LiveFeed are unrelated and not suppressed here. Browser keyboard, mobile visual, print-dialog, session-role, deployment durability and production integration checks remain unverified by this slice.
+See the [R05 work log](status/log/2026-10-20-public-copy-r05.md) for actual results and limitations. No browser/UI-driven, device, assistive-technology, physical-route, real-provider, Google, mail-delivery, deployment or load verification is claimed.

@@ -5,9 +5,10 @@ export class SiteApiError extends Error {
 
 /** Same-origin only. Staff Basic/session credentials are managed by sign-in, never stored by this module. */
 export async function siteRequest(path: string, options: RequestInit = {}, transport: (path: string, init?: RequestInit) => Promise<Response> = fetch): Promise<unknown> {
+  const timeout = AbortSignal.timeout(options.method && options.method !== 'GET' ? 90_000 : 15_000);
   const response = await transport(path, {
     ...options, credentials: 'same-origin', cache: 'no-store',
-    signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000),
+    signal: options.signal ? AbortSignal.any([options.signal, timeout]) : timeout,
     headers: { ...options.headers, ...(options.method && options.method !== 'GET' ? { 'X-Site-Editor': '1' } : {}) },
   });
   if (!response.ok) {

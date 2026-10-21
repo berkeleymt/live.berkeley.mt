@@ -178,6 +178,30 @@ async fn main() {
     assert.equal(limited.status, 429); assert.equal(limited.headers.get("retry-after"), "1800");
     assert.deepEqual(await (await api("/api/lost-found", { method: "POST", body })).json(), receipt);
   });
+  await t.test("confirmation state is private, mail actions fail closed, and manual handling is idempotent", async () => {
+    const mailApi = await launch(join(directory, "mail.sqlite"));
+    const input = { ...fixture(), phone: "555-0100", confirmationEmail: true };
+    const result = await (await mailApi('/api/lost-found', { method: 'POST', body: input })).json();
+    assert.deepEqual(Object.keys(result).sort(), ['emailState', 'receipt']);
+    assert.equal(result.emailState, 'not_configured');
+    const page = await (await mailApi('/api/lost-found/staff', { role: 'reader' })).json();
+    assert.equal(page.mailConfiguration, 'not_configured');
+    const report = page.reports[0]; assert.equal(report.phone, '555-0100'); assert.equal(report.delivery.attempts, 0);
+    const path = `/api/lost-found/staff/${report.id}/mail`;
+    const body = { idempotencyKey: randomUUID(), revision: 1, action: 'handled', note: 'Synthetic manual follow-up in person' };
+    for (const [role, status] of [[undefined, 401], ['denied', 403], ['reader', 403]]) assert.equal((await mailApi(path, { method: 'POST', body, role, headers: { 'X-Staff-Request': '1' } })).status, status);
+    assert.equal((await mailApi(path, { method: 'POST', body, role: 'writer' })).status, 403);
+    const options = { method: 'POST', body, role: 'writer', headers: { 'X-Staff-Request': '1' } };
+    const saved = await (await mailApi(path, options)).json();
+    assert.equal(saved.delivery.state, 'handled'); assert.equal(saved.delivery.history.length, 1);
+    assert.deepEqual(await (await mailApi(path, options)).json(), saved);
+    assert.equal((await mailApi(path, { ...options, body: { ...body, note: 'Changed action' } })).status, 409);
+    const replay = await (await mailApi('/api/lost-found', { method: 'POST', body: input })).json();
+    assert.deepEqual(replay, { receipt: result.receipt, emailState: 'handled' });
+    assert.equal((await mailApi(`/api/lost-found/${result.receipt}`)).status, 404);
+    const restarted = await launch(join(directory, 'mail.sqlite'));
+    assert.deepEqual(await (await restarted('/api/lost-found', { method: 'POST', body: input })).json(), replay);
+  });
   await t.test("forged forwarding headers cannot evade the peer limit", async () => {
     const limitedApi = await launch(join(directory, "limited.sqlite"));
     for (let i = 0; i < 60; i++) {

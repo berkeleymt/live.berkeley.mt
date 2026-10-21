@@ -1,3 +1,5 @@
+import { siteDefaults } from '../site/defaults';
+
 export type ReportKind = "lost" | "found";
 export type ReportStatus = "new" | "found" | "contacted" | "resolved";
 export interface ReportDraft {
@@ -7,8 +9,15 @@ export interface ReportDraft {
   occurredAt: string;
   name: string;
   email: string;
+  phone?: string;
 }
-export interface ReportReceipt { receipt: string }
+export type DeliveryState = 'queued' | 'not_configured' | 'sending' | 'retry_wait' | 'accepted' | 'failed' | 'uncertain' | 'handled';
+export interface ReportReceipt { receipt: string; emailState?: DeliveryState }
+export interface MailDelivery {
+  state: DeliveryState; revision: number; attempts: number; nextAttempt: number | null;
+  updatedAt: string; diagnostic: string; providerId: string | null;
+  history: { at: string; actor: string; action: string; note: string }[];
+}
 export interface LostFoundReport extends ReportDraft {
   id: string;
   receipt: string;
@@ -18,6 +27,7 @@ export interface LostFoundReport extends ReportDraft {
   updatedAt: string;
   revision: number;
   synthetic: boolean;
+  delivery: MailDelivery | null;
   history: {
     at: string;
     actor: string;
@@ -33,6 +43,7 @@ export interface ReportPage {
   limit: number;
   offset: number;
   demoMode: boolean;
+  mailConfiguration: string;
 }
 export interface LostFoundCopy {
   eyebrow: string;
@@ -53,6 +64,18 @@ export interface LostFoundCopy {
   nameLabel: string;
   emailLabel: string;
   emailHint: string;
+  phoneLabel: string;
+  mailQueued: string;
+  mailNotConfigured: string;
+  mailSending: string;
+  mailRetryWait: string;
+  mailAccepted: string;
+  mailFailed: string;
+  mailUncertain: string;
+  mailHandled: string;
+  mailUnknown: string;
+  mailCheck: string;
+  mailChecking: string;
   submitLabel: string;
   busyLabel: string;
   retryLabel: string;
@@ -61,32 +84,16 @@ export interface LostFoundCopy {
   successBody: string;
   receiptLabel: string;
   anotherLabel: string;
+  editingPaused: string;
+  submitUncertain: string;
+  mailRefreshError: string;
+  errorAuth: string;
+  errorConflict: string;
+  errorTooLarge: string;
+  errorInvalid: string;
+  errorRateLimited: string;
 }
-export const defaultLostFoundCopy: LostFoundCopy = {
-  eyebrow: "Tournament help",
-  title: "Lost & found",
-  intro: "Tell us what you lost or found. Tournament staff will help connect it with its owner.",
-  privacyTitle: "A private report, not a public listing",
-  privacy: "Only authorized tournament staff can see your report and contact details. We ask for an email so staff can follow up; your name is optional. Reports are not published on this website or in its public content files.",
-  safety: "Do not include passwords, ID numbers, or other sensitive details. Keep found items safe and ask a volunteer where to hand them in. For urgent or safety concerns, speak to staff in person.",
-  kindLabel: "What happened?",
-  lostLabel: "I lost something",
-  foundLabel: "I found something",
-  descriptionLabel: "Describe the item",
-  descriptionHint: "Include the color, brand, and a distinguishing feature. 5–2000 characters.",
-  locationLabel: "Where was it lost or found?",
-  locationHint: "A building, room, or nearby landmark. Write “Unknown” if you are unsure.",
-  timeLabel: "When was it lost or found?",
-  timeHint: "An approximate time is fine, for example “November 14, around 10 am Pacific.”",
-  nameLabel: "Your name (optional)",
-  emailLabel: "Contact email",
-  emailHint: "Use an address you can check. A parent or guardian’s email is welcome.",
-  submitLabel: "Send private report",
-  busyLabel: "Sending report…",
-  retryLabel: "Retry the same report",
-  helpLabel: "Other ways to get help",
-  successTitle: "Your report is with tournament staff",
-  successBody: "Save your receipt below if you need to speak with staff. They can follow up at the email you provided. This is not a promise of a match or an email notification, and the receipt does not let anyone view your report online.",
-  receiptLabel: "Receipt",
-  anotherLabel: "Report another item",
-};
+/** Compatibility export, sourced from canonical site copy rather than a second English catalog. */
+export const defaultLostFoundCopy = Object.fromEntries(
+  Object.entries(siteDefaults.copy).filter(([key]) => key.startsWith('lostFound.')).map(([key, value]) => [key.slice('lostFound.'.length), value]),
+) as unknown as LostFoundCopy;

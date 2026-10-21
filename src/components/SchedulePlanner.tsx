@@ -212,14 +212,14 @@ export function SchedulePlanner({
               </tbody>
             </table>
           </div>
-          <label>
+          <label className="planner-confirmation">
             <input
               type="checkbox"
               checked={confirmed}
               disabled={busy}
               onChange={(e) => setConfirmed(e.target.checked)}
-            />{" "}
-            I reviewed every affected event and the shortened break.
+            />
+            <span>I reviewed every affected event and the shortened break.</span>
           </label>
           <button
             type="button"

@@ -5,13 +5,16 @@ export interface StaffContextValue {
   session: StaffSession | null;
   status: "loading" | "ready" | "error";
   busy: boolean;
+  connected?: boolean;
+  lastChecked?: number | null;
   error: string | null;
   refresh: () => Promise<void>;
   login: (username: string, password: string) => Promise<boolean>;
   demoLogin: (accountId: string) => Promise<boolean>;
+  googleLogin: (credential: string) => Promise<boolean>;
   logout: () => Promise<boolean>;
   can: (capability: StaffCapability) => boolean;
-  /** Same-origin fetch with session cookies, CSRF token and a 12-second timeout. */
+  /** Same-origin fetch with cookies/CSRF; 12s timeout, 90s for public publication writes. */
   request: (path: string, init?: RequestInit) => Promise<Response>;
 }
 

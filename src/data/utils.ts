@@ -1,5 +1,12 @@
 import type { DelayNotice } from "./types";
 
+export function timeZoneLabel(timeZone: string, date: string) {
+  try {
+    return new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longGeneric' })
+      .formatToParts(new Date(`${date}T12:00:00Z`)).find(part => part.type === 'timeZoneName')?.value ?? timeZone;
+  } catch { return timeZone; }
+}
+
 /** "14:30" → "2:30 PM" */
 export function formatTime(t: string) {
   const [h, m] = t.split(":").map(Number);

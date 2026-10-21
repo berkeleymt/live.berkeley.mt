@@ -1,9 +1,43 @@
 //! Isolated test host for site.rs while shared application wiring is owned by the integrator.
 //! Compiled by tests/site.test.mjs using the repository's existing dependency artifacts.
-#[path = "../../../server/src/staff.rs"]
-mod staff;
 #[path = "../../../server/src/site.rs"]
 mod site;
+#[path = "../../../server/src/staff.rs"]
+mod staff;
+// This host tests file mode only. An uninhabited adapter satisfies the optional
+// source type without emulating any remote behavior; real remote publication is
+// exercised against the production router in tests/remote-content.test.mjs.
+mod remote_content {
+    pub enum RemoteStore {}
+    pub struct Snapshot {
+        pub revision: String,
+        pub content: Content,
+    }
+    pub struct Content {
+        pub editorial: Option<Editorial>,
+    }
+    pub struct Editorial {
+        pub site: crate::site::SiteConfig,
+    }
+    pub struct Bundle {
+        pub files: std::collections::BTreeMap<String, Vec<u8>>,
+    }
+    impl RemoteStore {
+        pub fn snapshot(&self) -> Snapshot {
+            match *self {}
+        }
+        pub fn bundle(&self) -> Bundle {
+            match *self {}
+        }
+        pub async fn upload(
+            &self,
+            _: &str,
+            _: &[u8],
+        ) -> Result<crate::site::MediaAsset, crate::site::SiteError> {
+            match *self {}
+        }
+    }
+}
 mod routes {
     #[derive(Clone)]
     pub struct AppState {

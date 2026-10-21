@@ -24,6 +24,10 @@ use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 use crate::routes::AppState;
+#[path = "staff/google.rs"]
+mod google;
+#[path = "staff/people.rs"]
+mod people;
 
 const COOKIE: &str = "bmt_live_staff";
 const MAX_SESSIONS: usize = 4096;
@@ -59,11 +63,18 @@ pub enum Capability {
     PublishingWrite,
     #[serde(rename = "access:read")]
     AccessRead,
+    #[serde(rename = "people:write")]
+    PeopleWrite,
+    #[serde(rename = "settings:write")]
+    SettingsWrite,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum Role {
+    Admin,
+    Super,
+    // Legacy-only roles; never accepted by Google People.
     Dispatcher,
     CrisisManager,
     InfoDesk,
@@ -79,7 +90,8 @@ impl Role {
                 vec![UpdatesRead, UpdatesWrite, FoundRead, FoundWrite, AccessRead]
             }
             Self::InfoDesk => vec![UpdatesRead, FoundRead, FoundWrite, AccessRead],
-            Self::Administrator => ALL.to_vec(),
+            Self::Administrator | Self::Admin => ALL.to_vec(),
+            Self::Super => [ALL.as_slice(), &[PeopleWrite, SettingsWrite]].concat(),
         }
     }
 }
@@ -92,7 +104,9 @@ pub struct StaffIdentity {
     pub role: Role,
     pub capabilities: Vec<Capability>,
     pub demo: bool,
-    pub auth_source: &'static str,
+    pub auth_source: String,
+    pub email: Option<String>,
+    pub picture: Option<String>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -118,7 +132,9 @@ impl Account {
                 .clone()
                 .unwrap_or_else(|| self.role.capabilities()),
             demo: false,
-            auth_source: "account",
+            auth_source: "account".into(),
+            email: None,
+            picture: None,
         }
     }
 }
@@ -146,6 +162,9 @@ pub struct StaffStore {
     secure_cookie: bool,
     public_origin: Option<String>,
     ttl: u64,
+    google_mode: bool,
+    google: Option<google::Google>,
+    people: Option<Arc<people::PeopleStore>>,
 }
 
 fn now() -> u64 {
@@ -173,6 +192,18 @@ impl StaffStore {
     /// Invalid configuration aborts startup; absent accounts never grant access.
     pub fn from_env() -> Result<Self, String> {
         let demo_mode = std::env::var("DEMO_MODE").as_deref() == Ok("true");
+        let client = std::env::var("GOOGLE_CLIENT_ID")
+            .ok()
+            .filter(|s| !s.trim().is_empty());
+        let google_mode = match std::env::var("STAFF_AUTH_MODE").as_deref() {
+            Ok("google") => true,
+            Ok("legacy") if client.is_none() => false,
+            Err(_) => client.is_some(),
+            _ => return Err("STAFF_AUTH_MODE must be google or legacy; configured Google cannot fall back to legacy".into()),
+        };
+        if google_mode && demo_mode {
+            return Err("Google mode cannot be combined with DEMO_MODE".into());
+        }
         let secure_cookie = match std::env::var("STAFF_COOKIE_SECURE").as_deref() {
             Ok("false") if demo_mode => false,
             Ok("false") => {
@@ -205,12 +236,44 @@ impl StaffStore {
                 return Err("STAFF_PUBLIC_ORIGIN must be an exact HTTPS origin without a trailing slash (HTTP only in demo)".into());
             }
         }
-        let accounts = match std::env::var("STAFF_ACCOUNTS_PATH") {
-            Ok(path) if !path.trim().is_empty() => Self::read_accounts(Path::new(&path))?,
-            Ok(_) => return Err("STAFF_ACCOUNTS_PATH cannot be empty".into()),
-            Err(_) => Vec::new(),
+        let accounts = if google_mode {
+            Vec::new()
+        } else {
+            match std::env::var("STAFF_ACCOUNTS_PATH") {
+                Ok(path) if !path.trim().is_empty() => Self::read_accounts(Path::new(&path))?,
+                Ok(_) => return Err("STAFF_ACCOUNTS_PATH cannot be empty".into()),
+                Err(_) => Vec::new(),
+            }
         };
-        Self::new(accounts, demo_mode, secure_cookie, public_origin, ttl)
+        let mut store = Self::new(accounts, demo_mode, secure_cookie, public_origin, ttl)?;
+        store.google_mode = google_mode;
+        if google_mode {
+            store.ttl = 86400;
+            store.google = client.map(google::Google::new).transpose()?;
+            let fixed = std::env::var("SUPER_ADMIN_EMAILS")
+                .unwrap_or_default()
+                .split(',')
+                .filter(|e| !e.trim().is_empty())
+                .map(people::normalize_email)
+                .collect::<Result<std::collections::HashSet<_>, _>>()?;
+            if fixed.is_empty() {
+                return Err("Google mode requires at least one explicit SUPER_ADMIN_EMAILS bootstrap account".into());
+            }
+            let path = std::env::var("STAFF_STATE_PATH")
+                .map_err(|_| "Google mode requires private STAFF_STATE_PATH")?;
+            store.people = Some(Arc::new(people::PeopleStore::open(
+                Some(Path::new(&path)),
+                fixed,
+                false,
+            )?));
+        } else if demo_mode {
+            store.people = Some(Arc::new(people::PeopleStore::open(
+                None,
+                ["super@example.test".into()].into(),
+                true,
+            )?));
+        }
+        Ok(store)
     }
 
     fn new(
@@ -236,6 +299,9 @@ impl StaffStore {
             secure_cookie,
             public_origin,
             ttl,
+            google_mode: false,
+            google: None,
+            people: None,
         })
     }
 
@@ -262,7 +328,11 @@ impl StaffStore {
         let mut usernames = std::collections::HashSet::new();
         let mut ids = std::collections::HashSet::new();
         for account in &file.accounts {
-            if account.id.trim().is_empty()
+            if matches!(account.role, Role::Super | Role::Admin)
+                || account.capabilities.as_ref().is_some_and(|c| {
+                    c.contains(&Capability::PeopleWrite) || c.contains(&Capability::SettingsWrite)
+                })
+                || account.id.trim().is_empty()
                 || account.id == "owner"
                 || account.id.len() > 128
                 || account.name.trim().is_empty()
@@ -322,6 +392,14 @@ impl StaffStore {
 
     fn session(&self, headers: &HeaderMap, timestamp: u64) -> Option<Session> {
         let token = cookie_token(headers)?;
+        if let Some(people) = &self.people {
+            if let Some(session) = people.session(token, timestamp) {
+                return Some(session);
+            }
+        }
+        if self.google_mode {
+            return None;
+        }
         let key = digest(token);
         let mut sessions = self.sessions.lock().unwrap();
         if sessions
@@ -333,10 +411,14 @@ impl StaffStore {
         sessions.get(&key).cloned()
     }
 
-    fn revoke(&self, headers: &HeaderMap) {
+    fn revoke(&self, headers: &HeaderMap) -> Result<(), people::Failure> {
         if let Some(token) = cookie_token(headers) {
+            if let Some(people) = &self.people {
+                people.revoke(token)?;
+            }
             self.sessions.lock().unwrap().remove(&digest(token));
         }
+        Ok(())
     }
 
     fn allow_login(&self, timestamp: u64) -> bool {
@@ -382,11 +464,16 @@ fn owner() -> StaffIdentity {
         role: Role::Administrator,
         capabilities: ALL.to_vec(),
         demo: false,
-        auth_source: "owner",
+        auth_source: "owner".into(),
+        email: None,
+        picture: None,
     }
 }
 
 fn basic_owner(state: &AppState, headers: &HeaderMap) -> Option<StaffIdentity> {
+    if state.staff.google_mode {
+        return None;
+    }
     let expected = state.admin_password.as_ref().filter(|p| !p.is_empty())?;
     let encoded = headers
         .get(header::AUTHORIZATION)?
@@ -484,10 +571,21 @@ pub fn capability_for_route(method: &Method, path: &str) -> Option<Capability> {
     if *method == Method::GET && path == "/api/staff/access" {
         return Some(AccessRead);
     }
+    if resource(path, "/api/staff/people") {
+        return Some(PeopleWrite);
+    }
+    // Reserved policy for later providers: shared operational reads must not expose secrets.
+    if resource(path, "/api/roster") {
+        return Some(RoomsWrite);
+    }
+    if resource(path, "/api/settings") {
+        return Some(SettingsWrite);
+    }
     if resource(path, "/api/publishing") {
         return Some(PublishingWrite);
     }
     if path == "/api/content"
+        || resource(path, "/api/pages")
         || resource(path, "/api/site/editor")
         || resource(path, "/api/site/media")
     {
@@ -578,6 +676,8 @@ struct SessionView {
     demo_accounts: Vec<StaffIdentity>,
     password_login_enabled: bool,
     owner_login_enabled: bool,
+    auth_mode: &'static str,
+    google_client_id: Option<String>,
 }
 
 fn demos() -> Vec<StaffIdentity> {
@@ -594,7 +694,9 @@ fn demos() -> Vec<StaffIdentity> {
         role,
         capabilities: role.capabilities(),
         demo: true,
-        auth_source: "demo",
+        auth_source: "demo".into(),
+        email: None,
+        picture: None,
     })
     .collect()
 }
@@ -611,12 +713,19 @@ fn session_response(
         expires_at: session.as_ref().map(|s| s.expires_at),
         demo_mode: state.staff.demo_mode,
         demo_accounts: if state.staff.demo_mode {
-            demos()
+            modern_demos()
         } else {
             Vec::new()
         },
         password_login_enabled: !state.staff.accounts.is_empty(),
-        owner_login_enabled: state.admin_password.as_ref().is_some_and(|s| !s.is_empty()),
+        owner_login_enabled: !state.staff.google_mode
+            && state.admin_password.as_ref().is_some_and(|s| !s.is_empty()),
+        auth_mode: if state.staff.google_mode {
+            "google"
+        } else {
+            "legacy"
+        },
+        google_client_id: state.staff.google.as_ref().map(|g| g.client_id.clone()),
     };
     let mut response = Json(view).into_response();
     response
@@ -631,6 +740,13 @@ fn session_response(
 }
 
 pub async fn session(State(state): State<AppState>, headers: HeaderMap) -> Response {
+    if headers.get("x-staff-presence").is_some_and(|v| v == "1") {
+        if let (Some(people), Some(user)) = (&state.staff.people, identity(&state, &headers)) {
+            if let Some(email) = user.email {
+                people.heartbeat(&email);
+            }
+        }
+    }
     session_response(
         &state,
         state.staff.session(&headers, now()),
@@ -651,6 +767,12 @@ pub async fn login(
     headers: HeaderMap,
     input: Result<Json<LoginInput>, axum::extract::rejection::JsonRejection>,
 ) -> Response {
+    if state.staff.google_mode {
+        return api_error(
+            StatusCode::FORBIDDEN,
+            "This server uses Google sign-in. Password and owner access are disabled.",
+        );
+    }
     if !same_origin(&state.staff, &headers) || !json_intent(&headers) {
         return api_error(
             StatusCode::FORBIDDEN,
@@ -732,7 +854,9 @@ fn create_session(state: &AppState, headers: &HeaderMap, user: StaffIdentity) ->
             "Staff sessions are full. Try again later.",
         );
     };
-    state.staff.revoke(headers);
+    if let Err((status, message)) = state.staff.revoke(headers) {
+        return api_error(status, message);
+    }
     session_response(
         state,
         Some(session),
@@ -773,6 +897,12 @@ pub async fn demo_login(
             "Choose one of the listed demo accounts.",
         );
     };
+    if let Some(user) = modern_demos()
+        .into_iter()
+        .find(|u| u.id == input.account_id)
+    {
+        return create_people_session(&state, &headers, user.email.as_deref().unwrap(), None);
+    }
     let Some(user) = demos().into_iter().find(|u| u.id == input.account_id) else {
         return api_error(
             StatusCode::BAD_REQUEST,
@@ -792,8 +922,208 @@ pub async fn logout(State(state): State<AppState>, headers: HeaderMap) -> Respon
             "Reload the staff page, then sign out again.",
         );
     }
-    state.staff.revoke(&headers);
+    if let Err((status, message)) = state.staff.revoke(&headers) {
+        return api_error(status, message);
+    }
     session_response(&state, None, None, Some(state.staff.cookie("", 0)))
+}
+
+fn modern_demos() -> Vec<StaffIdentity> {
+    [
+        ("demo-operator", "admin@example.test", Role::Admin),
+        ("demo-super", "super@example.test", Role::Super),
+    ]
+    .into_iter()
+    .map(|(id, email, role)| StaffIdentity {
+        id: id.into(),
+        name: email.into(),
+        role,
+        capabilities: role.capabilities(),
+        demo: true,
+        auth_source: "demo".into(),
+        email: Some(email.into()),
+        picture: None,
+    })
+    .collect()
+}
+
+fn create_people_session(
+    state: &AppState,
+    headers: &HeaderMap,
+    email: &str,
+    picture: Option<String>,
+) -> Response {
+    let Some(people) = &state.staff.people else {
+        return api_error(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "Google access is not configured.",
+        );
+    };
+    match people.issue(email, picture, now(), cookie_token(headers)) {
+        Ok((token, session)) => {
+            // The new persistent session and old persistent revocation commit atomically.
+            if let Some(old) = cookie_token(headers) {
+                state.staff.sessions.lock().unwrap().remove(&digest(old));
+            }
+            session_response(
+                state,
+                Some(session),
+                None,
+                Some(state.staff.cookie(&token, 86400)),
+            )
+        }
+        Err((status, message)) => api_error(status, message),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct GoogleInput {
+    credential: String,
+}
+async fn google_login(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    input: Result<Json<GoogleInput>, axum::extract::rejection::JsonRejection>,
+) -> Response {
+    if !same_origin(&state.staff, &headers) || !json_intent(&headers) {
+        return api_error(
+            StatusCode::FORBIDDEN,
+            "Sign in from the BMT Live staff page.",
+        );
+    }
+    let Some(google) = &state.staff.google else {
+        return api_error(StatusCode::SERVICE_UNAVAILABLE, "Google sign-in is not configured. Ask the server operator to configure Live's Google client and authorized accounts.");
+    };
+    if !state.staff.allow_login(now()) {
+        return api_error(
+            StatusCode::TOO_MANY_REQUESTS,
+            "Too many sign-in attempts. Wait one minute and try again.",
+        );
+    }
+    let Ok(Json(input)) = input else {
+        return api_error(
+            StatusCode::BAD_REQUEST,
+            "Use the Google sign-in button to get a credential.",
+        );
+    };
+    match google.verify(&input.credential).await {
+        Ok(claims) => create_people_session(&state, &headers, &claims.email.trim().to_ascii_lowercase(), google::safe_picture(claims.picture)),
+        Err(google::VerifyError::Invalid) => api_error(StatusCode::UNAUTHORIZED, "Google could not confirm that credential. Choose your account again."),
+        Err(google::VerifyError::Unavailable) => api_error(StatusCode::SERVICE_UNAVAILABLE, "Google verification is unavailable. Try again later. Existing Live sessions still work."),
+    }
+}
+
+fn people_access(
+    state: &AppState,
+    headers: &HeaderMap,
+    mutation: bool,
+) -> Result<(Arc<people::PeopleStore>, String), people::Failure> {
+    let user =
+        identity(state, headers).ok_or((StatusCode::UNAUTHORIZED, "Sign in to continue."))?;
+    if !user.capabilities.contains(&Capability::PeopleWrite) {
+        return Err((
+            StatusCode::FORBIDDEN,
+            "Only a Super admin can manage People.",
+        ));
+    }
+    if mutation
+        && (!same_origin(&state.staff, headers)
+            || !json_intent(headers)
+            || !csrf_valid(&state.staff, headers))
+    {
+        return Err((StatusCode::FORBIDDEN, "Reload the staff page and try again. A same-origin request and current security token are required."));
+    }
+    let people = state.staff.people.clone().ok_or((
+        StatusCode::SERVICE_UNAVAILABLE,
+        "People is available in Google mode or the two-role demo.",
+    ))?;
+    Ok((people, user.email.unwrap_or_default()))
+}
+async fn list_people(State(state): State<AppState>, headers: HeaderMap) -> Response {
+    let (people, _) = match people_access(&state, &headers, false) {
+        Ok(v) => v,
+        Err((status, message)) => return api_error(status, message),
+    };
+    match people.list() {
+        Ok(accounts) => Json(serde_json::json!({"accounts": accounts})).into_response(),
+        Err((s, m)) => api_error(s, m),
+    }
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PersonInput {
+    email: String,
+    role: Role,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RoleInput {
+    role: Role,
+}
+async fn change_person(
+    state: AppState,
+    headers: HeaderMap,
+    email: String,
+    role: Option<Role>,
+    add: bool,
+) -> Response {
+    let (people, actor) = match people_access(&state, &headers, true) {
+        Ok(v) => v,
+        Err((status, message)) => return api_error(status, message),
+    };
+    let email = match people::normalize_email(&email) {
+        Ok(v) => v,
+        Err(m) => return api_error(StatusCode::BAD_REQUEST, m),
+    };
+    let result =
+        tokio::task::spawn_blocking(move || people.change(&actor, &email, role, add)).await;
+    match result {
+        Ok(Ok(())) => StatusCode::NO_CONTENT.into_response(),
+        Ok(Err((s, m))) => api_error(s, m),
+        Err(_) => api_error(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "Staff storage is unavailable. Refresh People before retrying.",
+        ),
+    }
+}
+async fn add_person(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(input): Json<PersonInput>,
+) -> Response {
+    change_person(state, headers, input.email, Some(input.role), true).await
+}
+async fn set_person(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    axum::extract::Path(email): axum::extract::Path<String>,
+    Json(input): Json<RoleInput>,
+) -> Response {
+    change_person(state, headers, email, Some(input.role), false).await
+}
+async fn remove_person(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    axum::extract::Path(email): axum::extract::Path<String>,
+) -> Response {
+    change_person(state, headers, email, None, false).await
+}
+async fn no_store(mut response: Response) -> Response {
+    response
+        .headers_mut()
+        .insert(header::CACHE_CONTROL, "no-store".parse().unwrap());
+    response
+}
+fn people_router() -> Router<AppState> {
+    Router::new()
+        .route("/api/staff/people", get(list_people).post(add_person))
+        .route(
+            "/api/staff/people/{email}",
+            axum::routing::patch(set_person).delete(remove_person),
+        )
+        .layer(DefaultBodyLimit::max(4096))
+        .layer(axum::middleware::map_response(no_store))
 }
 
 /// Public discovery/login routes. Only metadata and the current session are returned.
@@ -801,9 +1131,12 @@ pub fn public_router() -> Router<AppState> {
     Router::new()
         .route("/api/staff/session", get(session))
         .route("/api/staff/login", post(login))
+        .route("/api/staff/google-login", post(google_login))
         .route("/api/staff/logout", post(logout))
         .route("/api/staff/demo", post(demo_login))
-        .layer(DefaultBodyLimit::max(4096))
+        .layer(DefaultBodyLimit::max(12288))
+        .layer(axum::middleware::map_response(no_store))
+        .merge(people_router())
 }
 
 #[cfg(test)]
@@ -830,7 +1163,7 @@ mod tests {
         assert!(store.session(&headers(&token), 160).is_none());
         assert!(store.sessions.lock().unwrap().is_empty());
         let (token, _) = store.issue(owner(), 200).unwrap();
-        store.revoke(&headers(&token));
+        store.revoke(&headers(&token)).unwrap();
         assert!(store.session(&headers(&token), 201).is_none());
         assert!(store
             .cookie("test", 60)

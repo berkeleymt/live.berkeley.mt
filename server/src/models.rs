@@ -113,9 +113,11 @@ pub struct SubscribeInput {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SubscribeResponse {
     pub ok: bool,
     pub message: String,
+    pub email_delivery_enabled: bool,
 }
 
 // ── LiveData (the full response) ──

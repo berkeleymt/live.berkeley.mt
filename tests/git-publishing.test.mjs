@@ -309,5 +309,37 @@ test("invalid startup and unauthenticated Git configuration fail closed", async 
   assert.equal((await anonymous.api('/api/live', { auth: false })).status, 200);
   anonymous.child.kill(); await once(anonymous.child, 'exit');
   await first.commit("{broken", "Startup corruption");
+  const retained = await first.start();
+  assert.equal((await retained.live()).schedule[0].title, fixture().schedule[0].title);
+  retained.child.kill(); await once(retained.child, 'exit');
+  await git(first.repo, 'update-ref', '-d', 'refs/live/local-loaded');
   await first.start({ expectFailure: true });
+});
+
+test('Markdown local Git pages are actual files, CAS-protected, exported and forward-restored after invalid commits', async t => {
+  const f = await setup(t); let s = await f.start();
+  const source = await readFile(resolve('content/pages/home.md'), 'utf8');
+  const initial = await (await s.api('/api/pages')).json(); assert.deepEqual(initial.files, {});
+  const savedResponse = await s.api('/api/pages/editor', { method: 'PUT', body: { revision: initial.revision, files: { 'home.md': source } } });
+  assert.equal(savedResponse.status, 200, await savedResponse.clone().text()); const saved = await savedResponse.json();
+  assert.equal(await readFile(join(f.repo, 'pages/home.md'), 'utf8'), source);
+  assert.equal(await git(f.repo, 'show', `${saved.revision}:pages/home.md`), source.trim());
+  assert.ok(!JSON.parse(await readFile(join(f.repo, 'operations.json'), 'utf8')).pages);
+  assert.equal((await (await s.api('/api/publishing/export')).json()).pages['home.md'], source);
+  assert.equal((await s.api('/api/pages/editor', { method: 'PUT', body: { revision: initial.revision, files: {} } })).status, 409);
+  await writeFile(join(f.repo, 'pages/home.md'), 'invalid Markdown file');
+  await git(f.repo, 'add', 'pages/home.md'); await git(f.repo, 'commit', '-m', 'Synthetic invalid page');
+  const invalid = await git(f.repo, 'rev-parse', 'HEAD');
+  await eventually(s.status, health => health.issues.some(issue => issue.kind === 'invalid_head'), 'invalid Markdown head');
+  assert.equal((await (await s.api('/api/pages')).json()).files['home.md'], source);
+  s.child.kill(); await once(s.child, 'exit'); s = await f.start();
+  assert.equal((await (await s.api('/api/pages')).json()).revision, saved.revision);
+  const restored = await s.api('/api/publishing/restore', { method: 'POST', body: { revision: saved.revision }, revision: invalid });
+  assert.equal(restored.status, 200, await restored.clone().text());
+  assert.equal(await git(f.repo, 'rev-parse', 'HEAD^'), invalid);
+  assert.equal(await readFile(join(f.repo, 'pages/home.md'), 'utf8'), source);
+  const current = await (await s.api('/api/pages')).json();
+  const removed = await s.api('/api/pages/editor', { method: 'PUT', body: { revision: current.revision, files: {} } });
+  assert.equal(removed.status, 200, await removed.clone().text());
+  assert.equal(await git(f.repo, 'ls-tree', '-r', 'HEAD', '--', 'pages'), '');
 });

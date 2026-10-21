@@ -1,6 +1,8 @@
 import { lazy, Suspense } from "react";
-import { Link, Navigate, Outlet, Routes, Route } from "react-router-dom";
-import App from "./App";
+import { Link, Navigate, Routes, Route, useLocation } from "react-router-dom";
+import App, { FaqPage, HelpPage, MapPage, PublicGuidePage, SchedulePage, UpdatesPage } from "./App";
+import { PublicFrame } from "./components/PublicFrame";
+import { destinationLabel, usePublicData } from "./data/publicContext";
 import {
   StaffProvider,
   StaffShell,
@@ -9,74 +11,31 @@ import {
   StaffCapabilityGate,
   useStaff,
 } from "./features/staff";
-import { GuidePage, SiteEditor, useSite, siteText } from "./features/site";
+import { ContestDojoSettings, RosterWorkspace } from './features/wayfinding/RosterWorkspace';
+import { StaffPeople } from './features/staff/StaffPeople';
+import { AuthoredRoute } from './features/pages/PageRenderer';
+import { ContentWorkspace, SiteSettingsWorkspace } from './components/ContentWorkspace';
+import { useSiteText } from './features/site/text';
 import { RoomFinder, RoomEditor } from "./features/wayfinding";
 import {
   LostFoundPage,
   LostFoundInbox,
-  defaultLostFoundCopy,
 } from "./features/lost-found";
-import { EventEditor } from "./components/EventEditor";
 import { useLiveData } from "./data/useLiveData";
 import "./integration.css";
 
 const ClassicApp = lazy(() => import("./ClassicApp"));
 const Admin = lazy(() => import("./Admin"));
-function PublicFrame() {
-  const { content, error, refresh } = useSite();
-  return (
-    <div className="public-feature">
-      <header className="site-header">
-        <div className="page-width header-inner">
-          <Link to="/" className="brand">
-            <img src={content.branding.logoUrl} width="36" height="36" alt="" />
-            <span>
-              {content.branding.shortTitle}
-              <span className="brand-caption">{content.branding.caption}</span>
-            </span>
-          </Link>
-          <Link to="/staff/sign-in" className="staff-link">
-            {siteText(content, "staff.signIn")}
-          </Link>
-        </div>
-      </header>
-      <nav
-        className="section-nav"
-        aria-label={siteText(content, "a11y.navigation")}
-      >
-        <div className="page-width">
-          {content.navigation.map((link) => (
-            <a key={link.id} href={link.href}>
-              {link.label}
-            </a>
-          ))}
-        </div>
-      </nav>
-      {error && (
-        <p role="alert" className="page-width">
-          {error}
-          <button onClick={refresh}>
-            {siteText(content, "loading.retry")}
-          </button>
-        </p>
-      )}
-      <Outlet />
-      <footer className="page-width site-footer">
-        {siteText(content, "footer.credit")}
-        <Link to="/">{siteText(content, "guide.back")}</Link>
-      </footer>
-    </div>
-  );
+function PublicRooms() {
+  const { site } = usePublicData();
+  return <RoomFinder embedded title={destinationLabel(site.content, '/rooms')} />;
+}
+function Alias({ to }: { to: string }) {
+  const { search, hash } = useLocation();
+  return <Navigate to={`${to}${search}${hash}`} replace />;
 }
 function Reports() {
-  const { content } = useSite();
-  const copy = Object.fromEntries(
-    Object.entries(defaultLostFoundCopy).map(([key, value]) => [
-      key,
-      content.copy[`lostFound.${key}`] ?? value,
-    ]),
-  );
-  return <LostFoundPage copy={copy} />;
+  return <LostFoundPage helpHref="/help" />;
 }
 function Inbox() {
   const staff = useStaff();
@@ -88,23 +47,14 @@ function RoomsEditor() {
     <RoomEditor canWrite={staff.can("rooms:write")} request={staff.request} />
   );
 }
-function ContentWorkspace() {
-  return (
-    <div className="content-workspace">
-      <EventEditor onPublish={() => {}} />
-      <SiteEditor />
-    </div>
-  );
-}
 function StaffToday() {
   const staff = useStaff();
   const { data, error, refresh } = useLiveData();
   return (
-    <section className="staff-panel">
-      <h2>Run the public information desk</h2>
+    <section className="staff-home">
+      <h2>Keep visitors informed</h2>
       <p>
-        Keep visitors informed here. Competition timers stay in Lemon; trip
-        planning stays in TakeTransit.
+        Publish announcements, update the schedule and help visitors find their way.
       </p>
       {error && (
         <p role="alert">
@@ -120,88 +70,66 @@ function StaffToday() {
           <p>
             <strong>{data.event.title}</strong> · {data.event.date}
           </p>
-          <p className="staff-note">{data.event.notice}</p>
-          <dl className="source-list">
-            <div>
-              <dt>Public information</dt>
-              <dd>
-                {data.operationRevision
-                  ? `Git publication ${data.operationRevision.slice(0, 12)}`
-                  : "SQLite operations + file-backed editorial content"}
-              </dd>
-            </div>
-            <div>
-              <dt>Staff identity</dt>
-              <dd>
-                {staff.session?.demoMode
-                  ? "Synthetic demo roles · no SSO"
-                  : "BMT Live local accounts · separate Lemon sign-in"}
-              </dd>
-            </div>
-            <div>
-              <dt>Student lookup</dt>
-              <dd>
-                {staff.session?.demoMode
-                  ? "Synthetic demo roster; try DEMO-1001 / DEMO-CHECKIN-2026"
-                  : "See Rooms for configured provider status; no live ContestDojo connection is implied"}
-              </dd>
-            </div>
-            <div>
-              <dt>Email delivery</dt>
-              <dd>
-                {staff.session?.demoMode
-                  ? "Disabled in sandbox; subscriptions still persist locally"
-                  : "Requires operator-provisioned Postmark configuration"}
-              </dd>
-            </div>
-          </dl>
+          {data.event.notice && <p className="staff-note">{data.event.notice}</p>}
         </>
       )}
-      <div className="workspace-actions">
+      <div className="staff-home-grid">
         {staff.can("updates:read") && (
-          <Link className="staff-button" to="/admin/operations">
-            Schedule & updates
+          <Link className="staff-home-card" to="/admin/operations">
+            <strong>Schedule & updates</strong><span>Adjust round times and publish announcements.</span><span className="staff-home-action">Open operations →</span>
           </Link>
         )}
         {staff.can("found:read") && (
-          <Link className="staff-button" to="/admin/lost-found">
-            Process lost & found
+          <Link className="staff-home-card" to="/admin/lost-found">
+            <strong>Lost & found</strong><span>Review private reports and help return belongings.</span><span className="staff-home-action">Open inbox →</span>
           </Link>
         )}
         {staff.can("content:write") && (
-          <Link className="staff-button" to="/admin/content">
-            Edit site & guide
+          <Link className="staff-home-card" to="/admin/content">
+            <strong>Website content</strong><span>Edit the visitor guide, FAQ and practical information.</span><span className="staff-home-action">Edit website →</span>
           </Link>
         )}
-        <Link className="staff-button" to="/admin/access">
-          Permissions & demo roles
-        </Link>
+        {staff.can('rooms:write') && <Link className="staff-home-card" to="/admin/rooms"><strong>Rooms & directions</strong><span>Update building details, room maps and routes.</span><span className="staff-home-action">Manage rooms →</span></Link>}
       </div>
+      <Link to="/admin/access">Your account & permissions</Link>
     </section>
   );
+}
+function RouteLoading() {
+  const t = useSiteText();
+  return <p className="p-8" role="status">{t('loading.route')}</p>;
+}
+function NotFound() {
+  const t = useSiteText();
+  return <main className="today-page loading-page"><h1>{t('loading.notFound')}</h1><Link to="/">{t('loading.home')}</Link></main>;
 }
 export function SiteRoutes() {
   return (
     <StaffProvider>
       <Suspense
         fallback={
-          <p className="p-8" role="status">
-            Loading…
-          </p>
+          <RouteLoading />
         }
       >
         <Routes>
-          <Route path="/" element={<App />} />
           <Route path="/classic" element={<ClassicApp />} />
-          <Route path="/guide" element={<GuidePage />} />
           <Route element={<PublicFrame />}>
-            <Route path="/rooms" element={<RoomFinder />} />
-            <Route path="/lost-found" element={<Reports />} />
+            <Route path="/" element={<AuthoredRoute fallback={<App />} />} />
+            <Route path="/schedule" element={<AuthoredRoute fallback={<SchedulePage />} />} />
+            <Route path="/updates" element={<AuthoredRoute fallback={<UpdatesPage />} />} />
+            <Route path="/map" element={<AuthoredRoute fallback={<MapPage />} />} />
+            <Route path="/guide" element={<AuthoredRoute fallback={<PublicGuidePage />} />} />
+            <Route path="/faq" element={<AuthoredRoute fallback={<FaqPage />} />} />
+            <Route path="/help" element={<AuthoredRoute fallback={<HelpPage />} />} />
+            <Route path="/rooms" element={<AuthoredRoute fallback={<PublicRooms />} />} />
+            <Route path="/lost-found" element={<AuthoredRoute fallback={<Reports />} />} />
+            <Route path="/pages/:slug" element={<AuthoredRoute />} />
+            <Route path="/guide/:slug" element={<AuthoredRoute />} />
+            <Route path="/help/:slug" element={<AuthoredRoute />} />
           </Route>
-          <Route
-            path="/lost-and-found"
-            element={<Navigate to="/lost-found" replace />}
-          />
+          <Route path="/lost-and-found" element={<Alias to="/lost-found" />} />
+          <Route path="/directions" element={<Alias to="/map" />} />
+          <Route path="/lookup" element={<Alias to="/rooms" />} />
           <Route path="/staff/sign-in" element={<StaffLogin />} />
           <Route path="/admin" element={<StaffShell />}>
             <Route index element={<StaffToday />} />
@@ -230,15 +158,16 @@ export function SiteRoutes() {
                 </StaffCapabilityGate>
               }
             />
+            <Route path="site-settings" element={<StaffCapabilityGate capability="content:write"><SiteSettingsWorkspace /></StaffCapabilityGate>} />
             <Route path="access" element={<StaffAccess />} />
+            <Route path="people" element={<StaffPeople />} />
+            <Route path="roster" element={<StaffCapabilityGate capability="rooms:write"><RosterWorkspace /></StaffCapabilityGate>} />
+            <Route path="settings" element={<StaffCapabilityGate capability="settings:write"><ContestDojoSettings /></StaffCapabilityGate>} />
           </Route>
           <Route
             path="*"
             element={
-              <main className="today-page loading-page">
-                <h1>Page not found</h1>
-                <Link to="/">Return to Today</Link>
-              </main>
+              <NotFound />
             }
           />
         </Routes>

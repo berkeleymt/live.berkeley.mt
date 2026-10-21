@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, LayoutGroup } from "framer-motion";
 import { useLiveData } from "./data/useLiveData";
-import type { ScheduleEvent, DelayNotice } from "./data/types";
+import type { ScheduleEvent, DelayNotice, EventContent } from "./data/types";
+import { eventDateLabel, scheduleState } from "./data/schedule";
+import { useSite } from "./features/site/useSite";
+import { SiteTextContext, useSiteText } from "./features/site/text";
 import { getCurrentEvent, getNextEvent } from "./data/useLiveData";
 import { formatTime, getDelayForEvent, toMins } from "./data/utils";
 import { LiveFeed } from "./components/LiveFeed";
@@ -48,26 +51,27 @@ function minsToLabel(mins: number): string {
 
 // ── Header Widget ──
 
-function HeaderWidget() {
+export function HeaderWidget({ event, stale }: { event: EventContent; stale: boolean }) {
+  const t = useSiteText();
   return (
     <div className="bg-berkeley-blue text-white widget-shadow overflow-hidden flex items-center rounded-2xl">
       <div className="px-5 py-4 flex items-center gap-4 w-full">
         <img src="/bmt-logo.svg" alt="BMT" className="h-12 w-12 shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-[10px] text-white/50 font-medium tracking-widest uppercase">
-            Sunday, April 12
+            {eventDateLabel(event.date)}
           </p>
           <h1 className="text-[22px] font-bold tracking-tight leading-tight text-wrap-balance">
-            BmMT 2026
+            {event.title}
           </h1>
         </div>
-        <div className="flex items-center gap-1.5 bg-white/10 rounded-full pl-2.5 pr-3 py-1 shrink-0">
+        <div className="flex items-center gap-1.5 bg-white/10 rounded-full pl-2.5 pr-3 py-1">
           <span className="relative flex h-1.5 w-1.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success" />
           </span>
           <span className="text-[11px] font-semibold text-white/90">
-            Live
+            {t(stale ? 'status.reconnecting' : 'brand.live')}
           </span>
         </div>
       </div>
@@ -77,7 +81,8 @@ function HeaderWidget() {
 
 // ── Now Hero ──
 
-function NowHero({ events, delays, nowMins, showScheduleHint }: { events: ScheduleEvent[]; delays: DelayNotice[]; nowMins?: number; showScheduleHint?: boolean }) {
+export function NowHero({ events, delays, nowMins, showScheduleHint, event, phase }: { events: ScheduleEvent[]; delays: DelayNotice[]; nowMins?: number; showScheduleHint?: boolean; event: EventContent; phase: ReturnType<typeof scheduleState>['phase'] }) {
+  const t = useSiteText();
   const currentId = useMemo(() => getCurrentEvent(events, nowMins, delays), [events, nowMins, delays]);
   const nextId = useMemo(() => getNextEvent(events, nowMins, delays), [events, nowMins, delays]);
 
@@ -86,11 +91,18 @@ function NowHero({ events, delays, nowMins, showScheduleHint }: { events: Schedu
   const progress = current ? getEventProgress(current, delays, nowMins) : 0;
   const currentDelay = current ? getDelayForEvent(current.id, delays) : undefined;
 
+  if (phase !== 'today') {
+    return <div className="h-full glass-heavy widget-shadow px-5 py-6 text-center flex flex-col items-center justify-center">
+      <h2 className="text-[22px] font-bold text-label">{t(`hero.${phase}`)}</h2>
+      <p className="text-[15px] text-secondary-label mt-2">{phase === 'before' ? eventDateLabel(event.date) : t(`hero.${phase}Summary`, { eventTitle: event.title })}</p>
+    </div>;
+  }
+
   if (!current && !next) {
     return (
       <div className="h-full glass-heavy widget-shadow px-5 py-6 text-center flex flex-col items-center justify-center">
-        <p className="text-[15px] font-semibold text-label">All done for today!</p>
-        <p className="text-[13px] text-tertiary-label mt-1">Thanks for coming to BmMT 2026</p>
+        <p className="text-[15px] font-semibold text-label">{t('hero.noMoreEvents')}</p>
+        <p className="text-[13px] text-tertiary-label mt-1">{t('hero.nextEmpty')}</p>
       </div>
     );
   }
@@ -349,9 +361,12 @@ export default function ClassicApp() {
   // Dev time slider state — null means "use real time"
   const [devMins, setDevMins] = useState<number | null>(null);
   const devNow = devMins != null ? minsToEpoch(devMins) : null;
-  const nowMins = devMins ?? undefined;
-
   const { data, error, stale } = useLiveData(devNow);
+  const site = useSite();
+  const t = useSiteText(site.content);
+  const clock = data ? scheduleState(data.schedule, data.delays, data.event) : null;
+  const phase = devMins !== null ? 'today' : clock?.phase ?? 'unpublished';
+  const nowMins = devMins ?? (phase === 'before' ? -1 : phase === 'after' ? 1441 : clock?.minutes);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const tallCards = useTallCards(gridRef);
@@ -381,7 +396,7 @@ export default function ClassicApp() {
   );
 
   return (
-    <LayoutGroup>
+    <SiteTextContext.Provider value={site.content}><LayoutGroup>
     <div className={`min-h-dvh lg:flex lg:flex-col lg:justify-center relative`}>
       <div
         className="fixed inset-0 bg-center bg-cover bg-no-repeat pointer-events-none opacity-[0.08] -z-10"
@@ -395,6 +410,8 @@ export default function ClassicApp() {
       )}
 
       <div className="max-w-lg mx-auto px-4 pt-6 pb-8 lg:max-w-7xl lg:px-6 lg:py-6 lg:w-full">
+        <nav className="mb-3" aria-label={t('a11y.navigation')}><a href="/">{data.event.title}</a></nav>
+        {data.event.notice && <p className="public-notice">{data.event.notice}</p>}
         <div className="widget-grid-container" ref={gridRef}>
           {/* Header strip */}
           <motion.div
@@ -403,7 +420,7 @@ export default function ClassicApp() {
             transition={{ duration: 0.35 }}
             className="mb-3"
           >
-            <HeaderWidget />
+            <HeaderWidget event={data.event} stale={stale} />
           </motion.div>
 
           <motion.div
@@ -434,12 +451,12 @@ export default function ClassicApp() {
                   onCollapse={() => setExpandedId(null)}
                   expandedContent={<ScheduleCardExpanded events={data.schedule} delays={data.delays} nowMins={nowMins} />}
                 >
-                  <NowHero events={data.schedule} delays={data.delays} nowMins={nowMins} showScheduleHint />
+                  <NowHero events={data.schedule} delays={data.delays} nowMins={nowMins} showScheduleHint event={data.event} phase={phase} />
                 </WidgetCard>
               </div>
               {/* Desktop: plain NowHero */}
               <div className="h-full hidden lg:block">
-                <NowHero events={data.schedule} delays={data.delays} nowMins={nowMins} />
+                <NowHero events={data.schedule} delays={data.delays} nowMins={nowMins} event={data.event} phase={phase} />
               </div>
             </motion.div>
 
@@ -526,6 +543,6 @@ export default function ClassicApp() {
 
     </div>
     <div id="overlay-root" />
-    </LayoutGroup>
+    </LayoutGroup></SiteTextContext.Provider>
   );
 }

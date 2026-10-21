@@ -1,6 +1,6 @@
 # Public experience and information architecture
 
-Status: proposed design under Ian's delegated organization/wayfinding decisions; not the current route contract. Implements R01–R05, R07, R12–R13 in [the specification](specs.md).
+Status: slice-1 hub/routes implemented under Ian's follow-up direction; prototype/device/browser acceptance remains pending. The table distinguishes the current route jobs from later room/import/interactive-routing targets. Implements R01–R05, R07, R12–R13 in [the specification](specs.md).
 
 ## Navigation and home
 
@@ -16,21 +16,21 @@ The home page is a short gateway, not the complete guide pasted into one scroll:
 
 There is no student/parent/coach gate, onboarding tour, forced geolocation prompt, app-install prompt or account requirement to read public information.
 
-## Proposed destinations
+## Public destinations
 
 | Destination | Visitor's job | Content and primary action |
 | --- | --- | --- |
 | `/` Home | Decide where to go next | Now/next, urgent notice, all destination links |
 | `/schedule` | Know when and where things happen | Full day, changed times, event detail; jump to current event |
 | `/updates` | Understand what changed | Timestamped/pinned notices, priority and relevant links; no forced auto-scroll |
-| `/rooms` Maps | Find a building/room and a route | Search, room details, origin, accessible route preference, floor controls and directions |
-| `/my-rooms` My rooms | Find my assigned locations | Student ID form, assigned rooms joined to public schedule, route action for each |
+| `/map` Map | Find a building/room and a route | Current published search/directions and optional maps; connected interactive routing/origin selection remains a later slice |
+| `/rooms` My rooms | Find my assigned locations | Existing ID + code lookup and directions retained; approved ID-only/per-test import remains a later slice |
 | `/guide` Tournament guide | Read practical tournament guidance | Short sections, contents/search, print and direct section links |
-| `/faq` FAQ | Get a short answer | Search + categorized questions; link to full guidance rather than duplicate it |
+| `/faq` FAQ | Get a short answer | Searchable event questions and answers; categorization remains future content work |
 | `/help` Help | Find the right help channel | Emergency/info-desk/Wi-Fi/restroom information; guide/FAQ/report links |
-| `/lost-found` Lost & found | Submit a report | Plain form, contact email, private receipt and email state |
+| `/lost-found` Lost & found | Submit a report | Existing private form and receipt; confirmation-email state remains a later slice |
 
-Some paths already exist; the rest are proposals. Preserve existing URLs, section anchors and subscription functions during migration, including `/classic`, until removal is separately agreed. A browser Back action restores search/context where safe. Public room/guide links may be shared; personal IDs must not appear in share URLs.
+All table paths now exist; `/my-rooms` is not introduced or advertised. `/rooms` retains compatibility instead of relocating its private lookup in the shell slice. Legacy root fragments redirect, and subscriptions live on `/updates`; `/classic` retains the old layout/map/tools. Guide/FAQ search is local component state (not persisted across leaving/re-entering a route); broader Back/context restoration is still a UX follow-up. Public room/guide links may be shared; personal IDs must not appear in share URLs.
 
 ## Personal rooms journey
 

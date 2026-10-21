@@ -4,7 +4,7 @@ Status: current repository configuration plus minimal readiness checklist. This 
 
 ## Current deployment facts
 
-- [Workflow](../.github/workflows/build-and-push.yaml) builds/pushes `ghcr.io/berkeleymt/live.berkeley.mt:latest` for pushes to main, then restarts Kubernetes deployment `live` in namespace `bmt` and waits up to 300 seconds for rollout.
+- [Workflow](../.github/workflows/build-and-push.yaml) builds/pushes images on main, but no longer deploys on a push. A manually confirmed main-branch run validates GitHub configuration/storage, creates versioned ConfigMap/Secret objects, and patches Kubernetes `bmt/live` to the exact built image digest. It waits up to 300 seconds for rollout. Follow the [GitHub setup and owner checklist](github-deployment.md); this code has not been exercised against the real cluster.
 - `KUBECONFIG_B64` is an Actions secret. Never paste its value into docs/logs. A successful build alone is not a confirmed rollout; a rollout alone is not correct tournament content.
 - [Dockerfile](../Dockerfile) sets absolute `/app/content/{site,event,wayfinding}.json` paths so a changed container working directory does not redirect content loading. Database and upload paths still depend on actual deployment configuration.
 - Deployment manifests/persistent volumes, replica count, backups and hosting ownership are not fully described in this repository. Do not invent their configuration from the workflow. Confirm actual mounts before replacing containers or moving files; never delete a data volume as a deployment shortcut.
@@ -33,4 +33,4 @@ An authorized operator checks `/`, `/guide`, `/rooms`, `/lost-found` and their r
 3. If the app is unavailable, direct visitors through existing in-person staff/help channels. No promised recovery time or failover is established here.
 4. An authorized deployment owner can inspect rollout/logs and decide a restart/revert. Never reset public history, bypass branch protection, expose secrets or destroy private data to make a health check green.
 
-GitHub-first runtime content loading and no-build content CI filtering are proposals in [architecture](architecture.md). They do not exist just because this runbook describes their intended behavior.
+GitHub-first runtime content loading and content-only build filtering are implemented but explicitly opt-in. Follow the separate [content migration](git-publishing.md); deployment configuration does not migrate content or provision Git credentials.

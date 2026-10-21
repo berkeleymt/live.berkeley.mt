@@ -1,12 +1,14 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react';
+import { MapBoundary } from './MapBoundary';
 import { requestMessage, WayfindingApiError, wayfindingRequest } from './api';
 import type { WayfindingTransport } from './api';
 import { parseWayfinding } from './validation';
-import type { Building, Entrance, Floor, Room, RoomRoute, WayfindingContent, WayfindingDocument } from './types';
+import type { Building, Entrance, Floor, FloorImage, Room, RoomRoute, WayfindingContent, WayfindingDocument } from './types';
 import './wayfinding.css';
 
 const serialize = (value: WayfindingContent) => `${JSON.stringify(value, null, 2)}\n`;
 const uid = (kind: string) => `${kind}-${crypto.randomUUID().slice(0, 8)}`;
+const FloorMap = lazy(() => import('./FloorMap').then(module => ({ default: module.FloorMap })));
 const lines = (value: string) => value.split('\n');
 function Field({ label, value, onChange, multiline = false, max = 1500, hint }: { label: string; value: string; onChange: (value: string) => void; multiline?: boolean; max?: number; hint?: string }) {
   const id = useId();
@@ -20,15 +22,17 @@ function RouteFields({ value, entrances, onChange, accessible = false }: { value
   const id = useId();
   return <><label htmlFor={id}>{accessible ? 'Step-free entrance' : 'Entrance'}<select id={id} value={value.entranceId} onChange={event => onChange({ ...value, entranceId: event.target.value })}><option value="">Choose an entrance</option>{entrances.filter(item => !accessible || item.accessible).map(entrance => <option key={entrance.id} value={entrance.id}>{entrance.name}</option>)}</select></label><Field label="Steps from entrance to room" value={value.steps.join('\n')} multiline max={6000} hint="One concise step per line. At most 12 steps, 500 bytes per step." onChange={steps => onChange({ ...value, steps: lines(steps) })} /></>;
 }
-function RoomFields({ room, entrances, hasImage, onChange }: { room: Room; entrances: Entrance[]; hasImage: boolean; onChange: (value: Room) => void }) {
+function RoomFields({ room, entrances, image, onChange }: { room: Room; entrances: Entrance[]; image: FloorImage | null; onChange: (value: Room) => void }) {
   const prefix = useId();
+  const [placing, setPlacing] = useState(false);
   return <>
     <p className="wf-small wf-muted">Stable room ID: <code>{room.id}</code>. Private imports reference this ID; do not rename it after assigning students.</p>
     <div className="wf-two-fields"><Field label="Room code" value={room.code} max={40} onChange={code => onChange({ ...room, code })} /><Field label="Room name" value={room.name} max={120} onChange={name => onChange({ ...room, name })} /></div>
     <h4>Standard directions</h4><RouteFields value={room.route} entrances={entrances} onChange={route => onChange({ ...room, route })} />
     <label className="wf-checkbox"><input type="checkbox" checked={!!room.accessibleRoute} onChange={event => onChange({ ...room, accessibleRoute: event.target.checked ? { entranceId: entrances.find(e => e.accessible)?.id ?? '', steps: ['Confirm the step-free route on site before publishing.'] } : null })} />Publish a separate step-free route</label>
     {room.accessibleRoute && <RouteFields value={room.accessibleRoute} entrances={entrances} accessible onChange={accessibleRoute => onChange({ ...room, accessibleRoute })} />}
-    <label className="wf-checkbox"><input type="checkbox" checked={!!room.hotspot} disabled={!hasImage} onChange={event => onChange({ ...room, hotspot: event.target.checked ? { x: 50, y: 50 } : null })} />Mark room on the floor plan{!hasImage && ' (add a floor image first)'}</label>
+    <label className="wf-checkbox"><input type="checkbox" checked={!!room.hotspot} disabled={!image} onChange={event => onChange({ ...room, hotspot: event.target.checked ? { x: 50, y: 50 } : null })} />Mark room on the floor plan{!image && ' (add a floor image first)'}</label>
+    {room.hotspot && image && <><button type="button" className="wf-button" aria-expanded={placing} onClick={() => setPlacing(value => !value)}>{placing ? 'Close position map' : 'Position marker on map'}</button>{placing && <><p>Click or tap inside the floor plan to place this room. You can also use the percentage fields below. This changes the room marker, not the route network.</p><MapBoundary failureText="The map could not load. Use the position fields below or reload the page."><Suspense fallback={<p role="status">Loading floor plan…</p>}><FloorMap image={image} points={[{ id: room.id, label: room.code, ...room.hotspot }]} selectedId={room.id} onPlacePoint={hotspot => onChange({ ...room, hotspot })} /></Suspense></MapBoundary></>}</>}
     {room.hotspot && <div className="wf-two-fields">{(['x', 'y'] as const).map(axis => <label key={axis} htmlFor={`${prefix}-${axis}`}>{axis === 'x' ? 'Left-to-right position (%)' : 'Top-to-bottom position (%)'}<input id={`${prefix}-${axis}`} type="number" min={0} max={100} step="0.1" value={room.hotspot?.[axis]} onChange={event => onChange({ ...room, hotspot: { ...room.hotspot!, [axis]: Number(event.target.value) } })} /></label>)}</div>}
   </>;
 }
@@ -83,7 +87,7 @@ export function RoomEditor({ canWrite = true, request = fetch }: { canWrite?: bo
       const content = parseWayfinding(rawMode ? JSON.parse(raw) : draft);
       const saved = await wayfindingRequest<WayfindingDocument>('/editor', { method: 'PUT', body: JSON.stringify({ revision: baseline.revision, content }), signal }, request);
       if (signal.aborted) return;
-      setBaseline(saved); setDraft(saved.content); setRaw(serialize(saved.content)); setConflict(false); setLatest(null); setNotice('Saved to the public directions file. This is not a Git commit or push.');
+      setBaseline(saved); setDraft(saved.content); setRaw(serialize(saved.content)); setConflict(false); setLatest(null); setNotice('Directions saved. Visitors will see the changes when they refresh.');
     });
   }
   function loadLatest() {
@@ -108,8 +112,8 @@ export function RoomEditor({ canWrite = true, request = fetch }: { canWrite?: bo
     requestAnimationFrame(() => confirmation.current?.focus());
   }
   return <section className="wf-editor" aria-labelledby={`${prefix}-title`}>
-    <header className="wf-header"><h1 id={`${prefix}-title`}>Rooms & directions</h1><p>Public building details, entrances and floor plans. Student assignments and check-in codes never belong in this file.</p></header>
-    <p className="wf-notice">Publish only directions staff have checked. Keep fictional illustrations marked demonstration. File source: <code>WAYFINDING_CONTENT_PATH</code> (default <code>content/wayfinding.json</code>).</p>
+    <header className="wf-header"><h1 id={`${prefix}-title`}>Rooms & directions</h1><p>Manage building entrances, floor plans and room directions. Student assignments stay in the private roster.</p></header>
+    <p className="wf-notice">Use floor-plan guidance for supplied drawings. Mark directions staff verified only after an on-site review; step-free routes need a separate accessibility check.</p>
     {!canWrite && <p className="wf-notice">Your role can review directions, but cannot save changes.</p>}
     {busy && <p role="status">{busy}</p>}
     {error && <div role="alert" className="wf-error"><p>{error}</p>{!baseline && <button type="button" className="wf-button" disabled={!!busy} onClick={loadLatest}>Retry loading editor</button>}</div>}
@@ -122,6 +126,16 @@ export function RoomEditor({ canWrite = true, request = fetch }: { canWrite?: bo
         <legend className="wf-sr-only">Edit public room directions</legend>
         <button type="button" className="wf-button" onClick={toggleRaw}>{rawMode ? 'Use JSON in form' : 'Edit raw JSON'}</button>
         {rawMode ? <><label htmlFor={`${prefix}-json`}>Public directions JSON<textarea id={`${prefix}-json`} className="wf-json" value={raw} onChange={event => setRaw(event.target.value)} rows={28} maxLength={512000} spellCheck={false} /></label><p className="wf-small wf-muted">Content only; the server revision is kept separately. Save validates all fields and references. Unknown fields are rejected to prevent accidental roster publication.</p></> : <>
+          <details className="wf-editor-group"><summary>Interactive route network</summary>
+            <p>Public geometry only. Add maps, positioned nodes and directed edges with “Edit raw JSON”; the server checks bounds, references and verification metadata. Each reverse direction needs its own edge. No graph is required for existing written directions. Graph costs are relative weights, not walking times.</p>
+            <p>{draft.graph ? `${draft.graph.maps.length} map layers · ${draft.graph.nodes.length} nodes · ${draft.graph.edges.length} directed segments. ${draft.graph.demonstration ? 'Demonstration only; not campus directions.' : 'Production graph: only verified, open edges are routed.'}` : 'No interactive network published. Written directions remain available.'}</p>
+            {draft.graph?.edges.map(edge => <details className="wf-editor-group" key={edge.id}><summary>{edge.id} · {edge.closed ? 'Closed' : edge.status}</summary>
+              <p>{edge.from} → {edge.to} · {edge.kind}</p>
+              <label className="wf-checkbox"><input type="checkbox" checked={edge.closed} onChange={event => change({ ...draft, graph: { ...draft.graph!, edges: draft.graph!.edges.map(e => e.id === edge.id ? { ...e, closed: event.target.checked } : e) } })} />Close this directed segment</label>
+              <Field label="Route instruction" value={edge.instruction} max={500} onChange={instruction => change({ ...draft, graph: { ...draft.graph!, edges: draft.graph!.edges.map(e => e.id === edge.id ? { ...e, instruction } : e) } })} />
+              <Field label="Verification evidence / limitations" value={edge.verificationNote} max={500} onChange={verificationNote => change({ ...draft, graph: { ...draft.graph!, edges: draft.graph!.edges.map(e => e.id === edge.id ? { ...e, verificationNote } : e) } })} />
+            </details>)}
+          </details>
           <details className="wf-editor-group"><summary>Page introduction and help</summary>
             <Field label="Page title" value={draft.title} max={120} onChange={title => change({ ...draft, title })} />
             <Field label="Introduction" value={draft.intro} max={1000} multiline onChange={intro => change({ ...draft, intro })} />
@@ -134,7 +148,7 @@ export function RoomEditor({ canWrite = true, request = fetch }: { canWrite?: bo
           {building && <div className="wf-building-editor">
             <div className="wf-two-fields"><Field label="Building name" value={building.name} max={120} onChange={name => changeBuilding({ ...building, name })} /><Field label="Search aliases (one per line)" value={building.aliases.join('\n')} multiline onChange={value => changeBuilding({ ...building, aliases: lines(value).filter(Boolean) })} /></div>
             <Coordinates value={building.coordinates} onChange={coordinates => changeBuilding({ ...building, coordinates })} />
-            <label htmlFor={`${prefix}-verification`}>Verification status<select id={`${prefix}-verification`} value={building.status} onChange={event => changeBuilding({ ...building, status: event.target.value as Building['status'] })}><option value="demo">Demonstration only</option><option value="unverified">Not yet verified</option><option value="verified">Staff verified on site</option></select></label>
+            <label htmlFor={`${prefix}-verification`}>Verification status<select id={`${prefix}-verification`} value={building.status} onChange={event => changeBuilding({ ...building, status: event.target.value as Building['status'] })}><option value="demo">Demonstration only</option><option value="unverified">Not yet verified</option><option value="mapped">Guidance from a supplied floor plan</option><option value="verified">Staff verified on site</option></select></label>
             <Field label="Verification note" value={building.verificationNote} multiline hint="For verified directions, record who checked all routes and entrances, when, and any limitations. Never mark a fictional layout as verified." onChange={verificationNote => changeBuilding({ ...building, verificationNote })} />
             <h2>Entrances</h2>
             {building.entrances.map((entrance, index) => {
@@ -147,7 +161,7 @@ export function RoomEditor({ canWrite = true, request = fetch }: { canWrite?: bo
               <Field label="Floor name" value={floor.name} max={120} onChange={name => changeFloor({ ...floor, name })} />
               <label className="wf-checkbox"><input type="checkbox" checked={!!floor.image} onChange={event => changeFloor({ ...floor, image: event.target.checked ? { url: '', alt: '', caption: '', demonstration: false } : null, rooms: event.target.checked ? floor.rooms : floor.rooms.map(room => ({ ...room, hotspot: null })) })} />Include a floor-plan image</label>
               {floor.image && <><Field label="Image URL" value={floor.image.url} max={1000} hint="Use an approved HTTPS image or /media/ asset. /demo-maps/ images must stay marked demonstration." onChange={url => changeFloor({ ...floor, image: { ...floor.image!, url } })} /><Field label="Image alt text" value={floor.image.alt} max={500} onChange={alt => changeFloor({ ...floor, image: { ...floor.image!, alt } })} /><Field label="Image caption" value={floor.image.caption} max={500} onChange={caption => changeFloor({ ...floor, image: { ...floor.image!, caption } })} /><label className="wf-checkbox"><input type="checkbox" checked={floor.image.demonstration} onChange={event => changeFloor({ ...floor, image: { ...floor.image!, demonstration: event.target.checked } })} />Demonstration image, not a real floor plan</label></>}
-              {floor.rooms.map(room => <details key={room.id} className="wf-editor-group"><summary>{room.code} · {room.name}</summary><RoomFields room={room} entrances={building.entrances} hasImage={!!floor.image} onChange={value => changeFloor({ ...floor, rooms: floor.rooms.map(item => item.id === room.id ? value : item) })} /><button type="button" className="wf-button" onClick={() => confirmRemoval(`Remove ${room.code}? Private imports referencing this room will stop returning assignments until repaired.`, () => changeFloor({ ...floor, rooms: floor.rooms.filter(item => item.id !== room.id) }))}>Remove room</button></details>)}
+              {floor.rooms.map(room => <details key={room.id} className="wf-editor-group"><summary>{room.code} · {room.name}</summary><RoomFields room={room} entrances={building.entrances} image={floor.image} onChange={value => changeFloor({ ...floor, rooms: floor.rooms.map(item => item.id === room.id ? value : item) })} /><button type="button" className="wf-button" onClick={() => confirmRemoval(`Remove ${room.code}? Private imports referencing this room will stop returning assignments until repaired.`, () => changeFloor({ ...floor, rooms: floor.rooms.filter(item => item.id !== room.id) }))}>Remove room</button></details>)}
               <div className="wf-actions"><button type="button" className="wf-button" onClick={() => changeFloor({ ...floor, rooms: [...floor.rooms, { id: uid('room'), code: 'NEW', name: 'New room', route: { entranceId: building.entrances[0]?.id ?? '', steps: ['Add checked directions before publishing.'] }, accessibleRoute: null, hotspot: null }] })}>Add room</button><button type="button" className="wf-button" onClick={() => confirmRemoval(`Remove ${floor.name} and its ${floor.rooms.length} rooms?`, () => changeBuilding({ ...building, floors: building.floors.filter(item => item.id !== floor.id) }))}>Remove floor</button></div>
             </details>)}
             <div className="wf-actions"><button type="button" className="wf-button" onClick={() => changeBuilding({ ...building, floors: [...building.floors, { id: uid('floor'), name: 'New floor', image: null, rooms: [] }] })}>Add floor</button><button type="button" className="wf-button" onClick={() => confirmRemoval(`Remove ${building.name}, all its floors and rooms? This can affect private room lookups.`, () => { change({ ...draft, buildings: draft.buildings.filter(item => item.id !== building.id) }); setBuildingId(''); })}>Remove building</button></div>
