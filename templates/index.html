@@ -13,7 +13,7 @@
       <span id="now-label">Tournament day</span>
     </p>
     <p id="now-title" class="text-2xl md:text-3xl font-bold">{{ s.title }}</p>
-    <p id="now-meta" class="opacity-90">{{ s.date | date(format="%A, %B %-d, %Y") }} · UC Berkeley</p>
+    <p id="now-meta" class="opacity-90">{{ s.date | date(format="%A, %B %-d, %Y") }}, UC Berkeley</p>
   </div>
   <div class="md:w-72 md:border-l md:border-white/30 md:pl-6 border-t border-white/30 pt-4 md:pt-0 md:border-t-0 flex flex-col gap-2 min-w-0">
     <p class="uppercase text-xs opacity-75 flex items-center gap-2">
@@ -22,7 +22,7 @@
     </p>
     {% set first = s.events | first %}
     <p id="next-title" class="text-lg font-semibold">{{ first.title }}</p>
-    <p id="next-meta" class="text-sm opacity-90">{{ macros::t12(t=first.start) }} · {{ first.location }}</p>
+    <p id="next-meta" class="text-sm opacity-90">{{ macros::t12(t=first.start) }}, {{ first.location }}</p>
   </div>
 </div>
 
@@ -39,7 +39,7 @@
 
 {# Where to go #}
 <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
-  {{ macros::tile(class="md:col-span-2 bg-gradient-to-br from-teal-600 to-teal-800 text-white shadow-lg", name="Find my rooms", icon="bi-person-badge", href="/rooms/", description="Enter your student ID or team number.") }}
+  {{ macros::tile(class="md:col-span-2 bg-gradient-to-br from-teal-600 to-teal-800 text-white shadow-lg", name="Find my rooms", icon="bi-person-badge", href="/rooms/", description="Enter your student ID to see your rooms.") }}
   {{ macros::tile(class="md:col-span-2 bg-gradient-to-br from-fuchsia-700 to-fuchsia-900 text-white shadow-lg", name="Schedule", icon="bi-calendar3", href="/schedule/", description="Every round and break, with any changed times.") }}
   {{ macros::tile(class="md:col-span-2 bg-gradient-to-br from-orange-700 to-orange-900 text-white shadow-lg", name="Map & rooms", icon="bi-map", href="/map/", description="Campus map and floor plans for each building.") }}
   {{ macros::tile(class="md:col-span-2 bg-gradient-to-br from-slate-200 to-slate-300", name="Guide", icon="bi-book", href="/guide/", description="What to bring and how the day works.") }}

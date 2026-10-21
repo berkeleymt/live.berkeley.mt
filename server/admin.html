@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BMT Live</title>
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+  :root{--teal:#14b8a6;--teal-dark:#0f766e;--border:#e5e7eb;--muted:#6b7280;--bg:#f8fafc;--rose:#e11d48}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:"IBM Plex Sans",system-ui,-apple-system,sans-serif;color:#111;background:var(--bg);display:grid;grid-template-rows:52px 1fr;grid-template-columns:280px 1fr;grid-template-areas:"top top" "side main"}
+  button{font:inherit;font-size:14px;padding:7px 12px;border:1px solid var(--border);border-radius:9px;background:#fff;cursor:pointer;display:inline-flex;gap:6px;align-items:center;color:#111}
+  button:hover{background:#f3f4f6}button:disabled{opacity:.45;cursor:default}
+  button.primary{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600}button.primary:hover:not(:disabled){background:var(--teal-dark)}
+  button.danger{color:var(--rose)}button.ghost{border-color:transparent;background:transparent}
+  header{grid-area:top;display:flex;align-items:center;gap:10px;padding:0 14px;background:#fff;border-bottom:1px solid var(--border)}
+  header .brand{font-weight:600;white-space:nowrap}header .brand span{color:var(--teal)}
+  header .title{flex:1;font-size:14px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  header .title b{color:#111;font-weight:500}
+  .dirty-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-left:6px;vertical-align:middle}
+  aside{grid-area:side;background:#fff;border-right:1px solid var(--border);overflow:auto;padding:10px 0 30px}
+  aside h3{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 16px 4px;display:flex;align-items:center;justify-content:space-between}
+  aside h3 button{padding:2px 8px;font-size:12px;border-radius:7px}
+  aside .item{display:flex;gap:8px;align-items:center;width:100%;text-align:left;border:0;border-radius:0;background:none;padding:7px 16px;font-size:14px}
+  aside .item:hover{background:#f3f4f6}aside .item.active{background:#ccfbf1}
+  aside .item .meta{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
+  aside .item .label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  aside .item i{color:var(--muted);width:16px;text-align:center}
+  .badge{font-size:10px;font-weight:600;text-transform:uppercase;color:#fff;background:var(--rose);border-radius:5px;padding:1px 5px}
+  aside details summary{list-style:none;cursor:pointer}aside details summary::-webkit-details-marker{display:none}
+  main{grid-area:main;display:grid;grid-template-columns:1fr;min-height:0}
+  main.split{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .pane{min-height:0;overflow:auto}
+  .editor{padding:22px 26px 60px;max-width:860px}
+  .editor.raw{padding:0;max-width:none;display:flex;flex-direction:column;height:100%}
+  .CodeMirror{flex:1;height:auto;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:14px;line-height:1.5}
+  label.f{display:block;font-size:13px;font-weight:500;color:#374151;margin:16px 0 6px}
+  label.f small{font-weight:400;color:var(--muted)}
+  input.f,textarea.f,select.f{font:inherit;width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;background:#fff}
+  input.f:focus,textarea.f:focus{outline:2px solid #99f6e4;border-color:var(--teal)}
+  textarea.f{min-height:260px;line-height:1.55;resize:vertical}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .hint code{background:#f3f4f6;padding:1px 5px;border-radius:4px;font-family:"IBM Plex Mono",ui-monospace,monospace}
+  .toolbar{display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap}.toolbar button{padding:4px 9px;font-size:13px}
+  .switch{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:#fff;margin-top:16px;cursor:pointer}
+  .switch input{width:18px;height:18px;accent-color:var(--rose)}
+  .switch .t{font-size:14px;font-weight:500}.switch .d{font-size:12px;color:var(--muted)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .preview{border-left:1px solid var(--border);background:#fff;display:none;flex-direction:column;min-height:0}
+  main.split .preview{display:flex}
+  .preview .bar{padding:6px 12px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;min-height:34px}
+  .preview iframe{flex:1;border:0;width:100%;background:#fff}
+  .preview .err{padding:14px;font-size:13px;color:#991b1b;background:#fef2f2;white-space:pre-wrap;font-family:"IBM Plex Mono",ui-monospace,monospace;overflow:auto}
+  .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--muted);text-align:center;padding:40px;line-height:1.7;font-size:15px}
+  .empty i{font-size:40px;color:#99f6e4;margin-bottom:10px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:10px}
+  .card{border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff;text-align:left;cursor:pointer;display:block}
+  .card:hover{border-color:var(--teal)}.card b{font-size:14px;display:block}.card small{color:var(--muted)}
+  /* schedule */
+  .ev{border:1px solid var(--border);border-radius:12px;background:#fff;padding:14px 16px;margin-top:12px}
+  .ev .top{display:flex;gap:10px;align-items:center}
+  .ev .top input.f{font-weight:600;font-size:16px}
+  .ev .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-top:10px}
+  .ev .time{display:flex;gap:8px;align-items:center}.ev .time input{font-size:16px;padding:8px 10px;max-width:150px}
+  .was{font-size:12px;color:var(--rose);margin-top:4px;display:flex;gap:8px;align-items:center}
+  .was button{padding:0 6px;font-size:12px}
+  .ev .more{grid-column:1/-1}
+  .iconbtn{padding:6px 8px}
+  .img{text-align:center;padding:20px;background:repeating-conic-gradient(#f3f4f6 0 25%,#fff 0 50%) 0 0/24px 24px;border-radius:12px;margin-top:14px}
+  .img img{max-width:100%;max-height:60vh}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:12px 18px;border-radius:12px;font-size:14px;max-width:92vw;display:none;z-index:9;line-height:1.5;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+  .toast.err{background:#b91c1c}.toast.ok{background:#047857}.toast a{color:#fff;text-decoration:underline}.toast button{margin-left:10px;padding:3px 9px;font-size:13px}
+  dialog{border:1px solid var(--border);border-radius:16px;padding:22px 24px;width:460px;max-width:92vw;font:inherit;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  dialog::backdrop{background:rgba(0,0,0,.3)}
+  dialog h2{font-size:17px;margin:0 0 4px}dialog p{margin:0 0 6px;color:var(--muted);font-size:14px;line-height:1.5}
+  dialog menu{display:flex;justify-content:flex-end;gap:8px;margin:20px 0 0;padding:0}
+  .spin{display:inline-block;width:12px;height:12px;border:2px solid #ccc;border-top-color:var(--teal);border-radius:50%;animation:s 1s linear infinite}@keyframes s{to{transform:rotate(360deg)}}
+  .mobile-tabs{display:none}
+  @media (max-width:860px){
+    body{grid-template-columns:1fr;grid-template-areas:"top" "main"}
+    aside{display:none}aside.open{display:block;position:fixed;inset:52px 0 0;z-index:5}
+    main{display:flex;flex-direction:column}
+    main.split .editor-pane{flex:1 1 auto}
+    main.split.show-preview .editor-pane{flex:0 0 auto;overflow:visible}
+    main.split.show-preview .editor{display:none}
+    main.split:not(.show-preview) .preview{display:none}
+    main.split.show-preview .preview{display:flex;flex:1 1 auto}
+    .preview{border-left:0}
+    .mobile-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:#fff}
+    .mobile-tabs button{flex:1;border:0;border-radius:0;padding:10px;border-bottom:2px solid transparent}.mobile-tabs button.on{border-bottom-color:var(--teal);color:var(--teal-dark);font-weight:600}
+    .editor{padding:16px}.row2,.ev .grid{grid-template-columns:1fr}
+    header .brand{display:none}
+  }
+</style></head><body>
+<header>
+  <button id="menu" class="iconbtn" title="Menu"><i class="bi bi-list"></i></button>
+  <span class="brand">BMT <span>Live</span></span>
+  <span class="title" id="title">Pick something to edit</span>
+  <button id="publish" class="primary" disabled><i class="bi bi-send"></i> Publish</button>
+  <button id="logout" class="iconbtn" title="Sign out"><i class="bi bi-box-arrow-right"></i></button>
+</header>
+<aside id="side">
+  <div id="nav"><div class="empty" style="height:200px"><span class="spin"></span></div></div>
+</aside>
+<main id="main">
+  <div class="pane editor-pane" id="editorPane">
+    <div class="mobile-tabs" id="tabs" hidden><button class="on" data-tab="edit">Edit</button><button data-tab="preview">Preview</button></div>
+    <div class="editor" id="editor"><div class="empty"><i class="bi bi-pencil-square"></i>Choose an update, the schedule, a page or an image on the left.<br><small>Everything you publish goes live within seconds and is kept in the site's history.</small></div></div>
+  </div>
+  <div class="preview pane">
+    <div class="bar"><i class="bi bi-eye"></i> <span id="pvStatus">Preview updates as you type</span><span style="flex:1"></span><a id="pvOpen" href="#" target="_blank" style="font-size:12px;color:var(--teal-dark)">Open in new tab</a></div>
+    <div class="err" id="pvErr" hidden></div>
+    <iframe id="frame" title="Preview"></iframe>
+  </div>
+</main>
+<div class="toast" id="toast"></div>
+
+<dialog id="pubDialog"><form method="dialog">
+  <h2>Publish to the live site</h2>
+  <p id="pubWhat"></p>
+  <label class="f">Your name <small>so the team knows who made the change</small></label><input class="f" id="author" placeholder="For example, Ian at the info desk" required>
+  <label class="f">Note <small>optional</small></label><input class="f" id="msg" placeholder="For example, lunch moved to 12:45">
+  <menu><button value="cancel">Cancel</button><button value="ok" class="primary"><i class="bi bi-send"></i> Publish now</button></menu></form></dialog>
+<dialog id="confirmDialog"><form method="dialog"><h2 id="cTitle"></h2><p id="cText"></p><menu><button value="cancel">Cancel</button><button value="ok" class="primary danger" id="cOk" style="background:var(--rose);border-color:var(--rose)">Yes</button></menu></form></dialog>
+<dialog id="advDialog"><form method="dialog"><h2>Advanced: files</h2><p>Edit any file directly. Only do this if you know the file format. A mistake here can break a page, and the preview will tell you.</p><div id="advList" style="max-height:50vh;overflow:auto;margin-top:10px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:13px"></div><menu><button value="cancel">Close</button></menu></form></dialog>
+<input id="file" type="file" hidden accept="image/*">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/toml/toml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const api = async (method, path, body) => {
+  const res = await fetch(path, { method, headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined });
+  if (res.status === 401) { location.reload(); throw new Error("login"); }
+  return [res.status, await res.json().catch(() => ({}))];
+};
+const PT = "America/Los_Angeles";
+const fmtTime = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("en-US", { timeZone: PT, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); };
+const to12 = (t) => { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ""); if (!m) return t || ""; const h = +m[1]; return `${((h + 11) % 12) + 1}:${m[2]} ${h < 12 ? "AM" : "PM"}`; };
+const nowPT = () => { const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: PT, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", timeZoneName: "longOffset" }).formatToParts(new Date()).map((x) => [x.type, x.value])); const off = p.timeZoneName.replace("GMT", "") || "+00:00"; return { local: `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`, iso: `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}${off}`, off }; };
+const isoToLocal = (iso) => (iso || "").slice(0, 16);
+const localToIso = (local, prevIso) => { if (!local) return ""; const off = (prevIso && /[+-]\d{2}:\d{2}$/.exec(prevIso)?.[0]) || nowPT().off; return `${local}:00${off}`; };
+
+let items = null, cur = null, dirty = false, cm = null, previewTimer = null, previewSeq = 0;
+const setDirty = (v) => { dirty = v; $("publish").disabled = !v || !cur || cur.kind === "image" || (cur.kind === "update" && !($("fTitle")?.value || "").trim()); $("title").innerHTML = cur ? `<b>${esc(cur.label)}</b>${dirty ? '<span class="dirty-dot" title="Unsaved changes"></span>' : ""}` : "Pick something to edit"; };
+const toast = (html, cls, ms) => { const t = $("toast"); t.innerHTML = html; t.className = "toast " + (cls || ""); t.style.display = "block"; clearTimeout(t._t); t._t = setTimeout(() => (t.style.display = "none"), ms || 6000); };
+
+/* ---------- sidebar ---------- */
+async function loadItems(keep) {
+  const [status, data] = await api("GET", "/admin/api/items");
+  if (status !== 200) { $("nav").innerHTML = `<div class="empty">Couldn't load the site's files.<br><small>${esc(data.detail || data.error || status)}</small><button onclick="loadItems()">Try again</button></div>`; return; }
+  items = data;
+  const act = (p) => (cur && cur.path === p ? " active" : "");
+  let h = `<h3>Live updates <button id="newUpdate" class="primary"><i class="bi bi-plus-lg"></i> New</button></h3>`;
+  h += data.updates.map((u) => `<button class="item${act(u.path)}" data-path="${esc(u.path)}"><i class="bi ${u.urgent ? "bi-exclamation-triangle-fill" : "bi-megaphone"}" ${u.urgent ? 'style="color:var(--rose)"' : ""}></i><span class="label">${esc(u.title)}</span><span class="meta">${esc(fmtTime(u.date))}</span></button>`).join("") || `<div class="hint" style="padding:0 16px">No updates yet.</div>`;
+  h += `<h3>Schedule</h3><button class="item${act(data.schedule)}" data-path="${esc(data.schedule)}"><i class="bi bi-calendar3"></i><span class="label">Tournament schedule</span></button>`;
+  h += `<h3>Pages</h3>` + data.pages.map((p) => `<button class="item${act(p.path)}" data-path="${esc(p.path)}"><i class="bi bi-file-text"></i><span class="label">${esc(p.title)}</span></button>`).join("");
+  h += `<h3>Images <button id="upload"><i class="bi bi-upload"></i> Upload</button></h3>` + data.images.map((i) => `<button class="item${act(i.path)}" data-path="${esc(i.path)}"><i class="bi bi-image"></i><span class="label">${esc(i.path.replace(/^static\//, ""))}</span></button>`).join("");
+  h += `<h3 style="margin-top:22px"><button id="advanced" class="ghost" style="color:var(--muted)"><i class="bi bi-code-slash"></i> Advanced</button></h3>`;
+  $("nav").innerHTML = h;
+  $("newUpdate").onclick = newUpdate;
+  $("upload").onclick = () => $("file").click();
+  $("advanced").onclick = () => { $("advList").innerHTML = data.advanced.map((f) => `<button class="item" data-path="${esc(f.path)}" data-raw="1" style="padding:5px 8px">${esc(f.path)}</button>`).join(""); $("advDialog").showModal(); };
+}
+document.addEventListener("click", (e) => { const b = e.target.closest(".item[data-path]"); if (!b) return; if (b.closest("#advDialog")) $("advDialog").close(); openItem(b.dataset.path, !!b.dataset.raw); });
+
+/* ---------- opening ---------- */
+async function guard() { if (!dirty) return true; return confirmDlg("Leave without publishing?", "Your changes here haven't been published and will be lost.", "Leave"); }
+function confirmDlg(title, text, ok) { return new Promise((r) => { $("cTitle").textContent = title; $("cText").textContent = text; $("cOk").textContent = ok || "Yes"; const d = $("confirmDialog"); d.onclose = () => r(d.returnValue === "ok"); d.showModal(); }); }
+
+async function openItem(path, raw) {
+  if (!(await guard())) return;
+  $("side").classList.remove("open");
+  $("editor").innerHTML = `<div class="empty"><span class="spin"></span></div>`;
+  const [status, d] = await api("GET", "/admin/api/doc?path=" + encodeURIComponent(path));
+  if (status !== 200) { $("editor").innerHTML = `<div class="empty">Couldn't open this.<br><small>${esc(d.detail || d.error || status)}</small></div>`; return; }
+  cur = { path, sha: d.sha, url: d.url || "/", kind: raw && "text" in d ? "raw" : d.kind, doc: d, label: labelFor(path, d) };
+  cm = null;
+  render();
+  setDirty(false);
+  document.querySelectorAll("#nav .item").forEach((b) => b.classList.toggle("active", b.dataset.path === path));
+  location.hash = encodeURIComponent(path);
+}
+function labelFor(path, d) {
+  if (path === "data/schedule.toml") return "Tournament schedule";
+  const page = items?.pages.find((p) => p.path === path); if (page) return page.title;
+  if (d.kind === "update") return d.title || "Update";
+  return path.replace(/^(content|static|data)\//, "");
+}
+
+/* ---------- editors ---------- */
+function render() {
+  const e = $("editor"); e.className = "editor"; const k = cur.kind, d = cur.doc;
+  $("main").classList.toggle("split", k !== "image");
+  $("tabs").hidden = k === "image";
+  if (k === "update" || k === "page") {
+    const isU = k === "update";
+    e.innerHTML = `
+      <label class="f">Title</label><input class="f" id="fTitle" value="${esc(d.title)}" placeholder="${isU ? "For example, Team Round starts at 1:45 PM" : "Page title"}">
+      ${isU ? `<div class="row2"><div><label class="f">Posted at <small>Pacific time. Newest shows first.</small></label><input class="f" id="fDate" type="datetime-local" value="${esc(isoToLocal(d.date))}"></div>
+        <div><label class="f">&nbsp;</label><label class="switch" style="margin-top:0"><input type="checkbox" id="fUrgent" ${d.urgent ? "checked" : ""}><span><span class="t">Urgent</span><br><span class="d">Shown in red with an Urgent label on the home page and in the updates list</span></span></label></div></div>`
+        : `<label class="f">Short description <small>appears in search results and link previews</small></label><input class="f" id="fDesc" value="${esc(d.description)}">`}
+      <label class="f">Text</label>
+      <div class="toolbar"><button type="button" data-md="bold" title="Bold"><i class="bi bi-type-bold"></i></button><button type="button" data-md="italic" title="Italic"><i class="bi bi-type-italic"></i></button><button type="button" data-md="link" title="Link"><i class="bi bi-link-45deg"></i> Link</button><button type="button" data-md="list" title="Bulleted list"><i class="bi bi-list-ul"></i></button><button type="button" data-md="heading" title="Heading"><i class="bi bi-type-h2"></i></button></div>
+      <textarea class="f" id="fBody" style="min-height:${isU ? 220 : 420}px">${esc(d.body)}</textarea>
+      <div class="hint">Plain text works. Wrap words in <code>**</code> for bold or <code>*</code> for italic. Write <code>[link text](https://...)</code> for a link. Start a line with <code>- </code> for a bullet or <code>## </code> for a heading. To add a picture, upload it under Images and copy its line from there.</div>
+      ${isU ? `<div style="margin-top:28px"><button class="danger" id="del"><i class="bi bi-trash"></i> Remove this update</button></div>` : ""}`;
+    e.querySelectorAll("input,textarea").forEach((i) => i.addEventListener("input", onChange));
+    e.querySelectorAll("[data-md]").forEach((b) => b.addEventListener("click", () => mdInsert(b.dataset.md)));
+    if (isU) $("del").onclick = removeUpdate;
+  } else if (k === "schedule") {
+    e.innerHTML = `<div class="hint" style="margin-top:4px">All times are Pacific. When you change a time, visitors see the old time crossed out next to the new one. You can add a short note to say why.</div><div id="events"></div><div style="margin-top:14px"><button id="addEv"><i class="bi bi-plus-lg"></i> Add an event</button></div>`;
+    renderEvents();
+    const d0 = d;
+    $("events").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return; const box = b.closest(".ev"); if (!box) return; const i = +box.dataset.i, ev = d0.events[i];
+    if (b.dataset.undo) { const k = b.dataset.undo; ev[k] = ev["was_" + k]; delete ev["was_" + k]; renderEvents(); onChange(); }
+    else if (b.dataset.mv) { const j = i + +b.dataset.mv; [d0.events[i], d0.events[j]] = [d0.events[j], d0.events[i]]; renderEvents(); onChange(); }
+    else if (b.dataset.rm) { confirmDlg(`Remove “${ev.title || "this event"}”?`, "It disappears from the schedule when you publish.", "Remove").then((ok) => { if (ok) { d0.events.splice(i, 1); renderEvents(); onChange(); } }); }
+  });
+    $("addEv").onclick = () => { d.events.push({ title: "", start: "", end: "", location: "", description: "" }); renderEvents(); onChange(); };
+  } else if (k === "binary") {
+    e.innerHTML = `<div class="empty"><i class="bi bi-file-earmark"></i>This file can't be shown here.<br><small>${esc(cur.path)}</small></div>`;
+  } else if (k === "image") {
+    const ext = cur.path.split(".").pop().toLowerCase(), mime = ext === "svg" ? "svg+xml" : ext === "jpg" ? "jpeg" : ext;
+    const url = "/" + cur.path.replace(/^static\//, "");
+    e.innerHTML = `<div class="img"><img src="data:image/${mime};base64,${d.base64}" alt=""></div>
+      <label class="f">To put this image in a page or update, paste this line into the text:</label>
+      <div style="display:flex;gap:8px"><input class="f" readonly id="imgMd" value="![describe the image](${esc(url)})"><button id="copyMd"><i class="bi bi-clipboard"></i> Copy</button></div>
+      <div style="margin-top:24px;display:flex;gap:8px;flex-wrap:wrap"><button id="replace"><i class="bi bi-upload"></i> Replace with a new file</button><button class="danger" id="delImg"><i class="bi bi-trash"></i> Delete image</button></div>`;
+    $("copyMd").onclick = () => { navigator.clipboard.writeText($("imgMd").value); toast("Copied.", "ok", 2000); };
+    $("replace").onclick = () => { $("file").dataset.replace = cur.path; $("file").click(); };
+    $("delImg").onclick = async () => { if (await confirmDlg("Delete this image?", "Pages that use it will show a broken picture.", "Delete")) doDelete("Delete " + cur.path); };
+  } else {
+    e.className = "editor raw";
+    e.innerHTML = "";
+    cm = CodeMirror(e, { value: d.text ?? "", mode: /\.md$/.test(cur.path) ? "markdown" : /\.toml$/.test(cur.path) ? "toml" : /\.css$/.test(cur.path) ? "css" : /\.js(on)?$/.test(cur.path) ? "javascript" : null, lineWrapping: true, lineNumbers: true });
+    cm.on("change", onChange);
+  }
+  schedulePreview(true);
+}
+function renderEvents() {
+  const d = cur.doc;
+  $("events").innerHTML = d.events.map((ev, i) => `<div class="ev" data-i="${i}">
+    <div class="top"><input class="f" data-k="title" value="${esc(ev.title)}" placeholder="Event name"><button class="iconbtn" data-mv="-1" title="Move up" ${i === 0 ? "disabled" : ""}><i class="bi bi-arrow-up"></i></button><button class="iconbtn" data-mv="1" title="Move down" ${i === d.events.length - 1 ? "disabled" : ""}><i class="bi bi-arrow-down"></i></button><button class="iconbtn danger" data-rm="1" title="Remove"><i class="bi bi-trash"></i></button></div>
+    <div class="grid">
+      <div><label class="f" style="margin-top:0">Starts</label><div class="time"><input class="f" type="time" data-k="start" value="${esc(ev.start)}"></div>${ev.was_start && ev.was_start !== ev.start ? `<div class="was"><s>was ${to12(ev.was_start)}</s><button type="button" data-undo="start">undo</button></div>` : ""}</div>
+      <div><label class="f" style="margin-top:0">Ends</label><div class="time"><input class="f" type="time" data-k="end" value="${esc(ev.end)}"></div>${ev.was_end && ev.was_end !== ev.end ? `<div class="was"><s>was ${to12(ev.was_end)}</s><button type="button" data-undo="end">undo</button></div>` : ""}</div>
+      <div><label class="f" style="margin-top:0">Where</label><input class="f" data-k="location" value="${esc(ev.location)}" placeholder="For example, Pauley Ballroom"></div>
+      <div><label class="f" style="margin-top:0">Why it changed <small>optional</small></label><input class="f" data-k="note" value="${esc(ev.note || "")}" placeholder="For example, check-in is running late"></div>
+      <div class="more"><label class="f" style="margin-top:0">Details <small>optional</small></label><textarea class="f" data-k="description" style="min-height:64px">${esc(ev.description || "")}</textarea></div>
+    </div></div>`).join("");
+  $("events").querySelectorAll("[data-k]").forEach((inp) => inp.addEventListener("input", () => {
+    const ev = d.events[+inp.closest(".ev").dataset.i], k = inp.dataset.k, old = ev[k] || "";
+    if ((k === "start" || k === "end") && old && !ev["was_" + k]) ev["was_" + k] = old;
+    ev[k] = inp.value;
+    if ((k === "start" || k === "end") && ev["was_" + k] === ev[k]) delete ev["was_" + k];
+    if (k === "start" || k === "end") { const was = inp.closest("div").parentElement; const label = was.querySelector(".was"); const w = ev["was_" + k]; if (w && w !== ev[k]) { (label || was.appendChild(Object.assign(document.createElement("div"), { className: "was" }))).innerHTML = `<s>was ${to12(w)}</s><button type="button" data-undo="${k}">undo</button>`; } else if (label) label.remove(); }
+    onChange();
+  }));
+}
+function mdInsert(kind) {
+  const ta = $("fBody"); const s = ta.selectionStart, e = ta.selectionEnd, sel = ta.value.slice(s, e) || "text";
+  const wrap = { bold: [`**${sel}**`], italic: [`*${sel}*`], link: [`[${sel}](https://)`], list: [`\n- ${sel}\n`], heading: [`\n## ${sel}\n`] }[kind][0];
+  ta.setRangeText(wrap, s, e, "select"); ta.focus(); onChange();
+}
+function collect() {
+  const d = cur.doc, k = cur.kind;
+  if (k === "update" || k === "page") {
+    d.title = $("fTitle").value; d.body = $("fBody").value;
+    if (k === "update") { d.date = localToIso($("fDate").value, d.date); d.urgent = $("fUrgent").checked; } else d.description = $("fDesc").value;
+    return { doc: { kind: k, title: d.title, description: d.description, date: d.date, urgent: d.urgent, body: d.body, kept: d.kept } };
+  }
+  if (k === "schedule") return { doc: { kind: "schedule", header: d.header, events: d.events } };
+  if (k === "raw") return { text: cm.getValue() };
+  return {};
+}
+function onChange() { setDirty(true); if (cur.kind === "update") cur.label = $("fTitle").value || "Update"; schedulePreview(); }
+
+/* ---------- preview ---------- */
+function schedulePreview(now) { clearTimeout(previewTimer); if (!cur || cur.kind === "image") return; previewTimer = setTimeout(doPreview, now ? 0 : 900); }
+async function doPreview() {
+  const seq = ++previewSeq; $("pvStatus").innerHTML = `<span class="spin"></span> Updating preview…`;
+  const [status, d] = await api("POST", "/admin/api/preview", { path: cur.path, ...collect() });
+  if (seq !== previewSeq) return;
+  if (status !== 200) { $("pvErr").hidden = false; $("pvErr").textContent = friendlyBuildError(d.log || d.detail || d.error || status); $("pvStatus").textContent = "This change can't be shown. See the message above."; return; }
+  $("pvErr").hidden = true; $("frame").src = d.url; $("pvOpen").href = d.url; $("pvStatus").textContent = dirty ? "Preview of your unpublished changes" : "This is how the page looks now";
+}
+function friendlyBuildError(log) { if (/front matter|TOML parse/i.test(log)) return "There is a problem in the file's header. In the simple editor, check the Title for stray quotes. If you are editing the file directly, check the lines between the +++ marks.\n\n" + log; return "The site couldn't be built with this change.\n\n" + log; }
+
+/* ---------- publish / delete ---------- */
+$("publish").onclick = () => {
+  if (!cur) return;
+  const what = cur.kind === "schedule" ? "the tournament schedule" : cur.kind === "update" ? `the update “${$("fTitle").value || "Untitled"}”` : cur.kind === "page" ? `the “${cur.label}” page` : cur.path;
+  $("pubWhat").textContent = cur.isNew ? `This posts ${what} on live.berkeley.mt right away. Everyone with the page open sees it within a minute.` : `This replaces ${what} on live.berkeley.mt right away. Everyone with the page open sees it within a minute.`;
+  $("author").value = localStorage.getItem("admin-author") || ""; $("msg").value = "";
+  $("pubDialog").showModal();
+};
+$("pubDialog").onclose = () => { if ($("pubDialog").returnValue === "ok") { localStorage.setItem("admin-author", $("author").value); doPublish($("author").value, $("msg").value); } };
+async function doPublish(author, note) {
+  $("publish").disabled = true; toast(`<span class="spin"></span> Publishing…`, "", 60000);
+  const what = cur.kind === "update" ? `update: ${cur.doc.title || cur.label}` : cur.kind === "schedule" ? "schedule" : cur.label;
+  const message = note ? `${what} (${note})` : `Update ${what}`;
+  const [status, d] = await api("POST", "/admin/api/save", { path: cur.path, sha: cur.sha, message, author, ...collect() });
+  if (status === 409) return toast(`Someone else published a change to this since you opened it. <button onclick="openItem(cur.path, cur.kind==='raw')">Reload theirs</button> and then make your change again.`, "err", 15000);
+  if (status === 422) return toast(`Not published. The site can't be built with this change. ${esc(friendlyBuildError(d.log || "").split("\n")[0])}`, "err", 12000);
+  if (status !== 200) return toast(`Not published. ${esc(d.detail || d.error || ("Error " + status))}. Try again in a moment.`, "err", 12000);
+  cur.sha = d.sha; if (d.url) cur.url = d.url; setDirty(false);
+  toast(`<i class="bi bi-check-circle-fill"></i> Published${d.live ? ". It is live now." : ". It appears on the site in about two minutes."} <a href="${esc(cur.url)}" target="_blank">Open the page</a>`, "ok", 8000);
+  loadItems();
+  if (cur.kind === "update" && cur.isNew) { cur.isNew = false; }
+  schedulePreview(true);
+}
+async function removeUpdate() {
+  if (!(await confirmDlg("Remove this update?", "It disappears from the site right away. You can't undo this here (it stays in the site's history).", "Remove"))) return;
+  doDelete(`Remove update: ${cur.doc.title || cur.label}`);
+}
+async function doDelete(message) {
+  if (!cur.sha) { cur = null; dirty = false; $("editor").innerHTML = `<div class="empty">Discarded.</div>`; setDirty(false); return; }
+  toast(`<span class="spin"></span> Removing…`, "", 60000);
+  const [status, d] = await api("POST", "/admin/api/delete", { path: cur.path, sha: cur.sha, message, author: localStorage.getItem("admin-author") || "" });
+  if (status !== 200) return toast(`Couldn't remove it. ${esc(d.detail || d.error || status)}.`, "err", 10000);
+  toast(`<i class="bi bi-check-circle-fill"></i> Removed.`, "ok", 4000);
+  cur = null; dirty = false; setDirty(false); $("editor").innerHTML = `<div class="empty"><i class="bi bi-check2-circle"></i>Removed.</div>`; $("main").classList.remove("split"); loadItems();
+}
+
+/* ---------- new update / upload ---------- */
+async function newUpdate() {
+  if (!(await guard())) return;
+  const n = nowPT();
+  const path = `content/updates/${n.local.slice(0, 10)}_${n.local.slice(11, 13)}${n.local.slice(14, 16)}_update-${Math.random().toString(36).slice(2, 6)}.md`;
+  cur = { path, sha: null, url: "/updates/", kind: "update", isNew: true, label: "New update", doc: { kind: "update", title: "", description: "", date: n.iso, urgent: false, body: "", kept: [] } };
+  $("side").classList.remove("open"); render(); setDirty(true); $("fTitle").focus();
+  const slugify = () => { const t = $("fTitle").value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50); if (t) cur.path = path.replace(/_update-\w+\.md$/, `_${t}.md`); };
+  $("fTitle").addEventListener("change", slugify); $("fTitle").addEventListener("blur", slugify);
+}
+$("file").onchange = async () => {
+  const f = $("file").files[0]; const replace = $("file").dataset.replace; delete $("file").dataset.replace; $("file").value = "";
+  if (!f) return;
+  const path = replace || `static/assets/${f.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-")}`;
+  if (!replace && items.images.some((i) => i.path === path) && !(await confirmDlg("Replace the existing image?", `${path.replace(/^static\//, "")} already exists.`, "Replace"))) return;
+  if (f.size > 20 * 1024 * 1024) return toast("That file is too big (over 20 MB). Please shrink it first.", "err", 8000);
+  const b64 = await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(String(fr.result).split(",")[1]); fr.readAsDataURL(f); });
+  toast(`<span class="spin"></span> Uploading…`, "", 60000);
+  const [status, d] = await api("POST", "/admin/api/save", { path, base64: b64, sha: null, message: (replace ? "Replace image " : "Add image ") + path, author: localStorage.getItem("admin-author") || "" });
+  if (status !== 200) return toast(`Upload failed. ${esc(d.detail || d.error || status)}.`, "err", 10000);
+  toast(`<i class="bi bi-check-circle-fill"></i> Uploaded.`, "ok", 4000);
+  await loadItems(); openItem(path);
+};
+
+/* ---------- misc ---------- */
+$("logout").onclick = async () => { if (await guard()) { await api("POST", "/admin/api/logout", {}); location.reload(); } };
+$("menu").onclick = () => $("side").classList.toggle("open");
+$("tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; $("tabs").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); $("main").classList.toggle("show-preview", b.dataset.tab === "preview"); if (b.dataset.tab === "preview") schedulePreview(true); });
+window.addEventListener("beforeunload", (e) => { if (dirty) e.preventDefault(); });
+loadItems().then(() => { const h = decodeURIComponent(location.hash.slice(1)); if (h) openItem(h); });
+</script></body></html>
