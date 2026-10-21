@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Password-protected editor for the files under content/, data/ and static/.
+"""Password-protected editor for config.toml and the files under content/, data/ and static/.
 
 Runs next to nginx in the live.berkeley.mt image (see start.sh). Files are read
 from and saved to GitHub (Contents API, branch BRANCH) so the repository stays
@@ -26,7 +26,7 @@ TOKEN_FILE = os.environ.get("GITHUB_TOKEN_FILE", "/app/data/github.token")
 BASE_URL = os.environ.get("ADMIN_BASE_URL", "https://live.berkeley.mt")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-EDITABLE = re.compile(r"^(content|data|static)/(?:[A-Za-z0-9_][A-Za-z0-9._-]*/)*[A-Za-z0-9_][A-Za-z0-9._ -]*$")
+EDITABLE = re.compile(r"^(?:config\.toml|(?:content|data|static)/(?:[A-Za-z0-9_][A-Za-z0-9._-]*/)*[A-Za-z0-9_][A-Za-z0-9._ -]*)$")
 TEXT_EXT = {".md", ".toml", ".txt", ".css", ".js", ".json", ".html", ".xml", ".csv", ".yaml", ".yml"}
 SESSION_HOURS = 24
 
@@ -118,13 +118,25 @@ def gh_get(path):
     return 200, {"path": path, "sha": data["sha"], "base64": base64.b64encode(raw).decode()}
 
 
+def commit_message(body):
+    """Every staff commit is the same conventional-commit subject; a typed note goes in the body."""
+    note = str(body.get("note") or "").strip()[:200]
+    return "chore: live admin update" + (f"\n\n{note}" if note else "")
+
+
+def who(author):
+    """Author = the name typed in the publish dialog (else Admin); committer is always Admin,
+    so commits never show up as the token's owner."""
+    return {"author": {"name": author.strip() or "Admin", "email": "live@berkeley.mt"},
+            "committer": {"name": "Admin", "email": "live@berkeley.mt"}}
+
+
 def gh_put(path, raw, sha, message, author):
     if not sha:  # creating, or uploading over a file the client did not open
         status, cur = gh("GET", f"/repos/{REPO}/contents/{urllib.parse.quote(path)}?ref={BRANCH}")
         if status == 200:
             sha = cur.get("sha")
-    body = {"message": message, "content": base64.b64encode(raw).decode(), "branch": BRANCH,
-            "committer": {"name": author or "Live staff", "email": "live@berkeley.mt"}}
+    body = {"message": message, "content": base64.b64encode(raw).decode(), "branch": BRANCH, **who(author)}
     if sha:
         body["sha"] = sha
     return gh("PUT", f"/repos/{REPO}/contents/{urllib.parse.quote(path)}", body)
@@ -132,8 +144,7 @@ def gh_put(path, raw, sha, message, author):
 
 def gh_delete(path, sha, message, author):
     return gh("DELETE", f"/repos/{REPO}/contents/{urllib.parse.quote(path)}",
-              {"message": message, "sha": sha, "branch": BRANCH,
-               "committer": {"name": author or "Live staff", "email": "live@berkeley.mt"}})
+              {"message": message, "sha": sha, "branch": BRANCH, **who(author)})
 
 
 # ---------------------------------------------------------------- building
@@ -544,7 +555,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(422, {"error": "build_failed", "log": log})
             return self.send_json(200, {"url": f"/admin/preview/{token}{page_for(path)}", "log": log})
         if p == "/admin/api/save":
-            message = str(body.get("message") or f"Update {path}")[:200]
+            message = commit_message(body)
             if "base64" not in body:  # make sure the site still builds before anything is committed
                 ok, log = build_preview(path, raw, keep=False)
                 if not ok:
@@ -556,7 +567,7 @@ class Handler(BaseHTTPRequestHandler):
             ok, log = rebuild_live()
             return self.send_json(200, {"sha": data["content"]["sha"], "commit": data["commit"]["html_url"], "url": page_for(path), "live": ok, "log": "" if ok else log})
         if p == "/admin/api/delete":
-            status, data = gh_delete(path, body.get("sha"), str(body.get("message") or f"Delete {path}")[:200], str(body.get("author", ""))[:60])
+            status, data = gh_delete(path, body.get("sha"), commit_message(body), str(body.get("author", ""))[:60])
             if status != 200:
                 return self.send_json(409 if status in (409, 422) else status, {"error": "github", "detail": data.get("error", ""), "status": status})
             try:

@@ -12,7 +12,7 @@ It is a static [Zola](https://www.getzola.org/) site built the same way as [berk
 | Change a round's time | `data/schedule.toml` — set `start`/`end`, move the old time into `was_start`/`was_end`, add a `note` |
 | Change the banner on every page | `[extra.advisory]` in `config.toml` (delete the table to remove it) |
 | Edit a page | `content/*.md` (map, guide, faq, help, lost-found, home) |
-| Swap a floor plan | `static/maps/*.png`, referenced from `content/map.md` |
+| Swap a floor plan | `static/images/*.png`, referenced from `content/map.md` |
 | Link the lost & found form | `form_url` in `content/lost-found.md` |
 | Point room lookup at another event | `event_id` in `data/rooms.toml` |
 

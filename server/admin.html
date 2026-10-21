@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BMT Live</title>
-<link rel="icon" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
@@ -13,11 +13,13 @@
   button:hover{background:#f3f4f6}button:disabled{opacity:.45;cursor:default}
   button.primary{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600}button.primary:hover:not(:disabled){background:var(--teal-dark)}
   button.danger{color:var(--rose)}button.ghost{border-color:transparent;background:transparent}
-  header{grid-area:top;display:flex;align-items:center;gap:10px;padding:0 14px;background:#fff;border-bottom:1px solid var(--border)}
+  header{grid-area:top;position:relative;display:flex;align-items:center;gap:10px;padding:0 14px;background:#fff;border-bottom:1px solid var(--border)}
   header .brand{font-weight:600;white-space:nowrap}header .brand span{color:var(--teal)}
-  header .title{flex:1;font-size:14px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  header .spacer{flex:1}
+  header .title{position:absolute;left:50%;transform:translateX(-50%);max-width:46%;font-size:14px;color:var(--muted);text-align:center;line-height:1.2;display:flex;flex-direction:column;align-items:center}
+  header .title b,header .title span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   header .title b{color:#111;font-weight:500}
-  .dirty-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-left:6px;vertical-align:middle}
+  header .title small{font-size:11px;color:var(--muted)}
   aside{grid-area:side;background:#fff;border-right:1px solid var(--border);overflow:auto;padding:10px 0 30px}
   aside h3{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 16px 4px;display:flex;align-items:center;justify-content:space-between}
   aside h3 button{padding:2px 8px;font-size:12px;border-radius:7px}
@@ -53,6 +55,7 @@
   .preview .err{padding:14px;font-size:13px;color:#991b1b;background:#fef2f2;white-space:pre-wrap;font-family:"IBM Plex Mono",ui-monospace,monospace;overflow:auto}
   .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--muted);text-align:center;padding:40px;line-height:1.7;font-size:15px}
   .empty i{font-size:40px;color:#99f6e4;margin-bottom:10px}
+  .editor:has(> .empty){max-width:none;height:100%;padding:24px}
   .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:10px}
   .card{border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff;text-align:left;cursor:pointer;display:block}
   .card:hover{border-color:var(--teal)}.card b{font-size:14px;display:block}.card small{color:var(--muted)}
@@ -66,6 +69,7 @@
   .was button{padding:0 6px;font-size:12px}
   .ev .more{grid-column:1/-1}
   .iconbtn{padding:6px 8px}
+  #menu{display:none}
   .img{text-align:center;padding:20px;background:repeating-conic-gradient(#f3f4f6 0 25%,#fff 0 50%) 0 0/24px 24px;border-radius:12px;margin-top:14px}
   .img img{max-width:100%;max-height:60vh}
   .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:12px 18px;border-radius:12px;font-size:14px;max-width:92vw;display:none;z-index:9;line-height:1.5;box-shadow:0 8px 24px rgba(0,0,0,.2)}
@@ -74,6 +78,9 @@
   dialog::backdrop{background:rgba(0,0,0,.3)}
   dialog h2{font-size:17px;margin:0 0 4px}dialog p{margin:0 0 6px;color:var(--muted);font-size:14px;line-height:1.5}
   dialog menu{display:flex;justify-content:flex-end;gap:8px;margin:20px 0 0;padding:0}
+  .adv{max-height:55vh;overflow:auto;margin:12px -8px 0}
+  .adv h4{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 8px 4px}.adv h4:first-child{margin-top:0}
+  .adv .item{display:flex;width:100%;gap:8px;align-items:center;text-align:left;border:0;background:none;padding:6px 8px;border-radius:8px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13px}.adv .item:hover{background:#f3f4f6}.adv .item i{color:var(--muted);font-size:12px}.adv .label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .spin{display:inline-block;width:12px;height:12px;border:2px solid #ccc;border-top-color:var(--teal);border-radius:50%;animation:s 1s linear infinite}@keyframes s{to{transform:rotate(360deg)}}
   .mobile-tabs{display:none}
   @media (max-width:860px){
@@ -87,15 +94,15 @@
     main.split.show-preview .preview{display:flex;flex:1 1 auto}
     .preview{border-left:0}
     .mobile-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:#fff}
-    .mobile-tabs button{flex:1;border:0;border-radius:0;padding:10px;border-bottom:2px solid transparent}.mobile-tabs button.on{border-bottom-color:var(--teal);color:var(--teal-dark);font-weight:600}
+    .mobile-tabs button{flex:1;justify-content:center;border:0;border-radius:0;padding:10px;border-bottom:2px solid transparent}.mobile-tabs button.on{border-bottom-color:var(--teal);color:var(--teal-dark);font-weight:600}
     .editor{padding:16px}.row2,.ev .grid{grid-template-columns:1fr}
-    header .brand{display:none}
+    header .brand{display:none}#menu{display:inline-flex}
   }
 </style></head><body>
 <header>
   <button id="menu" class="iconbtn" title="Menu"><i class="bi bi-list"></i></button>
   <span class="brand">BMT <span>Live</span></span>
-  <span class="title" id="title">Pick something to edit</span>
+  <span class="spacer"></span><span class="title" id="title"><span>Pick something to edit</span></span>
   <button id="publish" class="primary" disabled><i class="bi bi-send"></i> Publish</button>
   <button id="logout" class="iconbtn" title="Sign out"><i class="bi bi-box-arrow-right"></i></button>
 </header>
@@ -118,11 +125,11 @@
 <dialog id="pubDialog"><form method="dialog">
   <h2>Publish to the live site</h2>
   <p id="pubWhat"></p>
-  <label class="f">Your name <small>so the team knows who made the change</small></label><input class="f" id="author" placeholder="For example, Ian at the info desk" required>
-  <label class="f">Note <small>optional</small></label><input class="f" id="msg" placeholder="For example, lunch moved to 12:45">
-  <menu><button value="cancel">Cancel</button><button value="ok" class="primary"><i class="bi bi-send"></i> Publish now</button></menu></form></dialog>
-<dialog id="confirmDialog"><form method="dialog"><h2 id="cTitle"></h2><p id="cText"></p><menu><button value="cancel">Cancel</button><button value="ok" class="primary danger" id="cOk" style="background:var(--rose);border-color:var(--rose)">Yes</button></menu></form></dialog>
-<dialog id="advDialog"><form method="dialog"><h2>Advanced: files</h2><p>Edit any file directly. Only do this if you know the file format. A mistake here can break a page, and the preview will tell you.</p><div id="advList" style="max-height:50vh;overflow:auto;margin-top:10px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:13px"></div><menu><button value="cancel">Close</button></menu></form></dialog>
+  <label class="f">Your name</label><input class="f" id="author" required>
+  <label class="f">Note <small>optional</small></label><input class="f" id="msg">
+  <menu><button value="cancel" formnovalidate>Cancel</button><button value="ok" class="primary"><i class="bi bi-send"></i> Publish now</button></menu></form></dialog>
+<dialog id="confirmDialog"><form method="dialog"><h2 id="cTitle"></h2><p id="cText"></p><menu><button value="cancel">Cancel</button><button value="ok" class="primary" id="cOk" style="background:var(--rose);border-color:var(--rose)">Yes</button></menu></form></dialog>
+<dialog id="advDialog"><form method="dialog"><h2>Advanced</h2><p>Edit any file of the site directly. Only do this if you know the file format. The preview tells you if a change breaks a page.</p><div id="advList" class="adv"></div><menu><button value="cancel">Close</button></menu></form></dialog>
 <input id="file" type="file" hidden accept="image/*">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
@@ -146,7 +153,7 @@ const isoToLocal = (iso) => (iso || "").slice(0, 16);
 const localToIso = (local, prevIso) => { if (!local) return ""; const off = (prevIso && /[+-]\d{2}:\d{2}$/.exec(prevIso)?.[0]) || nowPT().off; return `${local}:00${off}`; };
 
 let items = null, cur = null, dirty = false, cm = null, previewTimer = null, previewSeq = 0;
-const setDirty = (v) => { dirty = v; $("publish").disabled = !v || !cur || cur.kind === "image" || (cur.kind === "update" && !($("fTitle")?.value || "").trim()); $("title").innerHTML = cur ? `<b>${esc(cur.label)}</b>${dirty ? '<span class="dirty-dot" title="Unsaved changes"></span>' : ""}` : "Pick something to edit"; };
+const setDirty = (v) => { dirty = v; $("publish").disabled = !v || !cur || cur.kind === "image" || (cur.kind === "update" && !($("fTitle")?.value || "").trim()); $("title").innerHTML = cur ? `<b>${esc(cur.label)}</b>${dirty ? "<small>Unsaved changes</small>" : ""}` : "<span>Pick something to edit</span>"; };
 const toast = (html, cls, ms) => { const t = $("toast"); t.innerHTML = html; t.className = "toast " + (cls || ""); t.style.display = "block"; clearTimeout(t._t); t._t = setTimeout(() => (t.style.display = "none"), ms || 6000); };
 
 /* ---------- sidebar ---------- */
@@ -159,13 +166,21 @@ async function loadItems(keep) {
   h += data.updates.map((u) => `<button class="item${act(u.path)}" data-path="${esc(u.path)}"><i class="bi ${u.urgent ? "bi-exclamation-triangle-fill" : "bi-megaphone"}" ${u.urgent ? 'style="color:var(--rose)"' : ""}></i><span class="label">${esc(u.title)}</span><span class="meta">${esc(fmtTime(u.date))}</span></button>`).join("") || `<div class="hint" style="padding:0 16px">No updates yet.</div>`;
   h += `<h3>Schedule</h3><button class="item${act(data.schedule)}" data-path="${esc(data.schedule)}"><i class="bi bi-calendar3"></i><span class="label">Tournament schedule</span></button>`;
   h += `<h3>Pages</h3>` + data.pages.map((p) => `<button class="item${act(p.path)}" data-path="${esc(p.path)}"><i class="bi bi-file-text"></i><span class="label">${esc(p.title)}</span></button>`).join("");
-  h += `<h3>Images <button id="upload"><i class="bi bi-upload"></i> Upload</button></h3>` + data.images.map((i) => `<button class="item${act(i.path)}" data-path="${esc(i.path)}"><i class="bi bi-image"></i><span class="label">${esc(i.path.replace(/^static\//, ""))}</span></button>`).join("");
+  h += `<h3>Images <button id="upload"><i class="bi bi-upload"></i> Upload</button></h3>` + data.images.map((i) => `<button class="item${act(i.path)}" data-path="${esc(i.path)}"><i class="bi bi-image"></i><span class="label">${esc(i.path.replace(/^static\/(images\/)?/, ""))}</span></button>`).join("");
   h += `<h3 style="margin-top:22px"><button id="advanced" class="ghost" style="color:var(--muted)"><i class="bi bi-code-slash"></i> Advanced</button></h3>`;
   $("nav").innerHTML = h;
   $("newUpdate").onclick = newUpdate;
   $("upload").onclick = () => $("file").click();
-  $("advanced").onclick = () => { $("advList").innerHTML = data.advanced.map((f) => `<button class="item" data-path="${esc(f.path)}" data-raw="1" style="padding:5px 8px">${esc(f.path)}</button>`).join(""); $("advDialog").showModal(); };
+  $("advanced").onclick = () => { $("advList").innerHTML = advGroups(data.advanced).map(([dir, files]) => `<h4>${esc(dir)}</h4>` + files.map((f) => `<button class="item" data-path="${esc(f.path)}" data-raw="1"><i class="bi ${advIcon(f.path)}"></i><span class="label">${esc(f.path.slice(dir === "Site settings" ? 0 : dir.length + 1))}</span></button>`).join("")).join(""); $("advDialog").showModal(); };
 }
+const ADV_ORDER = ["Site settings", "content", "content/updates", "data", "static", "static/images"];
+function advGroups(files) {
+  const g = new Map();
+  for (const f of files) { const dir = f.path === "config.toml" ? "Site settings" : f.path.replace(/\/[^/]*$/, ""); if (!g.has(dir)) g.set(dir, []); g.get(dir).push(f); }
+  const rank = (d) => { const i = ADV_ORDER.indexOf(d); return i < 0 ? ADV_ORDER.length : i; };
+  return [...g.entries()].sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0]));
+}
+const advIcon = (p) => /\.(png|jpe?g|gif|webp|svg)$/i.test(p) ? "bi-image" : /\.md$/.test(p) ? "bi-file-text" : /\.toml$/.test(p) ? "bi-gear" : "bi-file-earmark-code";
 document.addEventListener("click", (e) => { const b = e.target.closest(".item[data-path]"); if (!b) return; if (b.closest("#advDialog")) $("advDialog").close(); openItem(b.dataset.path, !!b.dataset.raw); });
 
 /* ---------- opening ---------- */
@@ -296,16 +311,14 @@ function friendlyBuildError(log) { if (/front matter|TOML parse/i.test(log)) ret
 $("publish").onclick = () => {
   if (!cur) return;
   const what = cur.kind === "schedule" ? "the tournament schedule" : cur.kind === "update" ? `the update “${$("fTitle").value || "Untitled"}”` : cur.kind === "page" ? `the “${cur.label}” page` : cur.path;
-  $("pubWhat").textContent = cur.isNew ? `This posts ${what} on live.berkeley.mt right away. Everyone with the page open sees it within a minute.` : `This replaces ${what} on live.berkeley.mt right away. Everyone with the page open sees it within a minute.`;
+  $("pubWhat").textContent = `${cur.isNew ? "Posts" : "Updates"} ${what} on the live site right away.`;
   $("author").value = localStorage.getItem("admin-author") || ""; $("msg").value = "";
   $("pubDialog").showModal();
 };
 $("pubDialog").onclose = () => { if ($("pubDialog").returnValue === "ok") { localStorage.setItem("admin-author", $("author").value); doPublish($("author").value, $("msg").value); } };
 async function doPublish(author, note) {
   $("publish").disabled = true; toast(`<span class="spin"></span> Publishing…`, "", 60000);
-  const what = cur.kind === "update" ? `update: ${cur.doc.title || cur.label}` : cur.kind === "schedule" ? "schedule" : cur.label;
-  const message = note ? `${what} (${note})` : `Update ${what}`;
-  const [status, d] = await api("POST", "/admin/api/save", { path: cur.path, sha: cur.sha, message, author, ...collect() });
+  const [status, d] = await api("POST", "/admin/api/save", { path: cur.path, sha: cur.sha, note, author, ...collect() });
   if (status === 409) return toast(`Someone else published a change to this since you opened it. <button onclick="openItem(cur.path, cur.kind==='raw')">Reload theirs</button> and then make your change again.`, "err", 15000);
   if (status === 422) return toast(`Not published. The site can't be built with this change. ${esc(friendlyBuildError(d.log || "").split("\n")[0])}`, "err", 12000);
   if (status !== 200) return toast(`Not published. ${esc(d.detail || d.error || ("Error " + status))}. Try again in a moment.`, "err", 12000);
@@ -317,12 +330,12 @@ async function doPublish(author, note) {
 }
 async function removeUpdate() {
   if (!(await confirmDlg("Remove this update?", "It disappears from the site right away. You can't undo this here (it stays in the site's history).", "Remove"))) return;
-  doDelete(`Remove update: ${cur.doc.title || cur.label}`);
+  doDelete();
 }
-async function doDelete(message) {
+async function doDelete() {
   if (!cur.sha) { cur = null; dirty = false; $("editor").innerHTML = `<div class="empty">Discarded.</div>`; setDirty(false); return; }
   toast(`<span class="spin"></span> Removing…`, "", 60000);
-  const [status, d] = await api("POST", "/admin/api/delete", { path: cur.path, sha: cur.sha, message, author: localStorage.getItem("admin-author") || "" });
+  const [status, d] = await api("POST", "/admin/api/delete", { path: cur.path, sha: cur.sha, author: localStorage.getItem("admin-author") || "" });
   if (status !== 200) return toast(`Couldn't remove it. ${esc(d.detail || d.error || status)}.`, "err", 10000);
   toast(`<i class="bi bi-check-circle-fill"></i> Removed.`, "ok", 4000);
   cur = null; dirty = false; setDirty(false); $("editor").innerHTML = `<div class="empty"><i class="bi bi-check2-circle"></i>Removed.</div>`; $("main").classList.remove("split"); loadItems();
@@ -341,12 +354,12 @@ async function newUpdate() {
 $("file").onchange = async () => {
   const f = $("file").files[0]; const replace = $("file").dataset.replace; delete $("file").dataset.replace; $("file").value = "";
   if (!f) return;
-  const path = replace || `static/assets/${f.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-")}`;
-  if (!replace && items.images.some((i) => i.path === path) && !(await confirmDlg("Replace the existing image?", `${path.replace(/^static\//, "")} already exists.`, "Replace"))) return;
+  const path = replace || `static/images/${f.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-")}`;
+  if (!replace && items.images.some((i) => i.path === path) && !(await confirmDlg("Replace the existing image?", `${path.replace(/^static\/(images\/)?/, "")} already exists.`, "Replace"))) return;
   if (f.size > 20 * 1024 * 1024) return toast("That file is too big (over 20 MB). Please shrink it first.", "err", 8000);
   const b64 = await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(String(fr.result).split(",")[1]); fr.readAsDataURL(f); });
   toast(`<span class="spin"></span> Uploading…`, "", 60000);
-  const [status, d] = await api("POST", "/admin/api/save", { path, base64: b64, sha: null, message: (replace ? "Replace image " : "Add image ") + path, author: localStorage.getItem("admin-author") || "" });
+  const [status, d] = await api("POST", "/admin/api/save", { path, base64: b64, sha: null, author: localStorage.getItem("admin-author") || "" });
   if (status !== 200) return toast(`Upload failed. ${esc(d.detail || d.error || status)}.`, "err", 10000);
   toast(`<i class="bi bi-check-circle-fill"></i> Uploaded.`, "ok", 4000);
   await loadItems(); openItem(path);
