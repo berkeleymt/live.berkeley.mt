@@ -64,10 +64,11 @@
     if (!id) return;
     result.classList.remove("hidden");
     result.innerHTML = `<p class="text-gray-500">Looking up ${esc(id)}…</p>`;
-    let found = false;
+    let found = false, definitive = false;
     try {
       const res = await fetch(`/api/rooms?id=${encodeURIComponent(id)}`, { cache: "no-store" });
       const d = res.status === 200 || res.status === 400 || res.status === 404 ? await res.json() : null;
+      definitive = d !== null;
       if (res.status === 200) {
         render(d.id, d.columns, d.rooms);
         found = d.rooms.some(Boolean);
@@ -83,7 +84,7 @@
     } catch (_) {
       notice("Room lookup isn't available right now", "Please try again in a moment, or ask your coach or the information desk in Dwinelle Hall.");
     }
-    if (found) localStorage.setItem("rooms-id", id); else if (!fromMemory) localStorage.removeItem("rooms-id");
+    if (found) localStorage.setItem("rooms-id", id); else if (definitive && !fromMemory) localStorage.removeItem("rooms-id");
   }
 
   form.addEventListener("submit", (e) => { e.preventDefault(); lookup(input.value, false); });
