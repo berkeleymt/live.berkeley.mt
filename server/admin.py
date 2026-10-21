@@ -179,8 +179,8 @@ def rebuild_live():
         return ok, log
 
 
-def build_preview(path, raw, delete=False):
-    """Copy the site, apply the edit, build; return (token, log)."""
+def build_preview(path, raw, delete=False, keep=True):
+    """Copy the site, apply the edit, build; return (token, log). keep=False just validates."""
     token = secrets.token_urlsafe(12)
     work = tempfile.mkdtemp(prefix="preview-")
     src = os.path.join(work, "src")
@@ -200,7 +200,7 @@ def build_preview(path, raw, delete=False):
         if exp < now:
             shutil.rmtree(d, ignore_errors=True)
             _previews.pop(t, None)
-    if ok:
+    if ok and keep:
         _previews[token] = (work, now + 1800)
     else:
         shutil.rmtree(work, ignore_errors=True)
@@ -545,6 +545,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(200, {"url": f"/admin/preview/{token}{page_for(path)}", "log": log})
         if p == "/admin/api/save":
             message = str(body.get("message") or f"Update {path}")[:200]
+            if "base64" not in body:  # make sure the site still builds before anything is committed
+                ok, log = build_preview(path, raw, keep=False)
+                if not ok:
+                    return self.send_json(422, {"error": "build_failed", "log": log})
             status, data = gh_put(path, raw, body.get("sha"), message, str(body.get("author", ""))[:60])
             if status not in (200, 201):
                 return self.send_json(409 if status in (409, 422) else status, {"error": "github", "detail": data.get("error", ""), "status": status})
