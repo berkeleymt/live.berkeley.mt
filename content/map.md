@@ -16,6 +16,8 @@ Rounds take place in four buildings on the south side of campus. Check-in is at 
 
 ## Floor plans
 
+{{ map_search() }}
+
 {{ my_rooms() }}
 
 Green rooms are classrooms, blue are auditoriums, yellow are stairs, and elevators are marked with a crossed box. Feel free to ask a volunteer if you need further guidance or accessibility needs.

@@ -294,6 +294,49 @@
     else if (h.startsWith("#round-") && myBox) showRound(h.slice(7).toLowerCase());
   }
 
+  // Search: rooms come from the floor plans' ids, buildings from the building cards.
+  const q = document.getElementById("map-q"), sug = document.getElementById("map-suggest");
+  if (q) {
+    const index = [];
+    document.querySelectorAll("details.building, details[id]").forEach((d) => {
+      const name = d.querySelector("summary")?.textContent.trim().replace(/\s+/g, " ");
+      if (name) index.push({ text: name, hint: "Building", hash: `#${d.id}`, keys: [name.toLowerCase(), d.id] });
+    });
+    plans().forEach((fp) => {
+      const seen = new Set(), svg = fp.querySelector("svg"), bname = fp.closest("details").querySelector("summary").textContent.trim().split(" (")[0];
+      svg.querySelectorAll("[id]").forEach((e) => {
+        const r = roomOf(e, svg);
+        if (!r || seen.has(r)) return;
+        seen.add(r);
+        const hash = `#${fp.dataset.building}-${r}`, dup = index.find((it) => it.hash === hash);
+        if (dup) dup.hint = dup.hint.replace("Floor", "Floors") + ` and ${fp.dataset.floor}`;
+        else index.push({ text: `${bname} ${r}`, hint: `Floor ${fp.dataset.floor}`, hash, keys: [r.toLowerCase(), `${fp.dataset.building} ${r}`.toLowerCase()] });
+      });
+    });
+    const matches = (term) => {
+      const t = term.trim().toLowerCase().replace(/\s+/g, " ");
+      if (!t) return [];
+      const score = (it) => it.keys.some((k) => k === t) ? 0 : it.keys.some((k) => k.startsWith(t)) ? 1 : it.keys.some((k) => k.includes(t)) ? 2 : 9;
+      return index.map((it) => [score(it), it]).filter(([s]) => s < 9).sort((a, b) => a[0] - b[0] || a[1].text.localeCompare(b[1].text, undefined, { numeric: true })).slice(0, 8).map(([, it]) => it);
+    };
+    let items = [], active = -1;
+    const render = () => {
+      sug.innerHTML = items.map((it, i) => `<li role="option" aria-selected="${i === active}" data-i="${i}" class="flex justify-between gap-4 px-4 py-2 cursor-pointer aria-selected:bg-teal-50 hover:bg-teal-50"><span class="font-medium">${esc(it.text)}</span><span class="text-sm text-gray-500">${esc(it.hint)}</span></li>`).join("");
+      sug.classList.toggle("hidden", !items.length);
+    };
+    const go = (it) => { if (!it) return; items = []; render(); q.value = it.text; q.blur(); if (location.hash === it.hash) { openHash(); openExtraHash(); } else location.hash = it.hash; };
+    q.addEventListener("input", () => { items = matches(q.value); active = items.length ? 0 : -1; render(); });
+    q.addEventListener("focus", () => { items = matches(q.value); active = items.length ? 0 : -1; render(); });
+    q.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown" && items.length) { active = (active + 1) % items.length; render(); e.preventDefault(); }
+      else if (e.key === "ArrowUp" && items.length) { active = (active - 1 + items.length) % items.length; render(); e.preventDefault(); }
+      else if (e.key === "Escape") { items = []; render(); }
+    });
+    q.form.addEventListener("submit", (e) => { e.preventDefault(); go(items[active] || matches(q.value)[0]); });
+    sug.addEventListener("pointerdown", (e) => { const li = e.target.closest("li"); if (li) { e.preventDefault(); go(items[+li.dataset.i]); } });
+    document.addEventListener("pointerdown", (e) => { if (!q.form.contains(e.target)) { items = []; render(); } });
+  }
+
   openHash();
   window.addEventListener("hashchange", () => { openHash(); openExtraHash(); });
   loadMine().then((d) => { mine = d; showMine(); openExtraHash(); });

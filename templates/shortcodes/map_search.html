@@ -1,0 +1,8 @@
+<form id="map-search" class="not-prose relative" autocomplete="off" role="search">
+  <label class="sr-only" for="map-q">Find a room or building</label>
+  <div class="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-300 bg-white focus-within:ring-2 focus-within:ring-teal-400">
+    <i class="bi bi-search text-gray-400"></i>
+    <input id="map-q" type="search" inputmode="search" autocapitalize="characters" spellcheck="false" placeholder="Room number or building, like 155 or Wheeler" class="flex-1 text-lg bg-transparent focus:outline-none">
+  </div>
+  <ul id="map-suggest" class="hidden absolute left-0 right-0 z-10 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden" role="listbox"></ul>
+</form>
