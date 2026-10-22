@@ -259,6 +259,8 @@ function render() {
       <label class="f">To put this image in a page or update, paste this line into the text:</label>
       <div style="display:flex;gap:8px"><input class="f" readonly id="imgMd" value="![describe the image](${esc(url)})"><button id="copyMd"><i class="bi bi-clipboard"></i> Copy</button></div>
       <div style="margin-top:24px;display:flex;gap:8px;flex-wrap:wrap"><button id="replace"><i class="bi bi-upload"></i> Replace with a new file</button><button class="danger" id="delImg"><i class="bi bi-trash"></i> Delete image</button></div>`;
+    const fpm = /^static\/images\/([a-z]+)-([a-z0-9]+)\.svg$/i.exec(cur.path);
+    if (fpm) { e.insertAdjacentHTML("beforeend", `<div id="fpCheck" style="margin-top:24px"><div class="hint">Checking this floor plan against ContestDojo…</div></div>`); floorplanCheck(fpm[1].toLowerCase(), fpm[2].toUpperCase(), d.base64); }
     $("copyMd").onclick = () => { navigator.clipboard.writeText($("imgMd").value); toast("Copied.", "ok", 2000); };
     $("replace").onclick = () => { $("file").dataset.replace = cur.path; $("file").click(); };
     $("delImg").onclick = async () => { if (await confirmDlg("Delete this image?", "Pages that use it will show a broken picture.", "Delete")) doDelete("Delete " + cur.path); };
@@ -306,6 +308,49 @@ function collect() {
 function onChange() { setDirty(true); if (cur.kind === "update") cur.label = $("fTitle").value || "Update"; schedulePreview(); }
 
 /* ---------- preview ---------- */
+// Floor plans are static/images/<building>-<floor>.svg; room shapes are named by room number.
+// Lists the rooms this file knows and which ContestDojo rooms in the building have no shape.
+const ROOM_ID = /^(\d+[A-Z]*)(?:[\s_(\u2028].*)?$/;
+const BUILDING_WORDS = { dwinelle: ["DWINELLE"], wheeler: ["WHEELER"], vlsb: ["VLSB", "VALLEY"], pauley: ["PAULEY"] };
+function svgRooms(b64) {
+  const text = new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)));
+  const doc = new DOMParser().parseFromString(text, "image/svg+xml"), rooms = new Set();
+  doc.querySelectorAll("[id]").forEach((el) => { if (el.closest('[id^="Legend"]')) return; const m = ROOM_ID.exec(el.id); if (m) rooms.add(m[1]); });
+  return rooms;
+}
+async function floorplanCheck(building, floor, b64) {
+  const box = $("fpCheck"); if (!box) return;
+  const here = svgRooms(b64), all = new Set(here), floors = [floor];
+  for (const img of items.images) {
+    const m = /^static\/images\/([a-z]+)-([a-z0-9]+)\.svg$/i.exec(img.path);
+    if (!m || m[1].toLowerCase() !== building || img.path === cur.path) continue;
+    const [st, dd] = await api("GET", `/admin/api/doc?path=${encodeURIComponent(img.path)}`);
+    if (st === 200 && dd.base64) { svgRooms(dd.base64).forEach((r) => all.add(r)); floors.push(m[2].toUpperCase()); }
+  }
+  const sortRooms = (a) => [...a].sort((x, y) => x.localeCompare(y, undefined, { numeric: true }));
+  let html = `<label class="f">Floor plan for ${esc(building[0].toUpperCase() + building.slice(1))}, floor ${esc(floor)}. It shows on the map page; a room is found by the shape named with its number.</label>
+    <div class="hint" style="margin-top:0">${here.size} rooms on this floor. ${esc(sortRooms(here).join(", ") || "None found. Name the room shapes in Figma and export with ids.")}</div>`;
+  let summary = null;
+  try { const r = await fetch("/api/rooms/summary"); if (r.ok) summary = await r.json(); } catch (_) { /* shown below */ }
+  if (!summary) html += `<div class="hint">ContestDojo room assignments aren't available right now, so the check against them was skipped.</div>`;
+  else {
+    const words = BUILDING_WORDS[building] || [building.toUpperCase()], counts = {};
+    summary.rooms.forEach((byRoom, i) => Object.entries(byRoom).forEach(([room, n]) => {
+      if (!words.includes(room.split(" ")[0].toUpperCase())) return;
+      const num = (room.replace(/\(.*$/, "").trim().split(/\s+/).pop().match(/^\d+[A-Z]*$/i) || [])[0];
+      if (num) counts[num.toUpperCase()] = (counts[num.toUpperCase()] || 0) + n;
+    }));
+    const nums = sortRooms(Object.keys(counts)), missing = nums.filter((n) => !all.has(n));
+    if (!nums.length) html += `<div class="hint">ContestDojo has no rooms in this building yet.</div>`;
+    else {
+      html += missing.length ? `<div class="hint" style="color:#b91c1c"><b>${missing.length} ContestDojo room${missing.length === 1 ? "" : "s"} in this building ${missing.length === 1 ? "has" : "have"} no shape on floors ${esc(floors.join(", "))}:</b> ${esc(missing.join(", "))}. Students in these rooms can't see them on the map.</div>`
+        : `<div class="hint" style="color:#047857"><i class="bi bi-check-circle"></i> Every ContestDojo room in this building (${nums.length}) has a shape on floors ${esc(floors.join(", "))}.</div>`;
+      html += `<label class="f" style="margin-top:14px">Students per room in ContestDojo</label><div class="hint" style="margin-top:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:4px 12px">${nums.map((n) => `<span>${all.has(n) ? "" : '<i class="bi bi-exclamation-triangle" style="color:#b91c1c"></i> '}${esc(n)} <b>${counts[n]}</b></span>`).join("")}</div>`;
+    }
+  }
+  box.innerHTML = html;
+}
+
 function schedulePreview(now) { clearTimeout(previewTimer); if (!cur || cur.kind === "image") return; previewTimer = setTimeout(doPreview, now ? 0 : 900); }
 async function doPreview() {
   const seq = ++previewSeq; $("pvStatus").innerHTML = `<span class="spin"></span> Updating preview…`;

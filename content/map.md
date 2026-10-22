@@ -27,7 +27,7 @@ Dwinelle's room numbers tell you the floor: 1xx is floor D (main entrance), 2xx 
 {% end %}
 
 {% building(name="wheeler", title="Wheeler Hall (basement, floors 1 and 2)", image="wheeler.png") %}
-Rooms numbered 1xx are on the ground floor and 2xx one floor up.
+Rounds are held in the classrooms shown in green.
 {% end %}
 
 {% building(name="vlsb", title="Valley Life Sciences Building (floor 2)", image="vlsb.png") %}
