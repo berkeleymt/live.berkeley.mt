@@ -272,7 +272,7 @@ def parse_value(raw):
 def parse_front(text):
     """Split '+++ ... +++' front matter. Returns (fields, kept_lines, body).
     fields has the managed keys; kept_lines are other front-matter lines, as
-    [(section, line)] so they survive a round trip (form_url, template, ...)."""
+    [(section, line)] so they survive a round trip (template, ...)."""
     fields, kept, body = {}, [], text
     if text.startswith("+++"):
         end = text.find("\n+++", 3)
