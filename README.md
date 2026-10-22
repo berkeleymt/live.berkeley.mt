@@ -13,7 +13,7 @@ It is a static [Zola](https://www.getzola.org/) site built the same way as [berk
 | Change the banner on every page | `[extra.advisory]` in `config.toml` (delete the table to remove it) |
 | Edit a page | `content/*.md` (map, guide, faq, help, lost-found, home) |
 | Swap a floor plan | `static/images/*.png`, referenced from `content/map.md` |
-| Link the lost & found form | `form_url` in `content/lost-found.md` |
+| Change the lost & found form | the `<iframe>` in `content/lost-found.md` (any embed link works) |
 | Point room lookup at another event | `event_id` in `data/rooms.toml` |
 
 An update looks like this:

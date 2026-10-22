@@ -15,14 +15,4 @@
 </main>
 {% endif %}
 
-{% if page.extra.form_url is defined %}
-{% if page.extra.form_url %}
-<iframe src="{{ page.extra.form_url }}" title="{{ page.title }} form" class="w-full rounded-xl border border-gray-200 bg-white" style="height: 1400px" loading="lazy">Loading…</iframe>
-{% else %}
-<div class="bg-orange-50 border-orange-200 border p-4 rounded-xl flex flex-col gap-2">
-  <p class="uppercase text-xs text-gray-500 flex gap-2 items-center"><i class="bi bi-exclamation-circle-fill"></i><span>Form not yet available</span></p>
-  <p class="text-base font-medium">Please bring found items, or report lost ones, to the information desk in Dwinelle Hall.</p>
-</div>
-{% endif %}
-{% endif %}
 {% endblock %}
