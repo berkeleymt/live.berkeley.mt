@@ -420,8 +420,6 @@ def text_from_doc(path, doc, current_text=None):
         return compose_settings(doc.get("advisory") or {}, current_text)
     if kind in ("update", "page"):
         kept = [tuple(k) for k in doc.get("kept") or []]
-        if current_text is not None and not doc.get("kept"):
-            kept = parse_front(current_text)[1]
         fields = {"title": doc.get("title", ""), "description": doc.get("description", ""),
                   "date": doc.get("date", ""), "urgent": bool(doc.get("urgent"))}
         return compose_front(fields, kept, doc.get("body", ""))
