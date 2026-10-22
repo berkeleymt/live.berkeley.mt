@@ -19,6 +19,7 @@
       </div>
       <div class="floorplan-room text-sm text-gray-600 sm:ml-auto sm:text-right">Tap a room to see its number.</div>
     </div>
+    <div class="poi-chips hidden flex-wrap gap-1.5 text-sm"></div>
     {%- for f in floor_list %}{% set fl = f | trim %}{% set file = "static/images/" ~ name ~ "-" ~ fl ~ ".svg" %}
     <figure class="floorplan{% if fl != active %} hidden{% endif %}" data-building="{{ name }}" data-floor="{{ fl }}">
       <div class="floorplan-viewport">

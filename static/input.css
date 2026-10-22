@@ -118,5 +118,12 @@
 .room-now-label { fill: #b45309; }
 .room-next-label { fill: #4b5563; }
 .room-mine-label, .room-now-label, .room-next-label { fill: #0f766e; font-weight: 700; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; pointer-events: none; }
+.poi-chip { border: 1px solid #d1d5db; background: #fff; color: #374151; border-radius: 9999px; padding: 0.2rem 0.75rem; display: inline-flex; align-items: center; gap: 0.35rem; }
+.poi-chip:hover { background: #f3f4f6; }
+.poi-chip[aria-pressed="true"] { background: #0f766e; border-color: #0f766e; color: #fff; }
+.poi-chip.stepfree[aria-pressed="true"] { background: #1d4ed8; border-color: #1d4ed8; }
+.poi-mark { fill: rgba(20, 184, 166, 0.15); stroke: #0f766e; stroke-width: 2.5; pointer-events: none; }
+.poi-mark.stepfree { fill: rgba(37, 99, 235, 0.15); stroke: #1d4ed8; }
+.building.stepfree [data-poi="Stairs"] { opacity: 0.2; }
 .room-hl { fill: rgba(20, 184, 166, 0.45); stroke: #0f766e; stroke-width: 3; pointer-events: none; animation: room-pulse 1.6s ease-in-out infinite; }
 @keyframes room-pulse { 50% { stroke-opacity: 0.25; } }

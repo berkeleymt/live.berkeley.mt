@@ -73,6 +73,7 @@
       mine.querySelectorAll("details").forEach((d, i) => { if (open[i]) d.open = true; });
       window.scrollTo(0, y);
       initPlans();
+      initPoi();
       mine.querySelectorAll(".sched, article .prose").forEach(linkRooms);
       openHash();
       showMine();
@@ -334,6 +335,86 @@
     if (h === "#myRooms" && myBox) { showMine(); if (myRooms) myBox.scrollIntoView({ block: "start" }); }
     else if (h.startsWith("#round-") && myBox) showRound(h.slice(7).toLowerCase());
   }
+
+  // Points of interest come from layer names in the floor plans: anything containing "bathroom",
+  // "elevator", "stair" or "exit", or named "POI <Name>" in Figma. The legend is skipped.
+  const POI_WORDS = [["Bathrooms", /bathroom|restroom|toilet/i], ["Elevators", /elevator|\blift/i], ["Stairs", /stair/i], ["Exits", /\bexit/i], ["Water", /water|fountain/i], ["Info desk", /info desk|information desk|help desk/i], ["First aid", /first.?aid|medical/i], ["Lunch", /lunch|food/i], ["Lost and found", /lost/i], ["Quiet room", /quiet/i], ["Accessible entrance", /accessible|wheelchair|ramp/i]];
+  const POI_ORDER = POI_WORDS.map(([n]) => n);
+  const poiCat = (id) => {
+    const m = /^POI[\s_:-]+(.+?)[\s_]*\d*$/i.exec(id);
+    if (m) { const name = m[1].trim(); const known = POI_WORDS.find(([, re]) => re.test(name)); return known ? known[0] : name[0].toUpperCase() + name.slice(1); }
+    const hit = POI_WORDS.find(([, re]) => re.test(id));
+    return hit ? hit[0] : null;
+  };
+  function poiIndex(fp) {
+    if (fp.pois) return fp.pois;
+    const svg = fp.querySelector("svg"), pois = [];
+    const valid = (el) => !el.closest('[id^="Legend"], defs, mask') && el.tagName !== "mask" && poiCat(el.id);
+    const matches = [...svg.querySelectorAll("[id]")].filter(valid);
+    const disjoint = (a, b) => a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y;
+    const add = (cat, el) => {
+      const box = bboxOf(fp, el);
+      if (!box.width || !box.height) return;
+      el.dataset.poi = cat;
+      // The same spot is often drawn twice (yellow area plus icon); keep the first.
+      const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+      if (pois.some((p) => p.cat === cat && cx >= p.box.x && cx <= p.box.x + p.box.width && cy >= p.box.y && cy <= p.box.y + p.box.height)) return;
+      pois.push({ cat, el, box });
+    };
+    matches.forEach((el) => {
+      // Containers whose children are named too are handled through the children.
+      if (matches.some((m) => m !== el && el.contains(m)) || el.parentNode.closest("[data-poi]")) return;
+      const cat = poiCat(el.id), kids = [...el.children].filter((k) => k.tagName !== "mask" && k.tagName !== "defs");
+      // A group of separate shapes ("Gendered Bathrooms", "Stair Labels") is one POI per shape.
+      const boxes = kids.length > 1 ? kids.map((k) => bboxOf(fp, k)) : [];
+      const separate = boxes.length > 1 && boxes.every((a, i) => boxes.every((b, j) => i === j || disjoint(a, b)));
+      if (separate) { el.dataset.poi = cat; kids.forEach((k) => add(cat, k)); } else add(cat, el);
+    });
+    return (fp.pois = pois);
+  }
+  const poiState = (() => { try { return JSON.parse(localStorage.getItem("map-poi") || "{}"); } catch (_) { return {}; } })();
+  const savePoi = () => localStorage.setItem("map-poi", JSON.stringify(poiState));
+
+  function applyPoi(building) {
+    const on = poiState[building.dataset.building] || {};
+    building.classList.toggle("stepfree", !!on["Step-free"]);
+    building.querySelectorAll(".poi-chip").forEach((c) => c.setAttribute("aria-pressed", !!on[c.dataset.cat]));
+    building.querySelectorAll(".poi-mark").forEach((m) => m.remove());
+    building.querySelectorAll(".floorplan").forEach((fp) => {
+      const svg = fp.querySelector("svg"), NS = "http://www.w3.org/2000/svg";
+      poiIndex(fp).forEach((p) => {
+        const stepfree = on["Step-free"] && (p.cat === "Elevators" || p.cat === "Accessible entrance");
+        if (!on[p.cat] && !stepfree) return;
+        const r = document.createElementNS(NS, "rect");
+        for (const [k, v] of Object.entries({ x: p.box.x - 4, y: p.box.y - 4, width: p.box.width + 8, height: p.box.height + 8, rx: 6 })) r.setAttribute(k, v);
+        r.setAttribute("class", "poi-mark" + (stepfree && !on[p.cat] ? " stepfree" : ""));
+        svg.appendChild(r);
+      });
+    });
+  }
+
+  function initPoi() {
+    document.querySelectorAll(".building").forEach((b) => {
+      const wrap = b.querySelector(".poi-chips");
+      if (!wrap || wrap.childElementCount) return;
+      const cats = new Set();
+      b.querySelectorAll(".floorplan").forEach((fp) => poiIndex(fp).forEach((p) => cats.add(p.cat)));
+      if (!cats.size) return;
+      const sorted = [...cats].sort((x, y) => (POI_ORDER.indexOf(x) + 1 || 99) - (POI_ORDER.indexOf(y) + 1 || 99) || x.localeCompare(y));
+      const chip = (cat, cls, icon, title) => { const c = document.createElement("button"); c.type = "button"; c.className = "poi-chip " + cls; c.dataset.cat = cat; c.title = title || `Show ${cat.toLowerCase()} on the plan`; c.innerHTML = `<i class="bi ${icon}"></i>${esc(cat)}`; return c; };
+      const icons = { Bathrooms: "bi-badge-wc", Elevators: "bi-box-arrow-in-down", Stairs: "bi-ladder", Exits: "bi-door-open", Water: "bi-droplet", "Info desk": "bi-info-circle", "First aid": "bi-bandaid", Lunch: "bi-egg-fried", "Lost and found": "bi-search", "Quiet room": "bi-volume-mute", "Accessible entrance": "bi-universal-access" };
+      sorted.forEach((cat) => wrap.appendChild(chip(cat, "", icons[cat] || "bi-geo-alt")));
+      if (cats.has("Elevators") || cats.has("Accessible entrance")) wrap.appendChild(chip("Step-free", "stepfree", "bi-universal-access", "Fade out stairs and show elevators and accessible entrances"));
+      wrap.classList.remove("hidden"); wrap.classList.add("flex");
+      wrap.addEventListener("click", (e) => {
+        const c = e.target.closest(".poi-chip"); if (!c) return;
+        const on = (poiState[b.dataset.building] = poiState[b.dataset.building] || {});
+        on[c.dataset.cat] = !on[c.dataset.cat]; savePoi(); applyPoi(b);
+      });
+      applyPoi(b);
+    });
+  }
+  initPoi();
 
   // Search: rooms come from the floor plans' ids, buildings from the building cards.
   const q = document.getElementById("map-q"), sug = document.getElementById("map-suggest");
