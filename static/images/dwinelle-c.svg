@@ -3,7 +3,6 @@
 <g id="Frame 1">
 <rect width="1119" height="898" rx="2" fill="white"/>
 <rect x="0.5" y="0.5" width="1118" height="897" rx="1.5" stroke="black" stroke-opacity="0.1"/>
-<path id="Rectangle 1" d="M102.5 102.5H1016.5V795.5H102.5V102.5Z" fill="white" stroke-width="5" stroke="#7917AA"/>
 <g id="Frame">
 <path id="Building Surround" d="M230.5 642.5L144 632L195.5 216L284.5 230L282 257L309 261.5L306 293.5L561 305.5V222.5H557V142H908V537.5H827V495H690V486.5H663.5V664H576V636H546V533.5L279 514L266.5 618L232 614L230.5 642.5Z" fill="#BFBFBF" stroke-width="3" stroke="black"/>
 <g id="Office Department">
