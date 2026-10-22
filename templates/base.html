@@ -116,6 +116,8 @@
     </div>
   </div>
 
+  {%- set sched = load_data(path="data/schedule.toml") %}
+  <script type="application/json" id="schedule-data">{{ sched | json_encode | safe }}</script>
   <script src="/live.js?{{ get_random(end=1000000) }}" defer></script>
 </body>
 

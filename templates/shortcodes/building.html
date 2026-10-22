@@ -17,7 +17,7 @@
         <button type="button" role="tab" data-floor="{{ fl }}" aria-selected="{% if fl == active %}true{% else %}false{% endif %}" class="px-3 py-1 rounded-md font-medium text-gray-600 hover:text-gray-900 aria-selected:bg-white aria-selected:text-teal-700 aria-selected:shadow-sm">Floor {{ fl }}</button>
         {%- endfor %}
       </div>
-      <span class="floorplan-room text-sm text-gray-600 sm:ml-auto">Tap a room to see its number.</span>
+      <div class="floorplan-room text-sm text-gray-600 sm:ml-auto sm:text-right">Tap a room to see its number.</div>
     </div>
     {%- for f in floor_list %}{% set fl = f | trim %}{% set file = "static/images/" ~ name ~ "-" ~ fl ~ ".svg" %}
     <figure class="floorplan{% if fl != active %} hidden{% endif %}" data-building="{{ name }}" data-floor="{{ fl }}">

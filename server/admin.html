@@ -262,7 +262,7 @@ function renderEvents() {
     <div class="grid">
       <div><label class="f" style="margin-top:0">Starts</label><div class="time"><input class="f" type="time" data-k="start" value="${esc(ev.start)}"></div>${ev.was_start && ev.was_start !== ev.start ? `<div class="was"><s>was ${to12(ev.was_start)}</s><button type="button" data-undo="start">undo</button></div>` : ""}</div>
       <div><label class="f" style="margin-top:0">Ends</label><div class="time"><input class="f" type="time" data-k="end" value="${esc(ev.end)}"></div>${ev.was_end && ev.was_end !== ev.end ? `<div class="was"><s>was ${to12(ev.was_end)}</s><button type="button" data-undo="end">undo</button></div>` : ""}</div>
-      <div><label class="f" style="margin-top:0">Where</label><input class="f" data-k="location" value="${esc(ev.location)}" placeholder="For example, Pauley Ballroom"></div>
+      <div><label class="f" style="margin-top:0">Where</label><input class="f" data-k="location" value="${esc(ev.location)}" placeholder="Room or building, like Dwinelle 155"></div>
       <div><label class="f" style="margin-top:0">Why it changed <small>optional</small></label><input class="f" data-k="note" value="${esc(ev.note || "")}" placeholder="For example, check-in is running late"></div>
       <div class="more"><label class="f" style="margin-top:0">Details <small>optional</small></label><textarea class="f" data-k="description" style="min-height:64px">${esc(ev.description || "")}</textarea></div>
     </div></div>`).join("");

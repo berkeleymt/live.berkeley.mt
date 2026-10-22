@@ -3,7 +3,6 @@
 
 {% block content %}
 {% set s = load_data(path="data/schedule.toml") %}
-<script type="application/json" id="schedule-data">{{ s | json_encode | safe }}</script>
 
 <div class="flex flex-col gap-1">
   <h1 class="text-3xl font-semibold">{{ page.title }}</h1>

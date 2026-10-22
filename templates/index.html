@@ -3,7 +3,6 @@
 
 {% block content %}
 {% set s = load_data(path="data/schedule.toml") %}
-<script type="application/json" id="schedule-data">{{ s | json_encode | safe }}</script>
 
 {# Now / next. live.js fills the real values in the browser. #}
 <div class="rounded-xl bg-gradient-to-br from-teal-600 to-emerald-800 text-white shadow-lg p-6 md:p-8 flex flex-col md:flex-row gap-6">

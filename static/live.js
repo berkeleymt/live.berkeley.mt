@@ -50,6 +50,7 @@
       row.querySelector(".now-badge")?.classList.toggle("hidden", !isNow);
       row.querySelector(".next-badge")?.classList.toggle("hidden", !isNext);
     });
+    markNow(current, next, now, phase);
   }
 
   // Compare server HTML with the last server HTML (never with the live DOM, which
@@ -72,6 +73,7 @@
       mine.querySelectorAll("details").forEach((d, i) => { if (open[i]) d.open = true; });
       window.scrollTo(0, y);
       initPlans();
+      mine.querySelectorAll(".sched, article .prose").forEach(linkRooms);
       openHash();
       showMine();
       render();
@@ -168,6 +170,11 @@
     btn.type = "button"; btn.className = "font-medium text-teal-700 hover:underline"; btn.textContent = "Center on it";
     btn.onclick = () => { showFloor(fp); fp.view.center(target); };
     cap.appendChild(btn);
+    eventsAt(fp.dataset.building, room).forEach((e) => {
+      const line = document.createElement("div");
+      line.className = "text-xs text-gray-500"; line.textContent = `${e.title}, ${t12(e.start)} to ${t12(e.end)}`;
+      cap.appendChild(line);
+    });
     if (zoom) fp.view.center(target);
     return true;
   }
@@ -217,7 +224,7 @@
   const planFor = (b, n) => plans().filter((p) => p.dataset.building === b).sort((a, c) => a.classList.contains("hidden") - c.classList.contains("hidden")).find((p) => findRoom(p.querySelector("svg"), n));
   const bboxOf = (fp, el) => { const hidden = fp.classList.contains("hidden"); if (hidden) fp.classList.remove("hidden"); const b = el.getBBox(); if (hidden) fp.classList.add("hidden"); return b; };
 
-  function markRoom(room, label) {
+  function markRoom(room, label, cls = "room-mine") {
     const { b, n } = parseRoom(room);
     const fp = b && n && planFor(b, n);
     if (!fp) return null;
@@ -226,16 +233,50 @@
     let m;
     if (target.tagName === "path" && target.getAttribute("d")) { m = document.createElementNS(NS, "path"); m.setAttribute("d", target.getAttribute("d")); }
     else { m = document.createElementNS(NS, "rect"); for (const [k, v] of Object.entries({ x: box.x, y: box.y, width: box.width, height: box.height, rx: 4 })) m.setAttribute(k, v); }
-    m.setAttribute("class", "room-mine");
+    m.setAttribute("class", cls);
     const t = document.createElementNS(NS, "text");
     // Label sits just above the room so the room number stays readable.
     const fs = Math.max(9, Math.min(12, box.height / 3));
-    t.setAttribute("x", box.x + box.width / 2); t.setAttribute("y", box.y - 3); t.setAttribute("font-size", fs); t.setAttribute("text-anchor", "middle"); t.setAttribute("class", "room-mine-label");
+    t.setAttribute("x", box.x + box.width / 2); t.setAttribute("y", box.y - 3); t.setAttribute("font-size", fs); t.setAttribute("text-anchor", "middle"); t.setAttribute("class", `${cls}-label`);
     t.textContent = label;
     svg.append(m, t);
     return fp;
   }
   const clearMarks = () => document.querySelectorAll(".room-mine, .room-mine-label").forEach((e) => e.remove());
+
+  // "Dwinelle 155" style mentions in the schedule and updates, linked to the map.
+  const ROOM_RE = /\b(Dwinelle|Wheeler|VLSB|Valley Life Sciences Building|Pauley Ballroom)(?: Hall)? (\d{1,4}[A-Z]?)\b/g;
+  const roomRefs = (text) => [...String(text || "").matchAll(ROOM_RE)].map((m) => ({ b: BUILDINGS[m[1].split(" ")[0].toUpperCase()], n: m[2].toUpperCase(), text: m[0] }));
+  function linkRooms(root) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), nodes = [];
+    while (walker.nextNode()) if (!walker.currentNode.parentNode.closest("a, script, style")) nodes.push(walker.currentNode);
+    nodes.forEach((node) => {
+      const text = node.nodeValue, refs = roomRefs(text);
+      if (!refs.length) return;
+      const frag = document.createDocumentFragment();
+      let last = 0;
+      for (const m of text.matchAll(ROOM_RE)) {
+        frag.append(text.slice(last, m.index));
+        const a = document.createElement("a");
+        a.href = `/map/#${BUILDINGS[m[1].split(" ")[0].toUpperCase()]}-${m[2].toUpperCase()}`; a.className = "underline decoration-dotted hover:text-teal-700"; a.title = "Show on the map"; a.textContent = m[0];
+        frag.append(a); last = m.index + m[0].length;
+      }
+      frag.append(text.slice(last));
+      node.replaceWith(frag);
+    });
+  }
+  document.querySelectorAll(".sched, article .prose").forEach(linkRooms);
+
+  let schedCache = null;
+  const sched = () => { if (schedCache === null) { const raw = document.getElementById("schedule-data"); schedCache = raw ? JSON.parse(raw.textContent) : false; } return schedCache; };
+  const eventsAt = (building, room) => (sched() ? sched().events : []).filter((e) => roomRefs(e.location).some((r) => r.b === building && r.n === room));
+
+  function markNow(current, next, now, phase) {
+    document.querySelectorAll(".room-now, .room-next, .room-now-label, .room-next-label").forEach((e) => e.remove());
+    if (phase !== "today" || !plans().length) return;
+    if (current) roomRefs(current.location).forEach((r) => markRoom(`${r.b} ${r.n}`, "Now", "room-now"));
+    if (next && mins(next.start) - now <= 15) roomRefs(next.location).forEach((r) => markRoom(`${r.b} ${r.n}`, "Soon", "room-next"));
+  }
 
   function roomRow(label, room, right) {
     return `<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2 border-t border-teal-100 first:border-0">
@@ -249,7 +290,7 @@
     myBox.classList.remove("hidden");
   }
 
-  let mine = null;
+  let myRooms = null;
   async function loadMine() {
     const id = localStorage.getItem("rooms-id");
     if (!myBox || !id) return null;
@@ -266,11 +307,11 @@
   }
 
   function showMine() {
-    if (!mine) return;
+    if (!myRooms) return;
     clearMarks();
-    const rows = mine.columns.map((label, i) => mine.rooms[i] ? roomRow(`<a class="hover:underline" href="#round-${slugOf(label)}" title="Every room this round uses">${esc(label)}</a>`, mine.rooms[i], showLink(mine.rooms[i])) : "").join("");
-    card(`Your rooms, student ${esc(mine.id)}`, rows, "They are outlined on the floor plans below. Tap a round name to see every room it uses.");
-    const first = mine.columns.map((label, i) => mine.rooms[i] && markRoom(mine.rooms[i], label)).find(Boolean);
+    const rows = myRooms.columns.map((label, i) => myRooms.rooms[i] ? roomRow(`<a class="hover:underline" href="#round-${slugOf(label)}" title="Every room this round uses">${esc(label)}</a>`, myRooms.rooms[i], showLink(myRooms.rooms[i])) : "").join("");
+    card(`Your rooms, student ${esc(myRooms.id)}`, rows, "They are outlined on the floor plans below. Tap a round name to see every room it uses.");
+    const first = myRooms.columns.map((label, i) => myRooms.rooms[i] && markRoom(myRooms.rooms[i], label)).find(Boolean);
     if (first && !/-/.test(location.hash)) { first.closest("details").open = true; showFloor(first); }
   }
 
@@ -282,7 +323,7 @@
     clearMarks();
     const rooms = Object.entries(d.rooms[i]);
     const rows = rooms.map(([room, n]) => roomRow(`${n} student${n === 1 ? "" : "s"}`, room, showLink(room))).join("");
-    card(`${esc(d.columns[i])}, ${rooms.length} room${rooms.length === 1 ? "" : "s"}`, rows, mine ? `<a class="font-medium text-teal-700 hover:underline" href="#mine">Back to your rooms</a>` : "");
+    card(`${esc(d.columns[i])}, ${rooms.length} room${rooms.length === 1 ? "" : "s"}`, rows, myRooms ? `<a class="font-medium text-teal-700 hover:underline" href="#myRooms">Back to your rooms</a>` : "");
     const first = rooms.map(([room]) => markRoom(room, String(d.rooms[i][room]))).find(Boolean);
     if (first) { first.closest("details").open = true; showFloor(first); }
     myBox.scrollIntoView({ block: "start" });
@@ -290,7 +331,7 @@
 
   function openExtraHash() {
     const h = location.hash;
-    if (h === "#mine" && myBox) { showMine(); if (mine) myBox.scrollIntoView({ block: "start" }); }
+    if (h === "#myRooms" && myBox) { showMine(); if (myRooms) myBox.scrollIntoView({ block: "start" }); }
     else if (h.startsWith("#round-") && myBox) showRound(h.slice(7).toLowerCase());
   }
 
@@ -339,7 +380,7 @@
 
   openHash();
   window.addEventListener("hashchange", () => { openHash(); openExtraHash(); });
-  loadMine().then((d) => { mine = d; showMine(); openExtraHash(); });
+  loadMine().then((d) => { myRooms = d; showMine(); openExtraHash(); });
 
   render();
   refresh();
