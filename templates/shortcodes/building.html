@@ -1,0 +1,35 @@
+{#- One tournament building: a collapsible card with the intro text, floor tabs and one inline
+    floor plan per floor from static/images/<name>-<floor>.svg (lower-case floor). -#}
+{%- set floor_list = floors | split(pat=",") -%}
+{%- set active = default | default(value=floor_list[0]) -%}
+<details id="{{ name }}" class="building group border border-gray-200 rounded-xl overflow-hidden my-2 scroll-mt-20 md:scroll-mt-4" data-building="{{ name }}">
+  <summary class="cursor-pointer select-none px-4 py-3 bg-gray-100 hover:bg-gray-200 transition-colors font-medium flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
+    <i class="bi bi-chevron-right text-sm transition-transform group-open:rotate-90"></i>
+    {{ title }}
+  </summary>
+  <div class="px-4 py-3 prose">
+    {{ body | markdown | safe }}
+  </div>
+  <div class="not-prose px-4 pb-4 flex flex-col gap-2">
+    <div class="flex flex-wrap items-center gap-2">
+      <div class="floor-tabs inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-sm" role="tablist">
+        {%- for f in floor_list %}{% set fl = f | trim %}
+        <button type="button" role="tab" data-floor="{{ fl }}" aria-selected="{% if fl == active %}true{% else %}false{% endif %}" class="px-3 py-1 rounded-md font-medium text-gray-600 hover:text-gray-900 aria-selected:bg-white aria-selected:text-teal-700 aria-selected:shadow-sm">Floor {{ fl }}</button>
+        {%- endfor %}
+      </div>
+      <span class="floorplan-room text-sm text-gray-600 sm:ml-auto">Tap a room to see its number.</span>
+    </div>
+    {%- for f in floor_list %}{% set fl = f | trim %}{% set file = "static/images/" ~ name ~ "-" ~ fl ~ ".svg" %}
+    <figure class="floorplan{% if fl != active %} hidden{% endif %}" data-building="{{ name }}" data-floor="{{ fl }}">
+      <div class="floorplan-viewport">
+        {{ load_data(path=file | lower, format="plain") | safe }}
+      </div>
+      <div class="floorplan-controls">
+        <button type="button" data-zoom="in" aria-label="Zoom in"><i class="bi bi-plus-lg"></i></button>
+        <button type="button" data-zoom="out" aria-label="Zoom out"><i class="bi bi-dash-lg"></i></button>
+        <button type="button" data-zoom="reset" aria-label="Reset view"><i class="bi bi-arrows-angle-contract"></i></button>
+      </div>
+    </figure>
+    {%- endfor %}
+  </div>
+</details>

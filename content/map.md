@@ -18,14 +18,8 @@ Rounds take place in four buildings on the south side of campus. Check-in is at 
 
 Green rooms are classrooms, blue are auditoriums, yellow are stairs, and elevators are marked with a crossed box. Feel free to ask a volunteer if you need further guidance or accessibility needs.
 
-{% details(title="Dwinelle Hall (floors C, D and E)", id="dwinelle") %}
-Dwinelle's room numbers tell you the floor: 1xx is floor D (main entrance), 2xx is floor E, and 7x to 8x is floor C below. Tap a room to see its number, or use [Find my rooms](/rooms/) to jump straight to yours.
-
-{{ floorplan(building="dwinelle", floor="D", file="dwinelle-d.svg") }}
-
-{{ floorplan(building="dwinelle", floor="E", file="dwinelle-e.svg") }}
-
-{{ floorplan(building="dwinelle", floor="C", file="dwinelle-c.svg") }}
+{% building(name="dwinelle", title="Dwinelle Hall (floors C, D and E)", floors="C,D,E", default="D") %}
+Dwinelle's room numbers tell you the floor: 1xx is floor D (main entrance), 2xx is floor E, and 7x to 8x is floor C below. Tap a room to see its number, pinch or use the buttons to zoom, or use [Find my rooms](/rooms/) to jump straight to yours.
 {% end %}
 
 {% details(title="Wheeler Hall (basement, floors 1 and 2)", id="wheeler") %}
