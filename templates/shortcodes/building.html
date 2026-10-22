@@ -1,7 +1,8 @@
 {#- One tournament building: a collapsible card with the intro text, floor tabs and one inline
     floor plan per floor from static/images/<name>-<floor>.svg (lower-case floor). -#}
-{%- set floor_list = floors | split(pat=",") -%}
+{%- set floor_list = floors | default(value="") | split(pat=",") -%}
 {%- set active = default | default(value=floor_list[0]) -%}
+{%- set notes = load_data(path="data/map.toml") -%}
 <details id="{{ name }}" class="building group border border-gray-200 rounded-xl overflow-hidden my-2 scroll-mt-20 md:scroll-mt-4" data-building="{{ name }}">
   <summary class="cursor-pointer select-none px-4 py-3 bg-gray-100 hover:bg-gray-200 transition-colors font-medium flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
     <i class="bi bi-chevron-right text-sm transition-transform group-open:rotate-90"></i>
@@ -10,6 +11,15 @@
   <div class="px-4 py-3 prose">
     {{ body | markdown | safe }}
   </div>
+  {%- for b in notes.buildings %}{% if b.id == name and (b.entrance or b.accessible) %}
+  <div class="building-notes not-prose px-4 pb-3 flex flex-col gap-1.5 text-sm text-gray-700">
+    {% if b.entrance %}<p class="flex gap-2"><i class="bi bi-door-open text-gray-500 mt-0.5"></i><span>{{ b.entrance }}</span></p>{% endif %}
+    {% if b.accessible %}<p class="flex gap-2"><i class="bi bi-universal-access text-blue-700 mt-0.5"></i><span>{{ b.accessible }}</span></p>{% endif %}
+  </div>
+  {% endif %}{% endfor %}
+  {%- if image %}
+  <div class="not-prose px-4 pb-4"><img src="/images/{{ image }}" alt="{{ title }} floor plan" class="w-full rounded-xl border border-gray-200 bg-white" loading="lazy"></div>
+  {%- else %}
   <div class="not-prose px-4 pb-4 flex flex-col gap-2">
     <div class="flex flex-wrap items-center gap-2">
       <div class="floor-tabs inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-sm" role="tablist">
@@ -33,4 +43,5 @@
     </figure>
     {%- endfor %}
   </div>
+  {%- endif %}
 </details>

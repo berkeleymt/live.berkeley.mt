@@ -247,7 +247,7 @@ PAGE_LABELS = {"content/_index.md": "Home page", "content/faq.md": "FAQ", "conte
                "content/help.md": "Help", "content/map.md": "Map & rooms", "content/rooms.md": "Find my rooms",
                "content/lost-found.md": "Lost & found", "content/schedule.md": "Schedule page"}
 DATA_ITEMS = [("data/schedule.toml", "Tournament schedule", "calendar3"), ("data/rooms.toml", "Rooms", "door-open"),
-              ("config.toml", "Settings", "gear")]
+              ("data/map.toml", "Building notes", "signpost-split"), ("config.toml", "Settings", "gear")]
 HIDDEN_STATIC = re.compile(r"^static/(fonts/|input\.css|style\.css|live\.js|site\.webmanifest|browserconfig\.xml|favicon|android-chrome|apple-touch|mstile|safari-pinned)")
 IMAGE_EXT = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
 MANAGED = {"title", "description", "date", "urgent"}
@@ -346,6 +346,23 @@ def compose_rooms(event_id, columns):
     return "\n".join(out) + "\n"
 
 
+BUILDING_KEYS = ["id", "name", "entrance", "accessible"]
+
+
+def compose_map(buildings):
+    out = ["# Notes shown under each building on the map page (/map). `id` matches the building card's",
+           "# name in content/map.md. Edit here or at /admin (Data, Building notes)."]
+    for b in buildings:
+        if not (b.get("id") or "").strip():
+            continue
+        out += ["", "[[buildings]]"]
+        for k in BUILDING_KEYS:
+            v = str(b.get(k) or "").strip()
+            if v or k == "id":
+                out.append(f"{k} = {toml_str(v)}")
+    return "\n".join(out) + "\n"
+
+
 ADVISORY_KEYS = ["status", "title", "timestamp", "body"]
 
 
@@ -398,6 +415,8 @@ def doc_from_text(path, text):
     if path == "data/rooms.toml":
         header, columns = parse_simple(text, "columns")
         return {"kind": "rooms", "event_id": str(header.get("event_id", "")), "columns": columns}
+    if path == "data/map.toml":
+        return {"kind": "buildings", "buildings": parse_simple(text, "buildings")[1]}
     if path == "config.toml":
         return {"kind": "settings", "advisory": parse_settings(text)}
     if path.endswith(".md"):
@@ -416,6 +435,8 @@ def text_from_doc(path, doc, current_text=None):
         return compose_schedule(header, doc.get("events") or [])
     if kind == "rooms":
         return compose_rooms(str(doc.get("event_id", "")), doc.get("columns") or [])
+    if kind == "buildings":
+        return compose_map(doc.get("buildings") or [])
     if kind == "settings":
         return compose_settings(doc.get("advisory") or {}, current_text)
     if kind in ("update", "page"):

@@ -127,3 +127,15 @@
 .building.stepfree [data-poi="Stairs"] { opacity: 0.2; }
 .room-hl { fill: rgba(20, 184, 166, 0.45); stroke: #0f766e; stroke-width: 3; pointer-events: none; animation: room-pulse 1.6s ease-in-out infinite; }
 @keyframes room-pulse { 50% { stroke-opacity: 0.25; } }
+
+/* Print: every building open, every floor shown, no controls. live.js opens the cards on beforeprint. */
+@media print {
+  header, footer, nav, #map-search, #my-rooms, .poi-chips, .floor-tabs, .floorplan-controls, .floorplan-room, .advisory { display: none !important; }
+  details.building { break-inside: avoid; border: none; }
+  details.building summary { background: none; padding-left: 0; }
+  details.building summary .bi { display: none; }
+  .floorplan { display: block !important; break-inside: avoid; margin-bottom: 1rem; }
+  .floorplan::before { content: "Floor " attr(data-floor); display: block; font-weight: 600; margin-bottom: 0.25rem; }
+  .floorplan-viewport { border: none; }
+  .floorplan-viewport svg { transform: none !important; }
+}

@@ -227,6 +227,16 @@ function render() {
     $("fEvent").addEventListener("input", () => { d.event_id = $("fEvent").value.trim(); onChange(); });
     $("cols").addEventListener("click", (e) => { const b = e.target.closest("button[data-rm]"); if (!b) return; d.columns.splice(+b.closest(".ev").dataset.i, 1); renderCols(); onChange(); });
     $("addCol").onclick = () => { d.columns.push({ key: "", label: "" }); renderCols(); onChange(); $("cols").querySelector(".ev:last-child input")?.focus(); };
+  } else if (k === "buildings") {
+    e.innerHTML = `<div class="hint" style="margin-top:4px">Shown under each building on the map page. Keep each note to a sentence or two.</div>
+      <div id="blds"></div><div style="margin-top:14px"><button id="addBld"><i class="bi bi-plus-lg"></i> Add a building</button></div>`;
+    const renderBlds = () => { $("blds").innerHTML = d.buildings.map((b, i) => `<div class="ev" data-i="${i}"><div class="top"><input class="f" data-k="name" placeholder="Building name" value="${esc(b.name || "")}"><input class="f" data-k="id" placeholder="Map card name, like dwinelle" value="${esc(b.id || "")}" spellcheck="false" style="max-width:200px"><button class="iconbtn" data-rm="1" title="Remove"><i class="bi bi-x-lg"></i></button></div>
+      <div class="grid"><div><label class="f" style="margin-top:0">How to get in</label><textarea class="f" data-k="entrance" style="min-height:56px">${esc(b.entrance || "")}</textarea></div>
+      <div><label class="f" style="margin-top:0">Step-free access</label><textarea class="f" data-k="accessible" style="min-height:56px">${esc(b.accessible || "")}</textarea></div></div></div>`).join("");
+      $("blds").querySelectorAll("input, textarea").forEach((i) => i.addEventListener("input", () => { d.buildings[+i.closest(".ev").dataset.i][i.dataset.k] = i.value; onChange(); })); };
+    renderBlds();
+    $("blds").addEventListener("click", (e) => { const b = e.target.closest("button[data-rm]"); if (!b) return; d.buildings.splice(+b.closest(".ev").dataset.i, 1); renderBlds(); onChange(); });
+    $("addBld").onclick = () => { d.buildings.push({ id: "", name: "", entrance: "", accessible: "" }); renderBlds(); onChange(); $("blds").querySelector(".ev:last-child input")?.focus(); };
   } else if (k === "settings") {
     const a = d.advisory;
     e.innerHTML = `<div class="hint" style="margin-top:4px">The banner shows at the top of every page. Use it for things everyone needs to know, like a venue change or the event being over.</div>
@@ -289,6 +299,7 @@ function collect() {
   }
   if (k === "schedule") return { doc: { kind: "schedule", header: d.header, events: d.events } };
   if (k === "rooms") return { doc: { kind: "rooms", event_id: d.event_id, columns: d.columns } };
+  if (k === "buildings") return { doc: { kind: "buildings", buildings: d.buildings } };
   if (k === "settings") return { doc: { kind: "settings", advisory: d.advisory } };
   return {};
 }
@@ -308,7 +319,7 @@ function friendlyBuildError(log) { if (/front matter|TOML parse/i.test(log)) ret
 /* ---------- publish / delete ---------- */
 $("publish").onclick = () => {
   if (!cur) return;
-  const what = cur.kind === "schedule" ? "the tournament schedule" : cur.kind === "rooms" ? "the room lookup settings" : cur.kind === "settings" ? "the site banner" : cur.kind === "update" ? `the update “${$("fTitle").value || "Untitled"}”` : cur.kind === "page" ? `the “${cur.label}” page` : cur.path;
+  const what = cur.kind === "schedule" ? "the tournament schedule" : cur.kind === "rooms" ? "the room lookup settings" : cur.kind === "buildings" ? "the building notes" : cur.kind === "settings" ? "the site banner" : cur.kind === "update" ? `the update “${$("fTitle").value || "Untitled"}”` : cur.kind === "page" ? `the “${cur.label}” page` : cur.path;
   $("pubWhat").textContent = `${cur.isNew ? "Posts" : "Updates"} ${what} on the live site right away.`;
   $("author").value = localStorage.getItem("admin-author") || ""; $("msg").value = "";
   $("pubDialog").showModal();

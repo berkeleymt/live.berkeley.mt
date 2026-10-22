@@ -459,6 +459,15 @@
     document.addEventListener("pointerdown", (e) => { if (!q.form.contains(e.target)) { items = []; render(); } });
   }
 
+  // Print: open every building card and show every floor while printing.
+  let printState = null;
+  window.addEventListener("beforeprint", () => {
+    printState = [...document.querySelectorAll("details")].map((d) => d.open);
+    document.querySelectorAll("details").forEach((d) => (d.open = true));
+  });
+  window.addEventListener("afterprint", () => { if (printState) document.querySelectorAll("details").forEach((d, i) => (d.open = printState[i])); printState = null; });
+  document.getElementById("map-print")?.addEventListener("click", () => window.print());
+
   openHash();
   window.addEventListener("hashchange", () => { openHash(); openExtraHash(); });
   loadMine().then((d) => { myRooms = d; showMine(); openExtraHash(); });

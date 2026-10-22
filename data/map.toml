@@ -1,0 +1,20 @@
+# Notes shown under each building on the map page (/map). `id` matches the building card's
+# name in content/map.md. Edit here or at /admin (Data, Building notes).
+
+[[buildings]]
+id = "dwinelle"
+name = "Dwinelle Hall"
+entrance = "Main entrance on Dwinelle Plaza, opposite Wheeler. Check-in (rooms 145 and 155) is on floor D, straight inside."
+accessible = "Step-free entrance on the plaza side; the elevator is next to room 155 and serves floors C, D and E."
+
+[[buildings]]
+id = "wheeler"
+name = "Wheeler Hall"
+entrance = "Main doors face Dwinelle Plaza. Room numbers 1xx are on the ground floor, 2xx upstairs."
+accessible = "Ramp at the north side; elevator inside the main entrance."
+
+[[buildings]]
+id = "vlsb"
+name = "Valley Life Sciences Building"
+entrance = "Enter from the east courtyard by the T. rex skeleton. Rooms 2050 and 2060 are on the second floor."
+accessible = "All entrances are step-free; elevators are in the central lobby."

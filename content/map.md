@@ -26,12 +26,12 @@ Green rooms are classrooms, blue are auditoriums, yellow are stairs, and elevato
 Dwinelle's room numbers tell you the floor: 1xx is floor D (main entrance), 2xx is floor E, and 7x to 8x is floor C below. Tap a room to see its number, pinch or use the buttons to zoom, or use [Find my rooms](/rooms/) to jump straight to yours.
 {% end %}
 
-{% details(title="Wheeler Hall (basement, floors 1 and 2)", id="wheeler") %}
-![Wheeler Hall floor plans](/images/wheeler.png)
+{% building(name="wheeler", title="Wheeler Hall (basement, floors 1 and 2)", image="wheeler.png") %}
+Rooms numbered 1xx are on the ground floor and 2xx one floor up.
 {% end %}
 
-{% details(title="Valley Life Sciences Building (floor 2)", id="vlsb") %}
-![VLSB floor 2 plan](/images/vlsb.png)
+{% building(name="vlsb", title="Valley Life Sciences Building (floor 2)", image="vlsb.png") %}
+Awards are in 2050 and 2060 on the second floor.
 {% end %}
 
 ## Getting here
