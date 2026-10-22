@@ -36,7 +36,8 @@
 
   function roomHtml(room) {
     const slug = MAP[room.split(" ")[0].toUpperCase()];
-    const href = slug ? `/map/#${slug}` : "/map/";
+    const num = (room.replace(/\(.*$/, "").trim().split(/\s+/).pop().match(/^\d+[A-Z]*$/i) || [])[0];
+    const href = slug ? `/map/#${slug}${num ? "-" + num.toUpperCase() : ""}` : "/map/";
     return `<span class="text-xl font-semibold">${esc(room)}</span> <a class="text-sm font-medium text-teal-700 hover:underline whitespace-nowrap" href="${href}">View maps &amp; floor plan <i class="bi bi-arrow-right"></i></a>`;
   }
 

@@ -71,14 +71,69 @@
       mine.innerHTML = html;
       mine.querySelectorAll("details").forEach((d, i) => { if (open[i]) d.open = true; });
       window.scrollTo(0, y);
+      initPlans();
+      openHash();
       render();
     } catch (_) { /* offline; try again next minute */ }
   }
 
-  // /map/#wheeler opens that building's floor plan.
+  // /map/#wheeler opens that building's floor plan; /map/#dwinelle-155 also highlights room 155.
+  // Floor plans are inline SVGs whose room shapes are named by room number (Figma layer names).
+  const ROOM_ID = /^(\d+[A-Z]*)(?:[\s_(\u2028].*)?$/;
+  const roomOf = (el, root) => { for (; el && el !== root; el = el.parentNode) { const m = el.id && ROOM_ID.exec(el.id); if (m) return m[1]; } return null; };
+  const findRoom = (svg, room) => svg.querySelector(`[id="${room}"]`) || [...svg.querySelectorAll("[id]")].find((e) => roomOf(e, svg) === room);
+  const plans = () => [...document.querySelectorAll(".floorplan")].filter((fp) => fp.querySelector("svg"));
+
+  function clearHighlight() {
+    document.querySelectorAll(".room-hl").forEach((h) => h.remove());
+    plans().forEach((p) => (p.querySelector(".floorplan-room").textContent = "Tap a room to see its number."));
+  }
+
+  function highlight(fp, room) {
+    clearHighlight();
+    const svg = fp.querySelector("svg");
+    const target = findRoom(svg, room);
+    if (!target) return false;
+    const NS = "http://www.w3.org/2000/svg";
+    let hl;
+    if (target.tagName === "path" && target.getAttribute("d")) {
+      hl = document.createElementNS(NS, "path");
+      hl.setAttribute("d", target.getAttribute("d"));
+    } else {
+      const b = target.getBBox();
+      hl = document.createElementNS(NS, "rect");
+      for (const [k, v] of Object.entries({ x: b.x, y: b.y, width: b.width, height: b.height, rx: 4 })) hl.setAttribute(k, v);
+    }
+    hl.setAttribute("class", "room-hl");
+    svg.appendChild(hl);
+    fp.querySelector(".floorplan-room").textContent = `Room ${room}, floor ${fp.dataset.floor}.`;
+    return true;
+  }
+
+  function initPlans() {
+    plans().forEach((fp) => {
+      const svg = fp.querySelector("svg");
+      svg.querySelectorAll("[id]").forEach((e) => { if (roomOf(e, svg)) e.classList.add("room-pick"); });
+      svg.addEventListener("click", (e) => {
+        const room = roomOf(e.target, svg);
+        if (!room) return;
+        highlight(fp, room);
+        history.replaceState(null, "", `#${fp.dataset.building}-${room}`);
+      });
+    });
+  }
+  initPlans();
+
   function openHash() {
-    const el = location.hash && document.querySelector("details" + location.hash);
-    if (el) el.open = true;
+    const m = /^#([a-z]+)(?:-(\d+[a-z]*))?$/i.exec(location.hash);
+    clearHighlight();
+    if (!m) return;
+    const det = document.getElementById(m[1].toLowerCase());
+    if (det && det.tagName === "DETAILS") det.open = true;
+    if (!m[2]) return;
+    const room = m[2].toUpperCase();
+    const fp = plans().find((p) => p.dataset.building === m[1].toLowerCase() && findRoom(p.querySelector("svg"), room));
+    if (fp && highlight(fp, room)) fp.scrollIntoView({ block: "center" });
   }
   openHash();
   window.addEventListener("hashchange", openHash);

@@ -102,3 +102,9 @@
   font-weight: bold;
   text-shadow: var(--text-shadow);
 }
+
+/* Interactive floor plans (floorplan shortcode + live.js). */
+.floorplan svg { display: block; width: 100%; height: auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 0.75rem; }
+.floorplan .room-pick { cursor: pointer; }
+.room-hl { fill: rgba(20, 184, 166, 0.45); stroke: #0f766e; stroke-width: 3; pointer-events: none; animation: room-pulse 1.6s ease-in-out infinite; }
+@keyframes room-pulse { 50% { stroke-opacity: 0.25; } }
