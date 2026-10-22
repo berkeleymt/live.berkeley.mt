@@ -232,6 +232,8 @@ def page_for(path):
         return "/" if name == "_index" else f"/{name}/"
     if path == "data/schedule.toml":
         return "/schedule/"
+    if path == "data/map.toml":
+        return "/map/"
     if path == "data/rooms.toml":
         return "/rooms/"
     if path == "config.toml":

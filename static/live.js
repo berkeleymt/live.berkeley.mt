@@ -468,6 +468,20 @@
   window.addEventListener("afterprint", () => { if (printState) document.querySelectorAll("details").forEach((d, i) => (d.open = printState[i])); printState = null; });
   document.getElementById("map-print")?.addEventListener("click", () => window.print());
 
+  // Offline: a service worker keeps the last copy of every page; a bar says when it is being used.
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+  const offlineBar = () => {
+    let bar = document.getElementById("offline-bar");
+    if (!bar) {
+      bar = document.createElement("div"); bar.id = "offline-bar";
+      bar.className = "fixed bottom-0 inset-x-0 z-50 bg-gray-900 text-white text-sm text-center py-2 px-4 print:hidden";
+      bar.textContent = "You're offline. This is the last saved version; room lookups and new updates need a connection.";
+      document.body.appendChild(bar);
+    }
+    bar.classList.toggle("hidden", navigator.onLine);
+  };
+  window.addEventListener("online", offlineBar); window.addEventListener("offline", offlineBar); offlineBar();
+
   openHash();
   window.addEventListener("hashchange", () => { openHash(); openExtraHash(); });
   loadMine().then((d) => { myRooms = d; showMine(); openExtraHash(); });
