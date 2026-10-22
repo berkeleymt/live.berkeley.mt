@@ -56,7 +56,8 @@
       return;
     }
     result.innerHTML = `<div class="bg-teal-50 border border-teal-200 rounded-xl p-5">
-      <p class="uppercase text-xs text-gray-500 flex gap-2 items-center mb-2"><i class="bi bi-person-badge"></i><span>Student ${esc(id)}</span></p>${rows}</div>`;
+      <p class="uppercase text-xs text-gray-500 flex gap-2 items-center mb-2"><i class="bi bi-person-badge"></i><span>Student ${esc(id)}</span></p>${rows}
+      <p class="pt-3 border-t border-teal-100"><a class="font-medium text-teal-700 hover:underline" href="/map/#mine">See all your rooms on the map <i class="bi bi-arrow-right"></i></a></p></div>`;
   }
 
   async function lookup(raw, fromMemory) {
@@ -72,6 +73,7 @@
       if (res.status === 200) {
         render(d.id, d.columns, d.rooms);
         found = d.rooms.some(Boolean);
+        if (found) localStorage.setItem("rooms-result", JSON.stringify(d));
       } else if (res.status === 400 && d.error === "team_id") {
         notice(`${esc(id)} looks like a team number`, "Please enter a student ID, which ends in a letter, like <b>302A</b>. Each student may have a different room.");
       } else if (res.status === 400) {
@@ -84,7 +86,8 @@
     } catch (_) {
       notice("Room lookup isn't available right now", "Please try again in a moment, or ask your coach or the information desk in Dwinelle Hall.");
     }
-    if (found) localStorage.setItem("rooms-id", id); else if (definitive && !fromMemory) localStorage.removeItem("rooms-id");
+    if (found) localStorage.setItem("rooms-id", id);
+    else if (definitive && !fromMemory) { localStorage.removeItem("rooms-id"); localStorage.removeItem("rooms-result"); }
   }
 
   form.addEventListener("submit", (e) => { e.preventDefault(); lookup(input.value, false); });

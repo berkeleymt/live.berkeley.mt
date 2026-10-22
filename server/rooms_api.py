@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Tiny room-lookup API that runs next to nginx in the live.berkeley.mt image.
 
-GET /api/rooms?id=302A  ->  {"id": "302A", "kind": "student", "columns": ["Testing Room"], "rooms": ["Wheeler 222"]}
+GET /api/rooms?id=302A  ->  {"id": "302A", "columns": ["Testing Room"], "rooms": ["Wheeler 222"]}
+GET /api/rooms/summary  ->  {"columns": ["Testing Room"], "rooms": [{"Wheeler 222": 52, ...}]}
+                            (students per room, for the map's round view; cached SUMMARY_SECONDS)
 
 Looks a student ID up live on ContestDojo and returns room names only — never
 names or emails. Team numbers are rejected (400 team_id). Answers are cached
@@ -16,8 +18,10 @@ PORT = int(os.environ.get("ROOMS_PORT", "3002"))
 TOKEN_FILE = os.environ.get("ROOMS_TOKEN_FILE", "/app/data/contestdojo.token")
 CONFIG = os.environ.get("ROOMS_CONFIG", "/app/rooms.toml")
 CACHE_SECONDS = 5
+SUMMARY_SECONDS = 300
 
 _cache, _lock = {}, threading.Lock()
+_summary = None
 
 
 def load_config():
@@ -48,10 +52,44 @@ def clean_room(s):
 
 
 def fetch(kind, number, tok):
-    url = f"{API}/events/{CFG['event_id']}/{kind}/?number={urllib.parse.quote(number)}"
+    url = f"{API}/events/{CFG['event_id']}/{kind}/"
+    if number is not None:
+        url += f"?number={urllib.parse.quote(number)}"
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {tok}", "User-Agent": "live.berkeley.mt rooms_api"})
-    with urllib.request.urlopen(req, timeout=15) as res:
+    with urllib.request.urlopen(req, timeout=30) as res:
         return json.load(res)
+
+
+def column_order(keys_seen):
+    keys = [c["key"] for c in CFG["columns"]] + [k for k in keys_seen if k not in {c["key"] for c in CFG["columns"]}]
+    labels = {c["key"]: c.get("label", c["key"]) for c in CFG["columns"]}
+    return keys, [labels.get(k, k) for k in keys]
+
+
+def summary():
+    global _summary
+    with _lock:
+        if _summary and _summary[0] > time.time():
+            return 200, _summary[1]
+    tok = token()
+    if not tok:
+        return 503, {"error": "not_configured"}
+    try:
+        rows = fetch("students", None, tok)
+    except (urllib.error.URLError, json.JSONDecodeError, TimeoutError) as e:
+        print(f"upstream error for summary: {e}", flush=True)
+        return 502, {"error": "upstream"}
+    counts = {}
+    for r in rows:
+        for k, v in (r.get("roomAssignments") or {}).items():
+            if v:
+                room = clean_room(v)
+                counts.setdefault(k, {})[room] = counts.get(k, {}).get(room, 0) + 1
+    keys, labels = column_order(counts)
+    body = {"columns": labels, "rooms": [dict(sorted(counts.get(k, {}).items())) for k in keys]}
+    with _lock:
+        _summary = (time.time() + SUMMARY_SECONDS, body)
+    return 200, body
 
 
 def lookup(raw):
@@ -85,13 +123,8 @@ def lookup(raw):
         status, body = 404, {"error": "not_found", "id": number}
     else:
         ra = rows[0].get("roomAssignments") or {}
-        keys = [c["key"] for c in CFG["columns"]] + [k for k in ra if k not in {c["key"] for c in CFG["columns"]}]
-        labels = {c["key"]: c.get("label", c["key"]) for c in CFG["columns"]}
-        status, body = 200, {
-            "id": number,
-                        "columns": [labels.get(k, k) for k in keys],
-            "rooms": [clean_room(ra[k]) if ra.get(k) else "" for k in keys],
-        }
+        keys, labels = column_order(ra)
+        status, body = 200, {"id": number, "columns": labels, "rooms": [clean_room(ra[k]) if ra.get(k) else "" for k in keys]}
     with _lock:
         now = time.time()
         if len(_cache) > 2000:
@@ -107,6 +140,8 @@ class Handler(BaseHTTPRequestHandler):
         if url.path.rstrip("/") == "/api/rooms":
             qs = urllib.parse.parse_qs(url.query)
             status, body = lookup(qs.get("id", [""])[0])
+        elif url.path.rstrip("/") == "/api/rooms/summary":
+            status, body = summary()
         elif url.path.rstrip("/") == "/api/health":
             status, body = 200, {"ok": True, "configured": token() is not None}
         else:

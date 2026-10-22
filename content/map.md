@@ -16,6 +16,8 @@ Rounds take place in four buildings on the south side of campus. Check-in is at 
 
 ## Floor plans
 
+{{ my_rooms() }}
+
 Green rooms are classrooms, blue are auditoriums, yellow are stairs, and elevators are marked with a crossed box. Feel free to ask a volunteer if you need further guidance or accessibility needs.
 
 {% building(name="dwinelle", title="Dwinelle Hall (floors C, D and E)", floors="C,D,E", default="D") %}

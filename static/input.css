@@ -112,5 +112,7 @@
 .floorplan { position: relative; }
 .floorplan-controls button { width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; background: #fff; border: 1px solid #d1d5db; color: #374151; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); display: grid; place-items: center; }
 .floorplan-controls button:hover { background: #f3f4f6; }
+.room-mine { fill: rgba(20, 184, 166, 0.18); stroke: #0f766e; stroke-width: 2.5; stroke-dasharray: 6 3; pointer-events: none; }
+.room-mine-label { fill: #0f766e; font-weight: 700; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; pointer-events: none; }
 .room-hl { fill: rgba(20, 184, 166, 0.45); stroke: #0f766e; stroke-width: 3; pointer-events: none; animation: room-pulse 1.6s ease-in-out infinite; }
 @keyframes room-pulse { 50% { stroke-opacity: 0.25; } }
