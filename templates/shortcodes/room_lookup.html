@@ -30,7 +30,7 @@
     return `<span class="text-xl font-semibold">${esc(room)}</span> <a class="text-sm font-medium text-teal-700 hover:underline whitespace-nowrap" href="${href}">View maps &amp; floor plan <i class="bi bi-arrow-right"></i></a>`;
   }
   function notice(key, id) {
-    const msg = root.querySelector(`template[data-msg="${key}"]`).innerHTML.replaceAll("{id}", esc(id));
+    const msg = root.querySelector(`template[data-msg="${key}"]`).innerHTML.replaceAll("{id}", () => esc(id));
     result.classList.remove("hidden");
     result.innerHTML = `<div class="bg-orange-50 border border-orange-200 rounded-xl p-5 flex flex-col gap-1">${msg}</div>`;
   }
