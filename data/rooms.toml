@@ -3,6 +3,19 @@
 
 event_id = "9hJZTzftFdrZswSyerPy"   # BmMT 2026
 
+# Messages on Find my rooms when a lookup finds nothing. {id} is the ID the
+# visitor typed. **bold** and [links](/map/) work.
+not_found_title = "No student found for {id}"
+not_found_text = "Check the ID on your name tag, or ask your coach or the information desk in Dwinelle Hall."
+no_room_title = "No room assigned yet for {id}"
+no_room_text = "Rooms appear once your coach has checked in. If you have checked in, ask the information desk in Dwinelle Hall."
+team_id_title = "{id} looks like a team number"
+team_id_text = "Please enter a student ID, which ends in a letter, like **302A**. Each student may have a different room."
+bad_id_title = "That doesn't look like a student ID"
+bad_id_text = "Student IDs look like **302A**: the number on your name tag followed by a letter."
+unavailable_title = "Room lookup isn't available right now"
+unavailable_text = "Please try again in a moment, or ask your coach or the information desk in Dwinelle Hall."
+
 # Optional: ContestDojo's roomAssignments keys are used as the round labels,
 # in order of first appearance. To rename or reorder them, list them here:
 # [[columns]]
