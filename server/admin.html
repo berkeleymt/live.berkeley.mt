@@ -121,7 +121,7 @@
   <p id="pubWhat"></p>
   <label class="f">Your name</label><input class="f" id="author" required>
   <p class="hint">Your GitHub username is preferred.</p>
-  <label class="f">Note <small>optional</small></label><input class="f" id="msg">
+  <label class="f">What did you change?</label><input class="f" id="msg" required maxlength="100">
   <menu><button value="cancel" formnovalidate>Cancel</button><button value="ok" class="primary" id="pubOk"></button></menu></form></dialog>
 <dialog id="confirmDialog"><form method="dialog"><h2 id="cTitle"></h2><p id="cText"></p><menu><button value="cancel">Cancel</button><button value="ok" class="primary" id="cOk" style="background:var(--rose);border-color:var(--rose)">Yes</button></menu></form></dialog>
 <input id="file" type="file" hidden accept="image/*">
@@ -319,9 +319,9 @@ function askName(title, what, ok, danger) {
     $("pubOk").style.cssText = danger ? "background:var(--rose);border-color:var(--rose)" : "";
     $("author").value = localStorage.getItem("admin-author") || ""; $("msg").value = "";
     d.onclose = () => {
-      const author = $("author").value.trim();
-      if (d.returnValue !== "ok" || !author) return r(null);
-      localStorage.setItem("admin-author", author); r({ author, note: $("msg").value });
+      const author = $("author").value.trim(), note = $("msg").value.trim();
+      if (d.returnValue !== "ok" || !author || !note) return r(null);
+      localStorage.setItem("admin-author", author); r({ author, note });
     };
     d.showModal();
   });

@@ -165,10 +165,13 @@ def gh_get(path):
     return 200, {"path": path, "sha": data["sha"], "base64": base64.b64encode(raw).decode()}
 
 
+def note_of(body):
+    return " ".join(str(body.get("note") or "").split())[:100]
+
+
 def commit_message(body):
-    """Every staff commit is the same conventional-commit subject; a typed note goes in the body."""
-    note = str(body.get("note") or "").strip()[:200]
-    return "chore: live admin update" + (f"\n\n{note}" if note else "")
+    """Staff commits are one line: `content: <what they said they changed>`."""
+    return f"content: {note_of(body)}"
 
 
 def who(author):
@@ -664,6 +667,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(400, {"error": "bad_body"})
         if p in ("/admin/api/save", "/admin/api/delete") and not str(body.get("author", "")).strip():
             return self.send_json(400, {"error": "Enter your name first"})
+        if p in ("/admin/api/save", "/admin/api/delete") and not note_of(body):
+            return self.send_json(400, {"error": "Say what you changed first"})
         if p == "/admin/api/preview":
             token, log = build_preview(path, raw)
             if not token:
