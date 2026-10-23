@@ -222,7 +222,13 @@ function render() {
       <label class="f">ContestDojo event ID <small>the long code in the event's ContestDojo address</small></label><input class="f" id="fEvent" value="${esc(d.event_id)}" spellcheck="false">
       <label class="f" style="margin-top:22px">Round names <small>optional</small></label>
       <div class="hint" style="margin-top:0">ContestDojo's own room assignment names are shown unless you rename them here. The first column is the name exactly as ContestDojo has it, the second is what visitors see. The order here is the order on the page.</div>
-      <div id="cols"></div><div style="margin-top:14px"><button id="addCol"><i class="bi bi-plus-lg"></i> Add a round name</button></div>`;
+      <div id="cols"></div><div style="margin-top:14px"><button id="addCol"><i class="bi bi-plus-lg"></i> Add a round name</button></div>
+      <label class="f" style="margin-top:22px">Messages when a lookup finds nothing</label>
+      <div class="hint" style="margin-top:0">Write {id} where the ID they typed should appear. Wrap words in ** for bold.</div>
+      ${[["not_found", "ID not found"], ["no_room", "No room assigned yet"], ["team_id", "A team number was entered"], ["bad_id", "Not a student ID"], ["unavailable", "Lookup is down"]].map(([m, label]) => `<div class="ev"><div class="hint" style="margin:0 0 6px;font-weight:600">${label}</div>
+        <input class="f" data-m="${m}_title" placeholder="Heading" value="${esc(d.messages[m + "_title"] || "")}">
+        <textarea class="f" data-m="${m}_text" placeholder="Details" rows="3" style="margin-top:6px;resize:vertical;min-height:0;height:auto">${esc(d.messages[m + "_text"] || "")}</textarea></div>`).join("")}`;
+    e.querySelectorAll("[data-m]").forEach((i) => i.addEventListener("input", () => { d.messages[i.dataset.m] = i.value; onChange(); }));
     const renderCols = () => { $("cols").innerHTML = d.columns.map((c, i) => `<div class="ev" data-i="${i}"><div class="top"><input class="f" data-k="key" placeholder="Name in ContestDojo" value="${esc(c.key || "")}"><input class="f" data-k="label" placeholder="Shown to visitors" value="${esc(c.label || "")}"><button class="iconbtn" data-rm="1" title="Remove"><i class="bi bi-x-lg"></i></button></div></div>`).join("");
       $("cols").querySelectorAll("input").forEach((i) => i.addEventListener("input", () => { d.columns[+i.closest(".ev").dataset.i][i.dataset.k] = i.value; onChange(); })); };
     renderCols();
@@ -290,7 +296,7 @@ function collect() {
     return { doc: { kind: k, title: d.title, description: d.description, date: d.date, urgent: d.urgent, body: d.body, kept: d.kept } };
   }
   if (k === "schedule") return { doc: { kind: "schedule", header: d.header, events: d.events } };
-  if (k === "rooms") return { doc: { kind: "rooms", event_id: d.event_id, columns: d.columns } };
+  if (k === "rooms") return { doc: { kind: "rooms", event_id: d.event_id, columns: d.columns, messages: d.messages } };
   if (k === "settings") return { doc: { kind: "settings", advisory: d.advisory } };
   return {};
 }

@@ -15,6 +15,8 @@ It is a static [Zola](https://www.getzola.org/) site built the same way as [berk
 | Swap a floor plan | `static/images/*.png`, referenced from `content/map.md` |
 | Change the lost & found form | the `<iframe>` in `content/lost-found.md` (any embed link works) |
 | Point room lookup at another event | `event_id` in `data/rooms.toml` |
+| Change what the room lookup says when it finds nothing | the `*_title` / `*_text` messages in `data/rooms.toml` |
+| Put the room search box on a page | a line with `{{ room_lookup() }}` in its text |
 
 An update looks like this:
 

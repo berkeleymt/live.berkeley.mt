@@ -373,11 +373,11 @@ def parse_simple(text, array):
     """Header keys plus the rows of one [[array]] table; good enough for our flat data files."""
     header, rows, cur = {}, [], None
     for line in text.splitlines():
-        st = line.split("#", 1)[0].strip() if not line.strip().startswith("#") else ""
-        if st == f"[[{array}]]":
+        st = line.strip()
+        if st.split("#", 1)[0].strip() == f"[[{array}]]":
             cur = {}
             rows.append(cur)
-        elif m := re.match(r"(\w+)\s*=\s*(.+)$", st):
+        elif m := re.match(r'(\w+)\s*=\s*("(?:[^"\\]|\\.)*"|[^#"]+)', st):
             (cur if cur is not None else header)[m.group(1)] = parse_value(m.group(2))
     return header, rows
 
@@ -386,10 +386,18 @@ def parse_schedule(text):
     return parse_simple(text, "events")
 
 
-def compose_rooms(event_id, columns):
+ROOM_MESSAGES = [f"{m}_{p}" for m in ("not_found", "no_room", "team_id", "bad_id", "unavailable")
+                 for p in ("title", "text")]
+
+
+def compose_rooms(event_id, columns, messages):
     out = ["# Room lookup (/rooms). server/rooms_api.py looks IDs up live on this",
            "# ContestDojo event and returns room names only. Edit here or at /admin.", "",
            f"event_id = {toml_str(event_id)}", "",
+           "# Messages on Find my rooms when a lookup finds nothing. {id} is the ID the",
+           "# visitor typed. **bold** and [links](/map/) work."]
+    out += [f"{k} = {toml_str(str(messages.get(k, '')).strip())}" for k in ROOM_MESSAGES]
+    out += ["",
            "# Optional: ContestDojo's roomAssignments keys are used as the round labels,",
            "# in order of first appearance. List them here to rename or reorder them."]
     for c in columns:
@@ -451,7 +459,8 @@ def doc_from_text(path, text):
         return {"kind": "schedule", "header": header, "events": events}
     if path == "data/rooms.toml":
         header, columns = parse_simple(text, "columns")
-        return {"kind": "rooms", "event_id": str(header.get("event_id", "")), "columns": columns}
+        return {"kind": "rooms", "event_id": str(header.get("event_id", "")), "columns": columns,
+                "messages": {k: str(header.get(k, "")) for k in ROOM_MESSAGES}}
     if path == "config.toml":
         return {"kind": "settings", "advisory": parse_settings(text)}
     if path.endswith(".md"):
@@ -469,7 +478,7 @@ def text_from_doc(path, doc, current_text=None):
         header = doc.get("header") or (parse_schedule(current_text)[0] if current_text else {})
         return compose_schedule(header, doc.get("events") or [])
     if kind == "rooms":
-        return compose_rooms(str(doc.get("event_id", "")), doc.get("columns") or [])
+        return compose_rooms(str(doc.get("event_id", "")), doc.get("columns") or [], doc.get("messages") or {})
     if kind == "settings":
         return compose_settings(doc.get("advisory") or {}, current_text)
     if kind in ("update", "page"):

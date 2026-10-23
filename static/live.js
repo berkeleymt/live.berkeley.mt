@@ -69,6 +69,7 @@
       const open = [...mine.querySelectorAll("details")].map((d) => d.open);
       const y = window.scrollY;
       mine.innerHTML = html;
+      mine.querySelectorAll("script").forEach((old) => { const s = document.createElement("script"); s.textContent = old.textContent; old.replaceWith(s); });
       mine.querySelectorAll("details").forEach((d, i) => { if (open[i]) d.open = true; });
       window.scrollTo(0, y);
       render();

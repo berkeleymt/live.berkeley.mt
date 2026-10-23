@@ -1,7 +1,10 @@
 +++
 title = "Find my rooms"
 description = "Look up your assigned rooms with your student ID or team number."
-template = "rooms.html"
 +++
 
-Rooms are assigned at check-in. Enter the student ID on your name tag (like **302A**). 
+Rooms are assigned at check-in. Enter the student ID on your name tag (like **302A**).
+
+{{ room_lookup() }}
+
+Can't find your ID? Ask your coach, or visit the information desk in Dwinelle Hall. The [map](/map/) has floor plans for every building, and the [schedule](/schedule/) says where each round is held.
