@@ -172,10 +172,14 @@ def commit_message(body):
 
 
 def who(author):
-    """Author = the name typed in the publish dialog (else Admin); committer is always Admin,
-    so commits never show up as a person's account."""
-    return {"author": {"name": author.strip() or "Admin", "email": "live@berkeley.mt"},
-            "committer": {"name": "Admin", "email": "live@berkeley.mt"}}
+    """Author = the name typed in the publish dialog. If it is a GitHub username, the commit links to
+    that profile (noreply email). The committer is left to GitHub: the App's bot, which signs the commit."""
+    author = author.strip()
+    if re.fullmatch(r"@?[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})", author):
+        status, user = gh("GET", f"/users/{author.lstrip('@')}")
+        if status == 200 and user.get("type") == "User":
+            return {"author": {"name": user["login"], "email": f"{user['id']}+{user['login']}@users.noreply.github.com"}}
+    return {"author": {"name": author, "email": "live@berkeley.mt"}}
 
 
 def gh_put(path, raw, sha, message, author):
@@ -658,6 +662,8 @@ class Handler(BaseHTTPRequestHandler):
         raw = decode_content(body, path)
         if raw is None and p != "/admin/api/delete":
             return self.send_json(400, {"error": "bad_body"})
+        if p in ("/admin/api/save", "/admin/api/delete") and not str(body.get("author", "")).strip():
+            return self.send_json(400, {"error": "Enter your name first"})
         if p == "/admin/api/preview":
             token, log = build_preview(path, raw)
             if not token:
