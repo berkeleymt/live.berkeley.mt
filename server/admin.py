@@ -10,9 +10,10 @@ Preview builds the edited file in a scratch copy and serves the result.
 
 Secrets are files the deploy job writes into the data volume:
   ADMIN_PASSWORD_FILE  shared staff password
-  GITHUB_TOKEN_FILE    fine-grained PAT, Contents read/write on REPO
+  GITHUB_APP_ID_FILE   ID of the GitHub App installed on REPO (Contents read/write)
+  GITHUB_APP_KEY_FILE  that App's private key (.pem); signed with the openssl CLI
 """
-import base64, hashlib, hmac, json, os, re, secrets, shutil, subprocess, tempfile, threading, time, urllib.error, urllib.parse, urllib.request
+import base64, calendar, hashlib, hmac, json, os, re, secrets, shutil, subprocess, tempfile, threading, time, urllib.error, urllib.parse, urllib.request
 from http import cookies
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -22,7 +23,8 @@ BRANCH = os.environ.get("ADMIN_BRANCH", "main")
 SITE_DIR = os.environ.get("ADMIN_SITE_DIR", "/site")
 LIVE_DIR = os.environ.get("ADMIN_LIVE_DIR", "/usr/share/nginx/html")
 PASSWORD_FILE = os.environ.get("ADMIN_PASSWORD_FILE", "/app/data/admin.password")
-TOKEN_FILE = os.environ.get("GITHUB_TOKEN_FILE", "/app/data/github.token")
+APP_ID_FILE = os.environ.get("GITHUB_APP_ID_FILE", "/app/data/github-app.id")
+APP_KEY_FILE = os.environ.get("GITHUB_APP_KEY_FILE", "/app/data/github-app.pem")
 BASE_URL = os.environ.get("ADMIN_BASE_URL", "https://live.berkeley.mt")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -66,14 +68,59 @@ def editable(path):
     return bool(EDITABLE.match(path)) and ".." not in path
 
 
+def configured():
+    return bool(read_secret(PASSWORD_FILE) and read_secret(APP_ID_FILE) and read_secret(APP_KEY_FILE))
+
+
 # ---------------------------------------------------------------- GitHub
+_app_token, _app_lock = {"token": None, "expires": 0}, threading.Lock()
+
+
+def b64url(data):
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+
+def app_jwt():
+    """Short-lived JWT proving we are the App, RS256-signed with its private key."""
+    now = int(time.time())
+    head = b64url(b'{"alg":"RS256","typ":"JWT"}')
+    claims = b64url(json.dumps({"iat": now - 60, "exp": now + 540, "iss": read_secret(APP_ID_FILE)}).encode())
+    sig = subprocess.run(["openssl", "dgst", "-sha256", "-sign", APP_KEY_FILE], input=f"{head}.{claims}".encode(),
+                         capture_output=True, check=True).stdout
+    return f"{head}.{claims}.{b64url(sig)}"
+
+
+def app_token():
+    """Installation token for REPO (valid 1 h), cached and renewed 5 minutes before it expires."""
+    with _app_lock:
+        if _app_token["token"] and _app_token["expires"] - time.time() > 300:
+            return _app_token["token"], None
+        try:
+            jwt = app_jwt()
+        except (OSError, subprocess.CalledProcessError):
+            return None, (502, {"error": "The site's GitHub App key is missing or invalid. Tell the web team."})
+        status, inst = gh("GET", f"/repos/{REPO}/installation", token=jwt)
+        if status != 200:
+            return None, (status, inst)
+        status, data = gh("POST", f"/app/installations/{inst['id']}/access_tokens", token=jwt)
+        if status != 201:
+            return None, (status, data)
+        expires = calendar.timegm(time.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ"))
+        _app_token.update(token=data["token"], expires=expires)
+        return data["token"], None
+
+
 def gh(method, path, body=None, token=None):
+    if token is None:
+        token, err = app_token()
+        if err:
+            return err
     req = urllib.request.Request(
         f"https://api.github.com{path}",
         data=json.dumps(body).encode() if body is not None else None,
         method=method,
         headers={
-            "Authorization": f"Bearer {token or read_secret(TOKEN_FILE)}",
+            "Authorization": f"Bearer {token}",
             "Accept": "application/vnd.github+json",
             "User-Agent": "live.berkeley.mt admin",
             "Content-Type": "application/json",
@@ -88,7 +135,7 @@ def gh(method, path, body=None, token=None):
         except Exception:
             detail = ""
         if e.code in (401, 403):  # never echo GitHub's 401/403 as ours: the browser would treat it as "log in again"
-            return 502, {"error": f"GitHub refused the site's access token ({detail or e.reason}). Tell the web team."}
+            return 502, {"error": f"GitHub refused the site's access ({detail or e.reason}). Tell the web team."}
         return e.code, {"error": detail or e.reason}
     except (urllib.error.URLError, TimeoutError) as e:
         return 502, {"error": f"Could not reach GitHub ({getattr(e, 'reason', e)}). Try again in a moment."}
@@ -125,10 +172,14 @@ def commit_message(body):
 
 
 def who(author):
-    """Author = the name typed in the publish dialog (else Admin); committer is always Admin,
-    so commits never show up as the token's owner."""
-    return {"author": {"name": author.strip() or "Admin", "email": "live@berkeley.mt"},
-            "committer": {"name": "Admin", "email": "live@berkeley.mt"}}
+    """Author = the name typed in the publish dialog. If it is a GitHub username, the commit links to
+    that profile (noreply email). The committer is left to GitHub: the App's bot, which signs the commit."""
+    author = author.strip()
+    if re.fullmatch(r"@?[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})", author):
+        status, user = gh("GET", f"/users/{author.lstrip('@')}")
+        if status == 200 and user.get("type") == "User":
+            return {"author": {"name": user["login"], "email": f"{user['id']}+{user['login']}@users.noreply.github.com"}}
+    return {"author": {"name": author, "email": "live@berkeley.mt"}}
 
 
 def gh_put(path, raw, sha, message, author):
@@ -550,7 +601,7 @@ class Handler(BaseHTTPRequestHandler):
         if not p.startswith("/admin/api/"):
             return self.send_json(404, {"error": "not_found"})
         if p == "/admin/api/status":
-            return self.send_json(200, {"configured": bool(read_secret(PASSWORD_FILE) and read_secret(TOKEN_FILE)),
+            return self.send_json(200, {"configured": configured(),
                                         "authed": self.authed(), "repo": REPO, "branch": BRANCH})
         if not self.authed():
             return self.send_json(401, {"error": "login"})
@@ -584,7 +635,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(400, {"error": "bad_json"})
         if p == "/admin/api/login":
             pw = read_secret(PASSWORD_FILE)
-            if not pw or not read_secret(TOKEN_FILE):
+            if not configured():
                 return self.send_json(503, {"error": "not_configured"})
             time.sleep(0.5)
             if not hmac.compare_digest(str(body.get("password", "")), pw):
@@ -611,6 +662,8 @@ class Handler(BaseHTTPRequestHandler):
         raw = decode_content(body, path)
         if raw is None and p != "/admin/api/delete":
             return self.send_json(400, {"error": "bad_body"})
+        if p in ("/admin/api/save", "/admin/api/delete") and not str(body.get("author", "")).strip():
+            return self.send_json(400, {"error": "Enter your name first"})
         if p == "/admin/api/preview":
             token, log = build_preview(path, raw)
             if not token:
@@ -657,5 +710,5 @@ def decode_content(body, path=""):
 
 if __name__ == "__main__":
     print(f"admin on 127.0.0.1:{PORT}, repo {REPO}@{BRANCH}, site {SITE_DIR}, "
-          f"password {'present' if read_secret(PASSWORD_FILE) else 'missing'}, token {'present' if read_secret(TOKEN_FILE) else 'missing'}", flush=True)
+          f"password {'present' if read_secret(PASSWORD_FILE) else 'missing'}, GitHub App {'present' if read_secret(APP_ID_FILE) and read_secret(APP_KEY_FILE) else 'missing'}", flush=True)
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()

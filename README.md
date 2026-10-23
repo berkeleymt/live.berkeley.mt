@@ -44,9 +44,9 @@ Markdown plus the shortcodes from berkeley.mt: `{% alert(status="info", title="�
 
 ## Staff editor
 
-`server/admin.py` (stdlib Python, same container as nginx) serves `/admin`. It reads and writes files through the GitHub Contents API on `main`, previews by copying the site source shipped in the image (`/site`) into a scratch dir and running `zola build`, and after a save applies the file to `/site` and rebuilds the live pages in place. Secrets are files in the pod's data volume written by the deploy job: `admin.password` (repo secret `LIVE_ADMIN_PASSWORD`) and `github.token` (`LIVE_GITHUB_TOKEN`: a fine-grained PAT with **Contents: read & write** on this repository only). Sessions are 24 h cookies and reset on redeploy. Templates, `config.toml` and code are intentionally not editable there — change those through Git.
+`server/admin.py` (stdlib Python, same container as nginx) serves `/admin`. It reads and writes files through the GitHub Contents API on `main`, previews by copying the site source shipped in the image (`/site`) into a scratch dir and running `zola build`, and after a save applies the file to `/site` and rebuilds the live pages in place. Secrets are files in the pod's data volume written by the deploy job: `admin.password` (repo secret `LIVE_ADMIN_PASSWORD`) and the GitHub App that commits for it: `github-app.id` (`LIVE_GITHUB_APP_ID`) and `github-app.pem` (`LIVE_GITHUB_APP_PRIVATE_KEY`). The App ("BMT Live editor", owned by the berkeleymt org, installed on this repository only, **Contents: read & write**) is used instead of a personal token; admin.py signs a JWT with the key via `openssl` and exchanges it for a 1 h installation token. Sessions are 24 h cookies and reset on redeploy. Templates, `config.toml` and code are intentionally not editable there — change those through Git.
 
-Locally: `ADMIN_SITE_DIR=$PWD ADMIN_LIVE_DIR=$PWD/public ADMIN_PASSWORD_FILE=… GITHUB_TOKEN_FILE=… ADMIN_BRANCH=some-branch ADMIN_BASE_URL=http://127.0.0.1:3003 python3 server/admin.py`, then open http://127.0.0.1:3003/admin.
+Locally: `ADMIN_SITE_DIR=$PWD ADMIN_LIVE_DIR=$PWD/public ADMIN_PASSWORD_FILE=… GITHUB_APP_ID_FILE=… GITHUB_APP_KEY_FILE=… ADMIN_BRANCH=some-branch ADMIN_BASE_URL=http://127.0.0.1:3003 python3 server/admin.py`, then open http://127.0.0.1:3003/admin.
 
 ## Running locally
 
@@ -71,7 +71,7 @@ data/schedule.toml   the schedule
 data/rooms.toml      ContestDojo event for the room lookup
 server/rooms_api.py  live room lookup API (same container as nginx)
 server/admin.py      staff editor at /admin (+ admin.html, admin_login.html)
-.github/workflows/   build-and-push (deploy), post-update
+.github/workflows/   build-and-push (deploy)
 content/             Markdown pages; content/updates/ holds announcements
 templates/           Tera templates (base.html, index.html, schedule.html, updates.html, page.html)
 static/              live.js (now/next + auto-refresh), input.css, fonts, logo, maps

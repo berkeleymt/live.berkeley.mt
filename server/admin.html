@@ -117,11 +117,12 @@
 <div class="toast" id="toast"></div>
 
 <dialog id="pubDialog"><form method="dialog">
-  <h2>Publish to the live site</h2>
+  <h2 id="pubTitle"></h2>
   <p id="pubWhat"></p>
   <label class="f">Your name</label><input class="f" id="author" required>
+  <p class="hint">Your GitHub username is preferred.</p>
   <label class="f">Note <small>optional</small></label><input class="f" id="msg">
-  <menu><button value="cancel" formnovalidate>Cancel</button><button value="ok" class="primary"><i class="bi bi-send"></i> Publish now</button></menu></form></dialog>
+  <menu><button value="cancel" formnovalidate>Cancel</button><button value="ok" class="primary" id="pubOk"></button></menu></form></dialog>
 <dialog id="confirmDialog"><form method="dialog"><h2 id="cTitle"></h2><p id="cText"></p><menu><button value="cancel">Cancel</button><button value="ok" class="primary" id="cOk" style="background:var(--rose);border-color:var(--rose)">Yes</button></menu></form></dialog>
 <input id="file" type="file" hidden accept="image/*">
 
@@ -251,7 +252,7 @@ function render() {
       <div style="margin-top:24px;display:flex;gap:8px;flex-wrap:wrap"><button id="replace"><i class="bi bi-upload"></i> Replace with a new file</button><button class="danger" id="delImg"><i class="bi bi-trash"></i> Delete image</button></div>`;
     $("copyMd").onclick = () => { navigator.clipboard.writeText($("imgMd").value); toast("Copied.", "ok", 2000); };
     $("replace").onclick = () => { $("file").dataset.replace = cur.path; $("file").click(); };
-    $("delImg").onclick = async () => { if (await confirmDlg("Delete this image?", "Pages that use it will show a broken picture.", "Delete")) doDelete("Delete " + cur.path); };
+    $("delImg").onclick = async () => { const who = await askName("Delete this image?", "Pages that use it will show a broken picture.", `<i class="bi bi-trash"></i> Delete`, true); if (who) doDelete(who); };
   }
   schedulePreview(true);
 }
@@ -309,12 +310,23 @@ function friendlyBuildError(log) { if (/front matter|TOML parse/i.test(log)) ret
 $("publish").onclick = () => {
   if (!cur) return;
   const what = cur.kind === "schedule" ? "the tournament schedule" : cur.kind === "rooms" ? "the room lookup settings" : cur.kind === "settings" ? "the site banner" : cur.kind === "update" ? `the update “${$("fTitle").value || "Untitled"}”` : cur.kind === "page" ? `the “${cur.label}” page` : cur.path;
-  $("pubWhat").textContent = `${cur.isNew ? "Posts" : "Updates"} ${what} on the live site right away.`;
-  $("author").value = localStorage.getItem("admin-author") || ""; $("msg").value = "";
-  $("pubDialog").showModal();
+  askName("Publish to the live site", `${cur.isNew ? "Posts" : "Updates"} ${what} on the live site right away.`, `<i class="bi bi-send"></i> Publish now`).then((who) => { if (who) doPublish(who); });
 };
-$("pubDialog").onclose = () => { if ($("pubDialog").returnValue === "ok") { localStorage.setItem("admin-author", $("author").value); doPublish($("author").value, $("msg").value); } };
-async function doPublish(author, note) {
+function askName(title, what, ok, danger) {
+  return new Promise((r) => {
+    const d = $("pubDialog");
+    $("pubTitle").textContent = title; $("pubWhat").textContent = what; $("pubOk").innerHTML = ok;
+    $("pubOk").style.cssText = danger ? "background:var(--rose);border-color:var(--rose)" : "";
+    $("author").value = localStorage.getItem("admin-author") || ""; $("msg").value = "";
+    d.onclose = () => {
+      const author = $("author").value.trim();
+      if (d.returnValue !== "ok" || !author) return r(null);
+      localStorage.setItem("admin-author", author); r({ author, note: $("msg").value });
+    };
+    d.showModal();
+  });
+}
+async function doPublish({ author, note }) {
   $("publish").disabled = true; toast(`<span class="spin"></span> Publishing…`, "", 60000);
   const [status, d] = await api("POST", "/admin/api/save", { path: cur.path, sha: cur.sha, note, author, ...collect() });
   if (status === 409) return toast(`Someone else published a change to this since you opened it. <button onclick="openItem(cur.path)">Reload theirs</button> and then make your change again.`, "err", 15000);
@@ -327,13 +339,14 @@ async function doPublish(author, note) {
   schedulePreview(true);
 }
 async function removeUpdate() {
-  if (!(await confirmDlg("Remove this update?", "It disappears from the site right away. You can't undo this here (it stays in the site's history).", "Remove"))) return;
-  doDelete();
+  if (!cur.sha) return doDelete();
+  const who = await askName("Remove this update?", "It disappears from the site right away. You can't undo this here, but it stays in the site's history.", `<i class="bi bi-trash"></i> Remove`, true);
+  if (who) doDelete(who);
 }
-async function doDelete() {
+async function doDelete(who) {
   if (!cur.sha) { cur = null; dirty = false; $("editor").innerHTML = `<div class="empty">Discarded.</div>`; setDirty(false); return; }
   toast(`<span class="spin"></span> Removing…`, "", 60000);
-  const [status, d] = await api("POST", "/admin/api/delete", { path: cur.path, sha: cur.sha, author: localStorage.getItem("admin-author") || "" });
+  const [status, d] = await api("POST", "/admin/api/delete", { path: cur.path, sha: cur.sha, ...who });
   if (status !== 200) return toast(`Couldn't remove it. ${esc(d.detail || d.error || status)}.`, "err", 10000);
   toast(`<i class="bi bi-check-circle-fill"></i> Removed.`, "ok", 4000);
   cur = null; dirty = false; setDirty(false); $("editor").innerHTML = `<div class="empty"><i class="bi bi-check2-circle"></i>Removed.</div>`; $("main").classList.remove("split"); loadItems();
@@ -355,9 +368,11 @@ $("file").onchange = async () => {
   const path = replace || `static/images/${f.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-")}`;
   if (!replace && items.images.some((i) => i.path === path) && !(await confirmDlg("Replace the existing image?", `${path.replace(/^static\/(images\/)?/, "")} already exists.`, "Replace"))) return;
   if (f.size > 20 * 1024 * 1024) return toast("That file is too big (over 20 MB). Please shrink it first.", "err", 8000);
+  const who = await askName("Upload this image?", `${replace ? "Replaces" : "Adds"} ${path.replace(/^static\/(images\/)?/, "")} on the live site right away.`, `<i class="bi bi-upload"></i> Upload`);
+  if (!who) return;
   const b64 = await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(String(fr.result).split(",")[1]); fr.readAsDataURL(f); });
   toast(`<span class="spin"></span> Uploading…`, "", 60000);
-  const [status, d] = await api("POST", "/admin/api/save", { path, base64: b64, sha: null, author: localStorage.getItem("admin-author") || "" });
+  const [status, d] = await api("POST", "/admin/api/save", { path, base64: b64, sha: null, ...who });
   if (status !== 200) return toast(`Upload failed. ${esc(d.detail || d.error || status)}.`, "err", 10000);
   toast(`<i class="bi bi-check-circle-fill"></i> Uploaded.`, "ok", 4000);
   await loadItems(); openItem(path);
