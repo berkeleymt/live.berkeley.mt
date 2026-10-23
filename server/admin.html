@@ -227,8 +227,8 @@ function render() {
       <div class="hint" style="margin-top:0">Write {id} where the ID they typed should appear. Wrap words in ** for bold.</div>
       ${[["not_found", "ID not found"], ["no_room", "No room assigned yet"], ["team_id", "A team number was entered"], ["bad_id", "Not a student ID"], ["unavailable", "Lookup is down"]].map(([m, label]) => `<div class="ev"><div class="hint" style="margin:0 0 6px;font-weight:600">${label}</div>
         <input class="f" data-m="${m}_title" placeholder="Heading" value="${esc(d.messages[m + "_title"] || "")}">
-        <input class="f" data-m="${m}_text" placeholder="Details" value="${esc(d.messages[m + "_text"] || "")}" style="margin-top:6px"></div>`).join("")}`;
-    e.querySelectorAll("input[data-m]").forEach((i) => i.addEventListener("input", () => { d.messages[i.dataset.m] = i.value; onChange(); }));
+        <textarea class="f" data-m="${m}_text" placeholder="Details" rows="2" style="margin-top:6px;resize:vertical;min-height:0;height:auto">${esc(d.messages[m + "_text"] || "")}</textarea></div>`).join("")}`;
+    e.querySelectorAll("[data-m]").forEach((i) => i.addEventListener("input", () => { d.messages[i.dataset.m] = i.value; onChange(); }));
     const renderCols = () => { $("cols").innerHTML = d.columns.map((c, i) => `<div class="ev" data-i="${i}"><div class="top"><input class="f" data-k="key" placeholder="Name in ContestDojo" value="${esc(c.key || "")}"><input class="f" data-k="label" placeholder="Shown to visitors" value="${esc(c.label || "")}"><button class="iconbtn" data-rm="1" title="Remove"><i class="bi bi-x-lg"></i></button></div></div>`).join("");
       $("cols").querySelectorAll("input").forEach((i) => i.addEventListener("input", () => { d.columns[+i.closest(".ev").dataset.i][i.dataset.k] = i.value; onChange(); })); };
     renderCols();
