@@ -1,0 +1,27 @@
+{#- Interactive wayfinding map: pick where you are and where you're going, get the walking route
+    across floors and buildings. Put {{ wayfinding() }} on its own line in any page. The graph is
+    static/images/campus.svg (Figma export); its position on the real map is data/map.toml. -#}
+{%- set map = load_data(path="data/map.toml") -%}
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<div class="not-prose my-8 flex flex-col gap-4" data-wayfinding data-svg="/images/campus.svg" data-osm="/osm-paths.json"
+  data-lon="{{ map.georef.origin_lon }}" data-lat="{{ map.georef.origin_lat }}" data-mpp="{{ map.georef.meters_per_px }}">
+<div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-end">
+  <label class="flex flex-col gap-1 min-w-0 text-sm text-gray-600">From
+    <select data-from class="w-full min-w-0 text-base px-3 py-2.5 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400"></select></label>
+  <button type="button" data-swap title="Swap" aria-label="Swap from and to"
+    class="h-11 w-11 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-600 justify-self-center"><i class="bi bi-arrow-left-right"></i></button>
+  <label class="flex flex-col gap-1 min-w-0 text-sm text-gray-600">To
+    <select data-to class="w-full min-w-0 text-base px-3 py-2.5 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400"></select></label>
+</div>
+<div class="flex flex-wrap gap-x-5 gap-y-2 text-sm" data-floors></div>
+<div data-map class="rounded-xl overflow-hidden border border-gray-200 bg-gray-100" style="height:min(70vh,560px);min-height:340px">
+  <div data-status class="absolute left-3 bottom-3 z-10 max-w-[70%] text-sm bg-white/90 backdrop-blur rounded-lg px-3 py-1.5 shadow hidden"></div>
+</div>
+<div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-700">
+  <label class="flex items-center gap-2"><input type="checkbox" data-stepfree class="accent-teal-500 h-4 w-4">Step-free (no stairs)</label>
+  <span data-summary class="font-medium"></span>
+</div>
+<ol data-steps class="flex flex-col divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white hidden"></ol>
+</div>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js" defer></script>
+<script src="/wayfinding.js?{{ get_random(end=1000000) }}" defer></script>

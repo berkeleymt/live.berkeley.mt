@@ -68,7 +68,9 @@
       lastHtml = html;
       const open = [...mine.querySelectorAll("details")].map((d) => d.open);
       const y = window.scrollY;
+      const keep = mine.querySelector("[data-map]")?.parentNode;
       mine.innerHTML = html;
+      const slot = keep && mine.querySelector("[data-map]")?.parentNode; if (slot) slot.replaceWith(keep);
       mine.querySelectorAll("script").forEach((old) => { const s = document.createElement("script"); s.textContent = old.textContent; old.replaceWith(s); });
       mine.querySelectorAll("details").forEach((d, i) => { if (open[i]) d.open = true; });
       window.scrollTo(0, y);
@@ -78,7 +80,7 @@
 
   // /map/#wheeler opens that building's floor plan.
   function openHash() {
-    const el = location.hash && document.querySelector("details" + location.hash);
+    const el = /^#[\w-]+$/.test(location.hash) && document.querySelector("details" + location.hash);
     if (el) el.open = true;
   }
   openHash();
