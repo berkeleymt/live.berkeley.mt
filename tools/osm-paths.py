@@ -49,7 +49,7 @@ def main():
     for w in root.findall("way"):
         tags = {t.get("k"): t.get("v") for t in w.findall("tag")}
         hw = tags.get("highway")
-        if hw not in WALK or tags.get("foot") == "no" or tags.get("access") in ("private", "no") or tags.get("indoor") == "yes":
+        if hw not in WALK or tags.get("foot") == "no" or tags.get("access") in ("private", "no") or tags.get("indoor") == "yes" or tags.get("informal") == "yes":
             continue
         if tags.get("level") and tags.get("level") not in ("0", "0;1"):
             continue

@@ -41,7 +41,7 @@
   function parseSVG(txt) {
     const doc = new DOMParser().parseFromString(txt, "image/svg+xml");
     if (doc.getElementsByTagName("parsererror").length || doc.documentElement.nodeName !== "svg") throw new Error("not an SVG");
-    const rootEl = doc.documentElement, L = { O: { key: "O", bld: "", fl: "", paths: [], links: [], pts: [] } }, warn = [];
+    const rootEl = doc.documentElement, L = { O: { key: "O", bld: "", fl: "", paths: [], links: [], pts: [], blocked: [] } }, warn = [];
     function ctx(el) {
       let f = null, place = "", g = el.parentNode;
       while (g && g !== rootEl && g.nodeType === 1) {
@@ -63,6 +63,7 @@
     doc.querySelectorAll("path[id]").forEach((p) => {
       const x = ctx(p), id = norm(p.getAttribute("id")), pl = parseD(p.getAttribute("d") || "");
       if (/^Outdoor Paths/.test(id)) L.O.paths.push(...pl);
+      else if (/^Blocked Paths/.test(id)) L.O.blocked.push(...pl);
       else if (/^Paths/.test(id)) { if (x.f) lay(x.f).paths.push(...pl); else warn.push("A Paths layer outside a floor group was ignored"); }
       else if (/^Links/.test(id)) { if (x.f) lay(x.f).links.push(...pl); }
     });
@@ -117,6 +118,26 @@
       build(l); const seen = {};
       l.pts.forEach((c) => { const k = norm(c.n); if (seen[k]) W.push(`Duplicate name "${k}" on ${l.bld} Floor ${l.fl}`); seen[k] = 1; });
     });
+    if (LO.blocked.length) {
+      const lim = 5 / MPP, segs = [], hit = [];
+      LO.blocked.forEach((pl) => pl.slice(1).forEach((c, i) => segs.push([pl[i], c])));
+      const orient = (p, q, r) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]));
+      const cross = (a, b, c, d) => orient(a, b, c) !== orient(a, b, d) && orient(c, d, a) !== orient(c, d, b);
+      const segD = (p, a, b) => dist(p, proj(p, a, b));
+      const keep = (pl, pts) => { if (pts.length > 1) out.push(Object.assign(pts, { osm: pl.osm, nm: pl.nm, s: pl.s })); }, out = [];
+      LO.paths.forEach((pl) => {
+        let cur = [pl[0]];
+        pl.slice(1).forEach((c, i) => {
+          const a = pl[i], m = [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2];
+          let bl = false;
+          segs.forEach((sg, k) => { if (cross(a, c, sg[0], sg[1]) || segD(m, sg[0], sg[1]) < lim || segD(sg[0], a, c) < lim || segD(sg[1], a, c) < lim) { bl = true; hit[k] = 1; } });
+          if (bl) { keep(pl, cur); cur = [c]; } else cur.push(c);
+        });
+        keep(pl, cur);
+      });
+      LO.paths = out;
+      if (!hit.some(Boolean)) W.push("The Blocked Paths layer doesn't touch any outdoor path");
+    }
     const KO = build(LO, exitPts);
     floors.forEach((l) => l.pts.forEach((c) => {
       if (c.t !== "exit") return;
@@ -134,14 +155,14 @@
     const DEST = {};
     layers.forEach((l) => l.pts.forEach((c) => {
       const nm = nodoor(norm(c.n)), key = (l.bld || c.place || "") + "|" + nm, id = l.key + "|" + c.n;
-      const d = (DEST[key] = DEST[key] || { key, nm, bld: l.bld, fls: new Set(), cat: c.t === "door" ? "Rooms" : c.t === "bath" ? "Bathrooms" : "Other places", ids: [] });
+      const d = (DEST[key] = DEST[key] || { key, nm, bld: l.bld, fls: new Set(), cat: c.t === "door" ? "Rooms" : c.t === "bath" ? "Bathrooms" : "Other places", ids: [], place: c.place });
       d.ids.push(id); d.fls.add(l.fl);
     }));
-    Object.values(DEST).forEach((d) => { const fl = [...d.fls].filter(Boolean); d.label = disp(d.nm); d.sub = d.bld ? d.bld + (fl.length === 1 ? ", Floor " + fl[0] : "") : "Outdoors"; });
+    Object.values(DEST).forEach((d) => { const fl = [...d.fls].filter(Boolean); d.label = disp(d.nm); d.sub = d.bld ? d.bld + (fl.length === 1 ? ", Floor " + fl[0] : "") : d.place || "Outdoors"; });
     const places = {};
     LO.pts.forEach((c) => { if (c.place) (places[c.place] = places[c.place] || []).push(c); });
     Object.keys(places).forEach((p) => { const cs = places[p], en = cs.filter((c) => c.t === "exit"); DEST["B|" + p] = { key: "B|" + p, label: p, sub: "", cat: "Buildings", ids: (en.length ? en : cs).map((c) => "O|" + c.n) }; });
-    Object.keys(byB).forEach((b) => { const ids = []; byB[b].forEach((l) => l.pts.forEach((c) => { if (/Entrance/i.test(c.n)) ids.push(l.key + "|" + c.n); })); if (ids.length) DEST["B|" + b] = { key: "B|" + b, label: b, sub: "", cat: "Buildings", ids }; });
+    Object.keys(byB).forEach((b) => { const ids = []; byB[b].forEach((l) => l.pts.forEach((c) => { if (/Entrance/i.test(c.n)) ids.push(l.key + "|" + c.n); })); if (!ids.length) byB[b].forEach((l) => l.pts.forEach((c) => { if (c.t === "exit") ids.push(l.key + "|" + c.n); })); if (ids.length) DEST["B|" + b] = { key: "B|" + b, label: b, sub: "", cat: "Buildings", ids }; });
     const U = {};
     Object.keys(G.a).forEach((a) => G.a[a].forEach((e) => { (U[a] = U[a] || []).push(e.to); (U[e.to] = U[e.to] || []).push(a); }));
     const sn = new Set(), cc = [];
