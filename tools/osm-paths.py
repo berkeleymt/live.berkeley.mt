@@ -35,8 +35,7 @@ def extent():
     ox = R * math.radians(g["origin_lon"]); oy = R * math.log(math.tan(math.pi / 4 + math.radians(g["origin_lat"]) / 2))
     mpp = g["meters_per_px"]
     cx, cy = ox + mpp * w / 2, oy - mpp * h / 2
-    lat = lonlat(cx, cy)[1]
-    tile_m = 2 * math.pi * R * math.cos(math.radians(lat)) / 2 ** MIN_ZOOM / 256  # ground metres per screen px
+    tile_m = 2 * math.pi * R / 2 ** MIN_ZOOM / 256  # Mercator metres per screen px (no cos(lat): cx/cy are Mercator too)
     return cx, cy, tile_m * VIEW[0] / 2, tile_m * VIEW[1] / 2
 
 def bbox():
