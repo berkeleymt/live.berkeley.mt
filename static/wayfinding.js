@@ -84,9 +84,26 @@
       G.a[a].push({ to: b, t, m, w, nm }); if (!one) G.a[b].push({ to: a, t, m, w, nm });
     }
     const proj = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], q = dx * dx + dy * dy, t = q ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / q)) : 0; return [a[0] + t * dx, a[1] + t * dy]; };
+    const CELL = 400;
+    function index(d) {
+      if (d.idx && d.idx.n === d.paths.length) return d.idx;
+      const g = new Map(), put = (k, v) => { const a = g.get(k); if (a) a.push(v); else g.set(k, [v]); };
+      d.paths.forEach((pl, pi) => pl.slice(1).forEach((c, si) => {
+        const a = pl[si], x0 = Math.floor(Math.min(a[0], c[0]) / CELL), x1 = Math.floor(Math.max(a[0], c[0]) / CELL), y0 = Math.floor(Math.min(a[1], c[1]) / CELL), y1 = Math.floor(Math.max(a[1], c[1]) / CELL);
+        for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) put(x + "," + y, [pi, si]);
+      }));
+      let lo = [Infinity, Infinity], hi = [-Infinity, -Infinity];
+      d.paths.forEach((pl) => pl.forEach((q) => { lo = [Math.min(lo[0], q[0]), Math.min(lo[1], q[1])]; hi = [Math.max(hi[0], q[0]), Math.max(hi[1], q[1])]; }));
+      return (d.idx = { n: d.paths.length, g, span: Math.max(hi[0] - lo[0], hi[1] - lo[1]) / CELL + 2 });
+    }
     function nearest(d, p, ex) {
+      const { g, span } = index(d), cx = Math.floor(p[0] / CELL), cy = Math.floor(p[1] / CELL);
       let b = { d: 1e9 };
-      d.paths.forEach((pl, pi) => { if (pi === ex) return; pl.slice(1).forEach((c, si) => { const q = proj(p, pl[si], c), dd = dist(p, q); if (dd < b.d) b = { d: dd, q, pi, si }; }); });
+      const test = (pi, si) => { if (pi === ex) return; const pl = d.paths[pi], q = proj(p, pl[si], pl[si + 1]), dd = dist(p, q); if (dd < b.d) b = { d: dd, q, pi, si }; };
+      for (let r = 0; r <= span; r++) {
+        for (let x = cx - r; x <= cx + r; x++) for (let y = cy - r; y <= cy + r; y++) { if (Math.max(Math.abs(x - cx), Math.abs(y - cy)) !== r) continue; const a = g.get(x + "," + y); if (a) a.forEach(([pi, si]) => test(pi, si)); }
+        if (b.d <= r * CELL) break;
+      }
       return b;
     }
     function build(d, extra) {
@@ -172,13 +189,14 @@
   }
   function route(M, src, dst, stepFree) {
     const G = M.G, dd = {}, pr = {}, done = {}, q = [], T = new Set(dst);
-    src.forEach((s) => { dd[s] = 0; q.push([0, s]); });
+    const push = (it) => { q.push(it); let i = q.length - 1; while (i > 0) { const j = (i - 1) >> 1; if (q[j][0] <= q[i][0]) break; [q[i], q[j]] = [q[j], q[i]]; i = j; } };
+    const pop = () => { const top = q[0], last = q.pop(); if (q.length) { q[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < q.length && q[l][0] < q[m][0]) m = l; if (r < q.length && q[r][0] < q[m][0]) m = r; if (m === i) break; [q[i], q[m]] = [q[m], q[i]]; i = m; } } return top; };
+    src.forEach((s) => { dd[s] = 0; push([0, s]); });
     while (q.length) {
-      q.sort((a, b) => a[0] - b[0]);
-      const [d, u] = q.shift();
+      const [d, u] = pop();
       if (done[u]) continue; done[u] = 1;
       if (T.has(u)) { const p = [u]; while (pr[p[0]]) p.unshift(pr[p[0]]); return { p, s: d }; }
-      for (const e of G.a[u]) { if (stepFree && (e.t === "stairs" || e.t === "steps")) continue; const nd = d + e.w; if (nd < (dd[e.to] === undefined ? 1e18 : dd[e.to])) { dd[e.to] = nd; pr[e.to] = u; q.push([nd, e.to]); } }
+      for (const e of G.a[u]) { if (stepFree && (e.t === "stairs" || e.t === "steps")) continue; const nd = d + e.w; if (nd < (dd[e.to] === undefined ? 1e18 : dd[e.to])) { dd[e.to] = nd; pr[e.to] = u; push([nd, e.to]); } }
     }
     return null;
   }
@@ -238,7 +256,7 @@
   const fromSel = $("[data-from]"), toSel = $("[data-to]"), floorsEl = $("[data-floors]"), stepsEl = $("[data-steps]"), summary = $("[data-summary]"), status = $("[data-status]"), stepFree = $("[data-stepfree]");
   let M, map, ST = { from: "", to: "", sel: {}, r: null, me: null };
   const MY = "me";
-  const show = (msg) => { status.classList.toggle("hidden", !msg); status.textContent = msg || ""; };
+  const show = (msg, html) => { status.classList.toggle("hidden", !msg); if (html) status.innerHTML = msg; else status.textContent = msg || ""; };
   const findDest = (q) => {
     if (!q) return "";
     if (M.DEST[q]) return q;
@@ -249,7 +267,7 @@
   function fill() {
     const cats = ["Rooms", "Bathrooms", "Other places", "Buildings"];
     const opts = '<option value="">Choose a place</option>' + cats.map((c) => { const ds = Object.values(M.DEST).filter((x) => x.cat === c).sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true })); return ds.length ? `<optgroup label="${c}">` + ds.map((x) => `<option value="${esc(x.key)}">${esc(x.label)}${x.sub && x.cat !== "Rooms" ? " (" + esc(x.sub) + ")" : ""}</option>`).join("") + "</optgroup>" : ""; }).join("");
-    fromSel.innerHTML = `<option value="${MY}">My location</option>` + opts; toSel.innerHTML = opts;
+    fromSel.innerHTML = `<option value="${MY}">My location</option>` + opts; toSel.innerHTML = `<option value="${MY}">My location</option>` + opts;
     Object.keys(M.byB).forEach((b) => { const ls = M.byB[b]; ST.sel[b] = (ls.find((l) => l.pts.some((c) => /Main Entrance/.test(c.n))) || ls[0]).key; });
     floorsEl.innerHTML = Object.keys(M.byB).map((b) => `<span class="flex items-center gap-1.5"><span class="text-gray-500">${esc(b.replace(" Hall", ""))}</span><span class="inline-flex rounded-lg border border-gray-200 overflow-hidden">` + M.byB[b].map((l) => `<button type="button" data-floor="${esc(l.key)}" data-b="${esc(b)}" class="px-2.5 py-1 hover:bg-gray-50">${esc(l.fl)}</button>`).join("") + "</span></span>").join("");
   }
@@ -268,6 +286,7 @@
       for (let i = 0; i < p.length - 1; i++) { const a = M.G.n[p[i]], b = M.G.n[p[i + 1]]; if (a.f !== b.f && a.f !== "O" && b.f !== "O") continue; segs.push({ type: "Feature", properties: { vis: visible(a.f) && visible(b.f) ? 1 : 0 }, geometry: { type: "LineString", coordinates: [toLngLat(a.x, a.y), toLngLat(b.x, b.y)] } }); }
       const a = M.G.n[p[0]], b = M.G.n[p[p.length - 1]];
       if (ST.from === MY && ST.me) segs.push({ type: "Feature", properties: { vis: 0 }, geometry: { type: "LineString", coordinates: [ST.me, toLngLat(a.x, a.y)] } });
+      if (ST.to === MY && ST.me) segs.push({ type: "Feature", properties: { vis: 0 }, geometry: { type: "LineString", coordinates: [toLngLat(b.x, b.y), ST.me] } });
       ends.push({ type: "Feature", properties: { end: "from" }, geometry: { type: "Point", coordinates: toLngLat(a.x, a.y) } }, { type: "Feature", properties: { end: "to" }, geometry: { type: "Point", coordinates: toLngLat(b.x, b.y) } });
     }
     map.getSource("route").setData({ type: "FeatureCollection", features: segs });
@@ -280,27 +299,34 @@
     const b = pts.reduce((b, p) => [Math.min(b[0], p[0]), Math.min(b[1], p[1]), Math.max(b[2], p[0]), Math.max(b[3], p[1])], [180, 90, -180, -90]);
     map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: pad || 60, maxZoom: 19, duration: 600 });
   }
-  function fromIds() {
-    if (ST.from !== MY) return M.DEST[ST.from] ? M.DEST[ST.from].ids : null;
+  function meIds() {
     if (!ST.me) return null;
     const p = toSvg(ST.me[0], ST.me[1]); let bi = null, bd = 1e9;
     Object.entries(M.G.n).forEach(([id, n]) => { if (n.f !== "O") return; const d = dist(p, [n.x, n.y]); if (d < bd) { bd = d; bi = id; } });
     return bd * MPP < 250 ? [bi] : null;
   }
+  const endIds = (k) => (k === MY ? meIds() : M.DEST[k] ? M.DEST[k].ids : null);
+  function outside() {
+    const other = M.DEST[ST.from === MY ? ST.to : ST.from], n = other && M.G.n[other.ids[0]];
+    if (!n) return "You're outside the map's area, pick a place instead";
+    const ll = (c) => c[1].toFixed(6) + "," + c[0].toFixed(6), me = ll(ST.me), there = ll(toLngLat(n.x, n.y)), [o, d] = ST.from === MY ? [me, there] : [there, me];
+    return `You're outside the map's area. Walking directions in <a class="underline" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&amp;origin=${o}&amp;destination=${d}&amp;travelmode=walking">Google Maps</a> or <a class="underline" target="_blank" rel="noopener" href="https://maps.apple.com/?saddr=${o}&amp;daddr=${d}&amp;dirflg=w">Apple Maps</a>, or pick a place instead.`;
+  }
   function compute(fit) {
     ST.r = null; stepsEl.classList.add("hidden"); summary.textContent = "";
-    const src = fromIds(), to = M.DEST[ST.to];
-    if (ST.from === MY && !ST.me) show(ST.geoErr ? "Location unavailable, pick where you are" : navigator.geolocation ? "Tap the location button on the map, or pick where you are" : "Pick where you are");
-    else if (ST.from === MY && !src) show("You're not near the tournament buildings, pick a start instead");
+    const useMe = ST.from === MY || ST.to === MY, src = endIds(ST.from), dst = endIds(ST.to), to = M.DEST[ST.to];
+    if (ST.from === MY && ST.to === MY) show("Pick where you're going");
+    else if (useMe && !ST.me) show(ST.geoErr ? "Location unavailable, pick a place instead" : navigator.geolocation ? "Tap the location button on the map, or pick a place instead" : "Pick a place instead");
+    else if (useMe && !meIds()) show(outside(), true);
     else show("");
-    if (src && to && ST.from === ST.to) summary.textContent = "You're already there";
-    else if (src && to) {
-      const r = route(M, src, to.ids, stepFree.checked);
+    if (src && dst && ST.from === ST.to) summary.textContent = "You're already there";
+    else if (src && dst) {
+      const r = route(M, src, dst, stepFree.checked);
       if (!r) { summary.textContent = stepFree.checked ? "No step-free route found" : "No route found"; }
       else {
         let m = 0; for (let i = 0; i < r.p.length - 1; i++) m += best(M, r.p[i], r.p[i + 1]).m;
-        const fromLabel = ST.from === MY ? "your location" : M.DEST[ST.from].label;
-        r.st = steps(M, r.p, fromLabel, to.label); ST.r = r;
+        const fromLabel = ST.from === MY ? "your location" : M.DEST[ST.from].label, toLabel = ST.to === MY ? "your location" : to.label;
+        r.st = steps(M, r.p, fromLabel, toLabel); ST.r = r;
         r.p.forEach((id) => { const n = M.G.n[id]; if (n.f !== "O") ST.sel[M.L[n.f].bld] = n.f; });
         summary.textContent = `About ${Math.max(1, Math.round(r.s / 60))} min, ${m > 100 ? Math.round(m / 10) * 10 : Math.round(m)} m`;
         stepsEl.classList.remove("hidden");
@@ -309,7 +335,7 @@
       }
     }
     draw();
-    const h = [ST.from && ST.from !== MY ? "from=" + encodeURIComponent(M.DEST[ST.from].label) : "", ST.to ? "to=" + encodeURIComponent(to.label) : "", stepFree.checked ? "free=1" : ""].filter(Boolean).join("&");
+    const h = [ST.from && ST.from !== MY ? "from=" + encodeURIComponent(M.DEST[ST.from].label) : "", ST.to ? "to=" + encodeURIComponent(ST.to === MY ? MY : to.label) : "", stepFree.checked ? "free=1" : ""].filter(Boolean).join("&");
     history.replaceState(null, "", location.pathname + location.search + (h ? "#" + h : ""));
   }
   function render(fit) { fromSel.value = ST.from; toSel.value = ST.to; compute(fit); }
@@ -320,9 +346,10 @@
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
     const geo = new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: true, showAccuracyCircle: true, fitBoundsOptions: { maxZoom: 18 } });
     map.addControl(geo, "top-left");
-    geo.on("geolocate", (e) => { ST.geoErr = false; ST.me = [e.coords.longitude, e.coords.latitude]; if (ST.from === MY) compute(false); });
-    geo.on("error", () => { ST.geoErr = true; if (ST.from === MY) show("Location unavailable, pick where you are"); });
-    if (navigator.permissions) navigator.permissions.query({ name: "geolocation" }).then((st) => { const upd = () => { ST.geoErr = st.state === "denied"; if (ST.from === MY && !ST.me) compute(false); }; upd(); st.onchange = upd; }).catch(() => {});
+    const useMe = () => ST.from === MY || ST.to === MY;
+    geo.on("geolocate", (e) => { ST.geoErr = false; ST.me = [e.coords.longitude, e.coords.latitude]; if (useMe()) compute(!ST.r); });
+    geo.on("error", () => { ST.geoErr = true; if (useMe()) compute(false); });
+    if (navigator.permissions) navigator.permissions.query({ name: "geolocation" }).then((st) => { const upd = () => { ST.geoErr = st.state === "denied"; if (useMe() && !ST.me) compute(false); }; upd(); st.onchange = upd; }).catch(() => {});
     map.on("load", () => {
       ["paths", "nodes", "route", "ends"].forEach((s) => map.addSource(s, { type: "geojson", data: { type: "FeatureCollection", features: [] } }));
       map.addLayer({ id: "paths", type: "line", source: "paths", paint: { "line-color": ["case", ["==", ["get", "o"], 1], "#9ca3af", "#cbd5e1"], "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1, 19, 4], "line-opacity": 0.8 } });
@@ -335,14 +362,14 @@
       map.on("mouseenter", "nodes", () => (map.getCanvas().style.cursor = "pointer"));
       map.on("mouseleave", "nodes", () => (map.getCanvas().style.cursor = ""));
       draw();
-      if (ST.r) fitTo(ST.r.p); else fitTo(Object.keys(M.G.n).filter((k) => M.G.n[k].f === "O"), 20);
+      if (ST.r) fitTo(ST.r.p); else fitTo(Object.keys(M.G.n).filter((k) => M.G.n[k].k !== "geo"), 20);
     });
   }
 
   fromSel.addEventListener("change", () => { ST.from = fromSel.value; compute(true); });
   toSel.addEventListener("change", () => { ST.to = toSel.value; compute(true); });
   stepFree.addEventListener("change", () => compute(true));
-  $("[data-swap]").addEventListener("click", () => { if (ST.from === MY) return; [ST.from, ST.to] = [ST.to, ST.from]; render(true); });
+  $("[data-swap]").addEventListener("click", () => { [ST.from, ST.to] = [ST.to, ST.from]; render(true); });
   floorsEl.addEventListener("click", (e) => { const b = e.target.closest("[data-floor]"); if (!b) return; ST.sel[b.dataset.b] = b.dataset.floor; draw(); });
   stepsEl.addEventListener("click", (e) => {
     const b = e.target.closest("[data-step]"); if (!b || !ST.r) return;
@@ -365,7 +392,7 @@
     } catch (e) { show("The map isn't available right now"); return; }
     fill();
     const h = new URLSearchParams(location.hash.slice(1));
-    ST.to = findDest(h.get("to") || "");
+    ST.to = h.get("to") === MY ? MY : findDest(h.get("to") || "");
     ST.from = h.get("from") ? findDest(h.get("from")) || MY : MY;
     if (h.get("free") === "1") stepFree.checked = true;
     if (!ST.to) { const saved = localStorage.getItem("rooms-id"); if (saved) fetch(`/api/rooms?id=${encodeURIComponent(saved)}`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d && d.rooms && !ST.to) { const k = d.rooms.map(findDest).find(Boolean); if (k) { ST.to = k; render(true); } } }).catch(() => {}); }
