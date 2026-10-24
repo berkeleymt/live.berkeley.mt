@@ -45,6 +45,8 @@ Most content lives in the `content/` and `data/` directories:
 | `data/rooms.toml`          | Room lookup                      | ContestDojo event, round columns, and failure messages   |
 | `config.toml`              | Banner on every page             | Delete the `[extra.advisory]` table to hide it           |
 | `static/images/`           | Floor plans and pictures         | Referenced from pages such as `content/map.md`           |
+| `static/images/campus.svg` | Wayfinding map                   | Figma export of the campus graph, see below              |
+| `data/map.toml`            | Wayfinding map                   | Where `campus.svg` sits on the real map (`tools/georef.py`) |
 
 A live update looks like this:
 
@@ -85,11 +87,16 @@ In addition to standard Markdown, the following _shortcodes_ are available:
 | Details     | `{% details(title="Parking") %}...{% end %}`                     |
 | Button      | `{% button_link(href="/map/") %}Open the map{% end %}`           |
 | Room search | `{{ room_lookup() }}` on its own line                            |
+| Wayfinding  | `{{ wayfinding() }}` on its own line                             |
 
 Alert, Details, and Button work the same as on berkeley.mt. Room search can go
 on any page.
 
 ## Room lookup
+
+## Wayfinding map
+
+`{{ wayfinding() }}` routes between any two points of the campus graph in `static/images/campus.svg`, a Figma export. Groups named `Building (Floor X)` hold a `Graph` group (circles, typed by fill: red door, yellow stairs, green elevator, purple exit, blue bathroom, cyan info) and a `Paths` group (hallway lines); `Outdoor Paths` and `Links` sit at the top level. Same-named stairs and elevators join floors, exits snap to the nearest outdoor path, and door nodes named like the ContestDojo room (`Dwinelle 155 (Door 1)`) become the destination `Dwinelle 155`, which is what the Directions links from the room lookup use. Floor drawings and room polygons are optional cosmetic layers; routing never reads them. The graph is drawn on OpenFreeMap tiles; `data/map.toml` says where the Figma canvas sits on the real map (re-run `tools/georef.py` if the canvas moves). Open `/map/?debug` to see the file checks in the browser console.
 
 The room search box sends the student ID to `/api/rooms?id=302A`, which is
 answered by `server/rooms_api.py`, a small standard-library Python service
@@ -178,6 +185,8 @@ To change the staff password, update `LIVE_ADMIN_PASSWORD` and re-run the
 | `data/`               | Schedule and room lookup settings                           |
 | `templates/`          | Tera templates and shortcodes                               |
 | `static/`             | Styles, fonts, images, and `live.js` (now/next, refresh)    |
+| `static/wayfinding.js`| Campus graph parser and router, MapLibre + OpenFreeMap tiles |
+| `tools/`              | `georef.py` fits `campus.svg` onto real coordinates          |
 | `server/`             | Room lookup API and staff editor                            |
 | `config.toml`         | Site settings and the banner on every page                  |
 | `Dockerfile`          | Production image                                            |

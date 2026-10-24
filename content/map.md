@@ -3,7 +3,9 @@ title = "Map & rooms"
 description = "Campus map, tournament buildings and floor plans for the Berkeley Math Tournament."
 +++
 
-Rounds take place in four buildings on the south side of campus. Check-in is at Dwinelle Hall. Your coach has your room assignment; the floor plans below show where each room is.
+Rounds take place in four buildings on the south side of campus. Check-in is at Dwinelle Hall. Your coach has your room assignment. Pick where you are and where you're going for walking directions, floor by floor.
+
+{{ wayfinding() }}
 
 ![Campus map showing Dwinelle, Wheeler, VLSB and Pauley Ballroom](/images/campus-map.png)
 

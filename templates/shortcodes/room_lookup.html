@@ -23,11 +23,9 @@
   const result = root.querySelector("[data-result]");
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const norm = (s) => s.replace(/\s+/g, "").toUpperCase();
-  const MAP = { DWINELLE: "dwinelle", WHEELER: "wheeler", VLSB: "vlsb", VALLEY: "vlsb" };
   function roomHtml(room) {
-    const slug = MAP[room.split(" ")[0].toUpperCase()];
-    const href = slug ? `/map/#${slug}` : "/map/";
-    return `<span class="text-xl font-semibold">${esc(room)}</span> <a class="text-sm font-medium text-teal-700 hover:underline whitespace-nowrap" href="${href}">View maps &amp; floor plan <i class="bi bi-arrow-right"></i></a>`;
+    const href = `/map/#to=${encodeURIComponent(room)}`;
+    return `<span class="text-xl font-semibold">${esc(room)}</span> <a class="text-sm font-medium text-teal-700 hover:underline whitespace-nowrap" href="${href}">Directions <i class="bi bi-arrow-right"></i></a>`;
   }
   function notice(key, id) {
     const msg = root.querySelector(`template[data-msg="${key}"]`).innerHTML.replaceAll("{id}", () => esc(id));

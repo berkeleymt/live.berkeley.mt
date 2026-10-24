@@ -1,0 +1,8 @@
+# Wayfinding map (the {{ wayfinding() }} block). The graph itself is static/images/campus.svg,
+# exported from Figma. These numbers place that drawing on the real map (Web Mercator):
+# meters = origin + meters_per_px * svg pixel. Recompute with tools/georef.py if the Figma
+# canvas moves or is rescaled; a fit against OpenStreetMap building outlines gave 3 m rms.
+[georef]
+origin_lon = -122.26376171204134
+origin_lat = 37.87210006023746
+meters_per_px = 0.05114842109456953
