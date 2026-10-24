@@ -217,7 +217,7 @@
     floorsEl.innerHTML = Object.keys(M.byB).map((b) => `<span class="flex items-center gap-1.5"><span class="text-gray-500">${esc(b.replace(" Hall", ""))}</span><span class="inline-flex rounded-lg border border-gray-200 overflow-hidden">` + M.byB[b].map((l) => `<button type="button" data-floor="${esc(l.key)}" data-b="${esc(b)}" class="px-2.5 py-1 hover:bg-gray-50">${esc(l.fl)}</button>`).join("") + "</span></span>").join("");
   }
   const visible = (f) => f === "O" || Object.values(ST.sel).includes(f);
-  function nodeFeature(id, n) { return { type: "Feature", id, properties: { t: n.k, name: n.name ? disp(n.name) : "", vis: visible(n.f) ? 1 : 0 }, geometry: { type: "Point", coordinates: toLngLat(n.x, n.y) } }; }
+  function nodeFeature(id, n) { return { type: "Feature", id, properties: { k: id, t: n.k, name: n.name ? disp(n.name) : "", vis: visible(n.f) ? 1 : 0 }, geometry: { type: "Point", coordinates: toLngLat(n.x, n.y) } }; }
   function draw() {
     if (!map || !map.getSource("paths")) return;
     const paths = [], nodes = [];
@@ -230,11 +230,12 @@
       const p = ST.r.p;
       for (let i = 0; i < p.length - 1; i++) { const a = M.G.n[p[i]], b = M.G.n[p[i + 1]]; if (a.f !== b.f && a.f !== "O" && b.f !== "O") continue; segs.push({ type: "Feature", properties: { vis: visible(a.f) && visible(b.f) ? 1 : 0 }, geometry: { type: "LineString", coordinates: [toLngLat(a.x, a.y), toLngLat(b.x, b.y)] } }); }
       const a = M.G.n[p[0]], b = M.G.n[p[p.length - 1]];
+      if (ST.from === MY && ST.me) segs.push({ type: "Feature", properties: { vis: 0 }, geometry: { type: "LineString", coordinates: [ST.me, toLngLat(a.x, a.y)] } });
       ends.push({ type: "Feature", properties: { end: "from" }, geometry: { type: "Point", coordinates: toLngLat(a.x, a.y) } }, { type: "Feature", properties: { end: "to" }, geometry: { type: "Point", coordinates: toLngLat(b.x, b.y) } });
     }
     map.getSource("route").setData({ type: "FeatureCollection", features: segs });
     map.getSource("ends").setData({ type: "FeatureCollection", features: ends });
-    floorsEl.querySelectorAll("[data-floor]").forEach((b) => { const on = ST.sel[b.dataset.b] === b.dataset.floor; b.classList.toggle("bg-teal-500", on); b.classList.toggle("text-white", on); });
+    floorsEl.querySelectorAll("[data-floor]").forEach((b) => { const on = ST.sel[b.dataset.b] === b.dataset.floor; b.classList.toggle("bg-teal-500", on); b.classList.toggle("text-white", on); b.classList.toggle("hover:bg-gray-50", !on); });
   }
   function fitTo(ids, pad) {
     const pts = ids.map((i) => M.G.n[i]).filter(Boolean).map((n) => toLngLat(n.x, n.y));
@@ -246,7 +247,7 @@
     if (ST.from !== MY) return M.DEST[ST.from] ? M.DEST[ST.from].ids : null;
     if (!ST.me) return null;
     const p = toSvg(ST.me[0], ST.me[1]); let bi = null, bd = 1e9;
-    Object.entries(M.G.n).forEach(([id, n]) => { const d = dist(p, [n.x, n.y]) * (n.f === "O" ? 1 : 1.5); if (d < bd) { bd = d; bi = id; } });
+    Object.entries(M.G.n).forEach(([id, n]) => { if (n.f !== "O") return; const d = dist(p, [n.x, n.y]); if (d < bd) { bd = d; bi = id; } });
     return bd * MPP < 250 ? [bi] : null;
   }
   function compute(fit) {
@@ -291,7 +292,7 @@
       map.addLayer({ id: "nodes", type: "circle", source: "nodes", paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 2, 19, ["case", ["==", ["get", "t"], "door"], 4, 6]], "circle-color": ["match", ["get", "t"], "door", COLOR.door, "stairs", COLOR.stairs, "elevator", COLOR.elevator, "exit", COLOR.exit, "bath", COLOR.bath, "info", COLOR.info, COLOR.geo], "circle-stroke-color": "#fff", "circle-stroke-width": 1 } });
       map.addLayer({ id: "labels", type: "symbol", source: "nodes", minzoom: 17.5, filter: ["match", ["get", "t"], ["door", "exit", "info"], true, false], layout: { "text-field": ["get", "name"], "text-font": ["Noto Sans Regular"], "text-size": 11, "text-offset": [0, 0.9], "text-anchor": "top", "text-optional": true }, paint: { "text-color": "#374151", "text-halo-color": "#fff", "text-halo-width": 1 } });
       map.addLayer({ id: "ends", type: "circle", source: "ends", paint: { "circle-radius": 8, "circle-color": ["case", ["==", ["get", "end"], "to"], "#0d9488", "#fff"], "circle-stroke-color": "#0d9488", "circle-stroke-width": 3 } });
-      map.on("click", "nodes", (e) => { const f = e.features[0]; const n = M.G.n[f.id]; if (!n || !n.name) return; const key = Object.keys(M.DEST).find((k) => M.DEST[k].ids.includes(f.id)); if (!key) return; if (!ST.to || ST.to === key) { ST.to = key; } else if (ST.from === MY && !ST.me) { ST.from = key; } else { ST.to = key; } render(false); });
+      map.on("click", "nodes", (e) => { const id = e.features[0].properties.k, n = M.G.n[id]; if (!n || !n.name) return; const key = Object.keys(M.DEST).find((k) => M.DEST[k].ids.includes(id)); if (!key) return; if (!ST.to || ST.to === key) { ST.to = key; } else if (ST.from === MY && !ST.me) { ST.from = key; } else { ST.to = key; } render(false); });
       map.on("mouseenter", "nodes", () => (map.getCanvas().style.cursor = "pointer"));
       map.on("mouseleave", "nodes", () => (map.getCanvas().style.cursor = ""));
       draw();
