@@ -62,7 +62,7 @@
       const doc = new DOMParser().parseFromString(await res.text(), "text/html");
       const fresh = doc.getElementById("content-wrapper");
       const mine = document.getElementById("content-wrapper");
-      if (!fresh || !mine) return;
+      if (!fresh || !mine || mine.querySelector("[data-map]")) return;
       const html = fresh.innerHTML;
       if (lastHtml === null || html === lastHtml) { lastHtml = html; return; }
       lastHtml = html;

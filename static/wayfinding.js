@@ -309,7 +309,8 @@
       }
     }
     draw();
-    const h = [ST.from && ST.from !== MY ? "from=" + encodeURIComponent(M.DEST[ST.from].label) : "", ST.to ? "to=" + encodeURIComponent(to.label) : "", stepFree.checked ? "free=1" : ""].filter(Boolean).join("&");
+    const ref = (d) => (Object.values(M.DEST).some((x) => x !== d && x.label === d.label) ? d.key : d.label);
+    const h = [ST.from && ST.from !== MY ? "from=" + encodeURIComponent(ref(M.DEST[ST.from])) : "", ST.to ? "to=" + encodeURIComponent(ref(to)) : "", stepFree.checked ? "free=1" : ""].filter(Boolean).join("&");
     history.replaceState(null, "", location.pathname + location.search + (h ? "#" + h : ""));
   }
   function render(fit) { fromSel.value = ST.from; toSel.value = ST.to; compute(fit); }
