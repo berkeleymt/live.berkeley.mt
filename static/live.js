@@ -78,7 +78,7 @@
 
   // /map/#wheeler opens that building's floor plan.
   function openHash() {
-    const el = location.hash && document.querySelector("details" + location.hash);
+    const el = /^#[\w-]+$/.test(location.hash) && document.querySelector("details" + location.hash);
     if (el) el.open = true;
   }
   openHash();

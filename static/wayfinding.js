@@ -279,9 +279,9 @@
   function initMap() {
     map = new maplibregl.Map({ container: $("[data-map]"), style: "https://tiles.openfreemap.org/styles/positron", center: toLngLat(7400, 4200), zoom: 16, minZoom: 14, maxZoom: 20, attributionControl: { compact: true }, pitchWithRotate: false, dragRotate: false });
     map.touchZoomRotate.disableRotation();
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
     const geo = new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: true, showAccuracyCircle: true, fitBoundsOptions: { maxZoom: 18 } });
-    map.addControl(geo, "top-right");
+    map.addControl(geo, "top-left");
     geo.on("geolocate", (e) => { ST.me = [e.coords.longitude, e.coords.latitude]; if (ST.from === MY) compute(false); });
     geo.on("error", () => { if (ST.from === MY) show("Location unavailable, pick where you are"); });
     map.on("load", () => {
