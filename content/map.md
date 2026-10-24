@@ -7,8 +7,6 @@ Rounds take place in four buildings on the south side of campus. Check-in is at 
 
 {{ wayfinding() }}
 
-![Campus map showing Dwinelle, Wheeler, VLSB and Pauley Ballroom](/images/campus-map.png)
-
 | Building | Used for | Directions |
 | --- | --- | --- |
 | **Dwinelle Hall** | Check-in (145 / 155), rounds, tiebreakers (229), disputes (234) | [Google Maps](https://www.google.com/maps/dir/?api=1&destination=Dwinelle+Hall,+Berkeley,+CA) |
