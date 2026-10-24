@@ -162,7 +162,7 @@
     const places = {};
     LO.pts.forEach((c) => { if (c.place) (places[c.place] = places[c.place] || []).push(c); });
     Object.keys(places).forEach((p) => { const cs = places[p], en = cs.filter((c) => c.t === "exit"); DEST["B|" + p] = { key: "B|" + p, label: p, sub: "", cat: "Buildings", ids: (en.length ? en : cs).map((c) => "O|" + c.n) }; });
-    Object.keys(byB).forEach((b) => { const ids = []; byB[b].forEach((l) => l.pts.forEach((c) => { if (/Entrance/i.test(c.n)) ids.push(l.key + "|" + c.n); })); if (!ids.length) byB[b].forEach((l) => l.pts.forEach((c) => { if (c.t === "exit") ids.push(l.key + "|" + c.n); })); if (ids.length) DEST["B|" + b] = { key: "B|" + b, label: b, sub: "", cat: "Buildings", ids }; });
+    Object.keys(byB).forEach((b) => { const ids = []; byB[b].forEach((l) => l.pts.forEach((c) => { if (/Entrance/i.test(c.n)) ids.push(l.key + "|" + c.n); })); if (!ids.length) W.push(`${b} has no door named "Entrance", so routes can't reach it`); else DEST["B|" + b] = { key: "B|" + b, label: b, sub: "", cat: "Buildings", ids }; });
     const U = {};
     Object.keys(G.a).forEach((a) => G.a[a].forEach((e) => { (U[a] = U[a] || []).push(e.to); (U[e.to] = U[e.to] || []).push(a); }));
     const sn = new Set(), cc = [];
@@ -190,7 +190,7 @@
     const walk = () => {
       const nm = Object.keys(nms).sort((a, b) => nms[b] - nms[a])[0], along = nm && nms[nm] > acc * 0.4 ? " along " + nm : "";
       const w = acc >= 3 || ps.length ? "Walk about " + r(acc) + " m" + along + (ps.length ? ", passing " + [...new Set(ps)].join(" and ") : "") : "";
-      acc = 0; ps = []; nms = {}; return w;
+      acc = 0; ps = []; nms = {}; onSteps = false; return w;
     };
     const pos = (i) => [N(i).x, N(i).y];
     const seen = new Set(), LM = Object.values(G.n).filter((n) => n.f === "O" && (n.names || []).some((c) => c.t === "info"));
@@ -205,10 +205,9 @@
         f = b.f; hd = null; continue;
       }
       if (ed.t === "steps") {
-        if (!onSteps) { const w = walk(); if (w) S.push({ f: a.f, t: w + " to the steps", at: pos(i) }); S.push({ f: a.f, t: "Take the outdoor steps", at: pos(i) }); onSteps = true; }
+        if (!onSteps || acc >= 10) { const w = walk(); if (w) S.push({ f: a.f, t: w + " to the steps", at: pos(i) }); S.push({ f: a.f, t: "Take the outdoor steps", at: pos(i) }); onSteps = true; }
         hd = null; continue;
       }
-      if (acc >= 10) onSteps = false;
       if ((a.f === "O") !== (b.f === "O")) {
         const w = walk(), inn = b.f !== "O", nm = disp(inn ? b.name : a.name);
         if (w) S.push({ f: a.f, t: w, at: pos(i) });
@@ -243,8 +242,8 @@
   const findDest = (q) => {
     if (!q) return "";
     if (M.DEST[q]) return q;
-    const n = q.replace(/\s*\([^)]*\)\s*$/, "").replace(/\s+/g, " ").trim().toLowerCase();
-    const d = Object.values(M.DEST).find((d) => (d.nm || d.label).toLowerCase() === n || d.label.toLowerCase() === n) || Object.values(M.DEST).find((d) => d.cat === "Buildings" && (d.label.toLowerCase().startsWith(n) || n.startsWith(d.label.toLowerCase().split(" ")[0])));
+    const n = q.replace(/\s*\([^)]*\)\s*$/, "").replace(/\s+/g, " ").trim().toLowerCase(), ql = q.trim().toLowerCase();
+    const d = Object.values(M.DEST).find((d) => d.label.toLowerCase() === ql) || Object.values(M.DEST).find((d) => (d.nm || d.label).toLowerCase() === n || d.label.toLowerCase() === n) || Object.values(M.DEST).find((d) => d.cat === "Buildings" && (d.label.toLowerCase().startsWith(n) || n.startsWith(d.label.toLowerCase().split(" ")[0])));
     return d ? d.key : "";
   };
   function fill() {
