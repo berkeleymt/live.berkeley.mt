@@ -34,12 +34,12 @@
 <path id="Paths_3" d="M8520 8432L8442.51 7954L8424.35 7842L8393.88 7654L9042 7558L9212 8574L8563.88 8676.19M8520 8432L8254 8474L8393.88 8764L8576 8738L8563.88 8676.19L8520 8432ZM8442.51 7954L8172 8000" stroke="black"/>
 </g>
 </g>
-<g id="Alumni House">
+<g id="Alumni House (Floor 1)">
 <g id="Graph_4">
 <path id="Paths_4" d="M4760 6118L4854.8 6752M4854.8 6752L4888 6974M4854.8 6752L5436 6670" stroke="black"/>
 <circle id="Alumni House Main Entrance [2]" cx="5191.61" cy="6610.61" r="8.5" transform="rotate(-107 5191.61 6610.61)" fill="#D000FF"/>
 <circle id="Alumni House Main Entrance [1]" cx="5212.61" cy="6774.61" r="8.5" transform="rotate(-107 5212.61 6774.61)" fill="#D000FF"/>
-<circle id="Alumni House (Door)" cx="5438.61" cy="6669.61" r="8.5" transform="rotate(-107 5438.61 6669.61)" fill="#FF0000"/>
+<circle id="Alumni House Auditorium (Door)" cx="5438.61" cy="6669.61" r="8.5" transform="rotate(-107 5438.61 6669.61)" fill="#FF0000"/>
 </g>
 </g>
 <g id="VLSB (Floor 2)" clip-path="url(#clip2_8_21)">
