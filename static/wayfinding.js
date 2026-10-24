@@ -289,7 +289,7 @@
       }
     }
     draw();
-    const h = [ST.from && ST.from !== MY ? "from=" + encodeURIComponent(M.DEST[ST.from].label) : "", ST.to ? "to=" + encodeURIComponent(to.label) : ""].filter(Boolean).join("&");
+    const h = [ST.from && ST.from !== MY ? "from=" + encodeURIComponent(M.DEST[ST.from].label) : "", ST.to ? "to=" + encodeURIComponent(to.label) : "", stepFree.checked ? "free=1" : ""].filter(Boolean).join("&");
     history.replaceState(null, "", location.pathname + location.search + (h ? "#" + h : ""));
   }
   function render(fit) { fromSel.value = ST.from; toSel.value = ST.to; compute(fit); }
@@ -347,6 +347,7 @@
     const h = new URLSearchParams(location.hash.slice(1));
     ST.to = findDest(h.get("to") || "");
     ST.from = h.get("from") ? findDest(h.get("from")) || MY : MY;
+    if (h.get("free") === "1") stepFree.checked = true;
     if (!ST.to) { const saved = localStorage.getItem("rooms-id"); if (saved) fetch(`/api/rooms?id=${encodeURIComponent(saved)}`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d && d.rooms && !ST.to) { const k = d.rooms.map(findDest).find(Boolean); if (k) { ST.to = k; render(true); } } }).catch(() => {}); }
     render(false);
     const go = () => (window.maplibregl ? initMap() : setTimeout(go, 50));
