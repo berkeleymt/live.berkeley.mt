@@ -5,13 +5,13 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <div class="not-prose my-8 flex flex-col gap-4" data-wayfinding data-svg="/images/campus.svg"
   data-lon="{{ map.georef.origin_lon }}" data-lat="{{ map.georef.origin_lat }}" data-mpp="{{ map.georef.meters_per_px }}">
-<div class="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
-  <label class="flex flex-col gap-1 text-sm text-gray-600">From
-    <select data-from class="text-base px-3 py-2.5 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400"></select></label>
+<div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-end">
+  <label class="flex flex-col gap-1 min-w-0 text-sm text-gray-600">From
+    <select data-from class="w-full min-w-0 text-base px-3 py-2.5 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400"></select></label>
   <button type="button" data-swap title="Swap" aria-label="Swap from and to"
     class="h-11 w-11 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-600 justify-self-center"><i class="bi bi-arrow-left-right"></i></button>
-  <label class="flex flex-col gap-1 text-sm text-gray-600">To
-    <select data-to class="text-base px-3 py-2.5 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400"></select></label>
+  <label class="flex flex-col gap-1 min-w-0 text-sm text-gray-600">To
+    <select data-to class="w-full min-w-0 text-base px-3 py-2.5 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400"></select></label>
 </div>
 <div class="flex flex-wrap gap-x-5 gap-y-2 text-sm" data-floors></div>
 <div data-map class="rounded-xl overflow-hidden border border-gray-200 bg-gray-100" style="height:min(70vh,560px);min-height:340px">
