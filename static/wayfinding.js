@@ -302,6 +302,7 @@
     map.addControl(geo, "top-left");
     geo.on("geolocate", (e) => { ST.geoErr = false; ST.me = [e.coords.longitude, e.coords.latitude]; if (ST.from === MY) compute(false); });
     geo.on("error", () => { ST.geoErr = true; if (ST.from === MY) show("Location unavailable, pick where you are"); });
+    if (navigator.permissions) navigator.permissions.query({ name: "geolocation" }).then((st) => { const upd = () => { ST.geoErr = st.state === "denied"; if (ST.from === MY && !ST.me) compute(false); }; upd(); st.onchange = upd; }).catch(() => {});
     map.on("load", () => {
       ["paths", "nodes", "route", "ends"].forEach((s) => map.addSource(s, { type: "geojson", data: { type: "FeatureCollection", features: [] } }));
       map.addLayer({ id: "paths", type: "line", source: "paths", paint: { "line-color": ["case", ["==", ["get", "o"], 1], "#9ca3af", "#cbd5e1"], "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1, 19, 4], "line-opacity": 0.8 } });
