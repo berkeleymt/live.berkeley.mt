@@ -208,7 +208,7 @@
         if (!onSteps) { const w = walk(); if (w) S.push({ f: a.f, t: w + " to the steps", at: pos(i) }); S.push({ f: a.f, t: "Take the outdoor steps", at: pos(i) }); onSteps = true; }
         hd = null; continue;
       }
-      onSteps = false;
+      if (acc >= 10) onSteps = false;
       if ((a.f === "O") !== (b.f === "O")) {
         const w = walk(), inn = b.f !== "O", nm = disp(inn ? b.name : a.name);
         if (w) S.push({ f: a.f, t: w, at: pos(i) });
