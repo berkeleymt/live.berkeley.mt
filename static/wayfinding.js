@@ -97,7 +97,7 @@
       d.pts.forEach((c) => { if (touched.has(c.n)) return; const r = nearest(d, [c.x, c.y]); if (r.q) { snap[c.n] = r; addSplit(r); } });
       d.links.forEach((pl) => [pl[0], pl[pl.length - 1]].forEach((p) => { if (!circAt(p)) { const r = nearest(d, p); if (r.q && r.d < 12) addSplit(r); } }));
       (extra || []).forEach((p) => { const r = nearest(d, p); if (r.q && r.d * MPP < 25) addSplit(r); });
-      d.paths.forEach((pl, pi) => [pl[0], pl[pl.length - 1]].forEach((p) => { const r = nearest(d, p, pi); if (r.q && r.d < 8 && r.d > 0.05) { addSplit(r); weld.push([p, r.q]); } }));
+      d.paths.forEach((pl, pi) => [pl[0], pl[pl.length - 1]].forEach((p) => { const r = nearest(d, p, pi), lim = f === "O" && !pl.osm ? 25 / MPP : 8; if (r.q && r.d < lim && r.d > 0.05) { addSplit(r); weld.push([p, r.q]); } }));
       const node = (p) => { const id = K(p); addN(id, { f, x: p[0], y: p[1], k: "geo", names: [] }); return id; };
       d.paths.forEach((pl, pi) => pl.slice(1).forEach((c, si) => {
         const a = pl[si], qs = (spl[pi + "_" + si] || []).slice().sort((u, v) => dist(a, u) - dist(a, v)), seq = [a, ...qs, c];
@@ -164,7 +164,7 @@
   const best = (M, u, v) => M.G.a[u].filter((x) => x.to === v).sort((a, b) => a.w - b.w)[0];
   function steps(M, p, fromLabel, toLabel) {
     const G = M.G, S = [], N = (i) => G.n[p[i]];
-    let acc = 0, hd = null, ps = [], nms = {}, f = N(0).f;
+    let acc = 0, hd = null, ps = [], nms = {}, f = N(0).f, onSteps = false;
     const r = (m) => (m > 100 ? Math.round(m / 10) * 10 : Math.max(5, Math.round(m / 5) * 5));
     const walk = () => {
       const nm = Object.keys(nms).sort((a, b) => nms[b] - nms[a])[0], along = nm && nms[nm] > acc * 0.4 ? " along " + nm : "";
@@ -183,6 +183,11 @@
         S.push({ f: a.f, to: b.f, t: "Take " + k + " " + (up ? "up" : "down") + " to Floor " + M.L[b.f].fl, at: pos(i) });
         f = b.f; hd = null; continue;
       }
+      if (ed.t === "steps") {
+        if (!onSteps) { const w = walk(); if (w) S.push({ f: a.f, t: w + " to the steps", at: pos(i) }); S.push({ f: a.f, t: "Take the outdoor steps", at: pos(i) }); onSteps = true; }
+        hd = null; continue;
+      }
+      onSteps = false;
       if ((a.f === "O") !== (b.f === "O")) {
         const w = walk(), inn = b.f !== "O", nm = disp(inn ? b.name : a.name);
         if (w) S.push({ f: a.f, t: w, at: pos(i) });
@@ -265,10 +270,11 @@
   function compute(fit) {
     ST.r = null; stepsEl.classList.add("hidden"); summary.textContent = "";
     const src = fromIds(), to = M.DEST[ST.to];
-    if (ST.from === MY && !ST.me) show(navigator.geolocation ? "Tap the location button on the map, or pick where you are" : "Pick where you are");
+    if (ST.from === MY && !ST.me) show(ST.geoErr ? "Location unavailable, pick where you are" : navigator.geolocation ? "Tap the location button on the map, or pick where you are" : "Pick where you are");
     else if (ST.from === MY && !src) show("You're not near the tournament buildings, pick a start instead");
     else show("");
-    if (src && to) {
+    if (src && to && ST.from === ST.to) summary.textContent = "You're already there";
+    else if (src && to) {
       const r = route(M, src, to.ids, stepFree.checked);
       if (!r) { summary.textContent = stepFree.checked ? "No step-free route found" : "No route found"; }
       else {
@@ -294,8 +300,8 @@
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
     const geo = new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: true, showAccuracyCircle: true, fitBoundsOptions: { maxZoom: 18 } });
     map.addControl(geo, "top-left");
-    geo.on("geolocate", (e) => { ST.me = [e.coords.longitude, e.coords.latitude]; if (ST.from === MY) compute(false); });
-    geo.on("error", () => { if (ST.from === MY) show("Location unavailable, pick where you are"); });
+    geo.on("geolocate", (e) => { ST.geoErr = false; ST.me = [e.coords.longitude, e.coords.latitude]; if (ST.from === MY) compute(false); });
+    geo.on("error", () => { ST.geoErr = true; if (ST.from === MY) show("Location unavailable, pick where you are"); });
     map.on("load", () => {
       ["paths", "nodes", "route", "ends"].forEach((s) => map.addSource(s, { type: "geojson", data: { type: "FeatureCollection", features: [] } }));
       map.addLayer({ id: "paths", type: "line", source: "paths", paint: { "line-color": ["case", ["==", ["get", "o"], 1], "#9ca3af", "#cbd5e1"], "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1, 19, 4], "line-opacity": 0.8 } });
