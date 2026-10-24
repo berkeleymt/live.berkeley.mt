@@ -319,7 +319,7 @@
     else if (useMe && !ST.me) show(ST.geoErr ? "Location unavailable, pick a place instead" : navigator.geolocation ? "Tap the location button on the map, or pick a place instead" : "Pick a place instead");
     else if (useMe && !meIds()) show(outside(), true);
     else show("");
-    if (src && dst && ST.from === ST.to && ST.from !== MY) summary.textContent = "You're already there";
+    if (src && dst && ST.from === ST.to) { if (ST.from !== MY) summary.textContent = "You're already there"; }
     else if (src && dst) {
       const r = route(M, src, dst, stepFree.checked);
       if (!r) { summary.textContent = stepFree.checked ? "No step-free route found" : "No route found"; }
