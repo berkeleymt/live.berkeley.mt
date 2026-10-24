@@ -96,7 +96,7 @@ on any page.
 
 ## Wayfinding map
 
-`{{ wayfinding() }}` routes between any two points of the campus graph in `static/images/campus.svg`, a Figma export. Groups named `Building (Floor X)` hold a `Graph` group (circles, typed by fill: red door, yellow stairs, green elevator, purple exit, blue bathroom, cyan info) and a `Paths` group (hallway lines); `Outdoor Paths` and `Links` sit at the top level. Same-named stairs and elevators join floors, exits snap to the nearest outdoor path, and door nodes named like the ContestDojo room (`Dwinelle 155 (Door 1)`) become the destination `Dwinelle 155`, which is what the Directions links from the room lookup use. Floor drawings and room polygons are optional cosmetic layers; routing never reads them. The graph is drawn on OpenFreeMap tiles; `data/map.toml` says where the Figma canvas sits on the real map (re-run `tools/georef.py` if the canvas moves). Open `/map/?debug` to see the file checks in the browser console.
+`{{ wayfinding() }}` routes between any two points of the campus graph in `static/images/campus.svg`, a Figma export. Groups named `Building (Floor X)` hold a `Graph` group (circles, typed by fill: red door, yellow stairs, green elevator, purple exit, blue bathroom, cyan info) and a `Paths` group (hallway lines); `Links` sits at the top level. Outdoors, routing uses OpenStreetMap walkways from `static/osm-paths.json` (refresh with `python3 tools/osm-paths.py`; `highway=steps` count as stairs for step-free routes and way names appear in the directions), so an `Outdoor Paths` group is optional and only needed for shortcuts OSM lacks; named circles outside buildings (Sather Gate, an info desk) stay as outdoor landmarks. Same-named stairs and elevators join floors, exits and landmarks snap to the nearest outdoor path within 25 m, and door nodes named like the ContestDojo room (`Dwinelle 155 (Door 1)`) become the destination `Dwinelle 155`, which is what the Directions links from the room lookup use. Floor drawings and room polygons are optional cosmetic layers; routing never reads them. The graph is drawn on OpenFreeMap tiles; `data/map.toml` says where the Figma canvas sits on the real map (re-run `tools/georef.py` if the canvas moves). Open `/map/?debug` to see the file checks in the browser console; `?osm=0` routes on the SVG's `Outdoor Paths` only and `?osm=only` ignores them, to compare.
 
 The room search box sends the student ID to `/api/rooms?id=302A`, which is
 answered by `server/rooms_api.py`, a small standard-library Python service
@@ -186,7 +186,7 @@ To change the staff password, update `LIVE_ADMIN_PASSWORD` and re-run the
 | `templates/`          | Tera templates and shortcodes                               |
 | `static/`             | Styles, fonts, images, and `live.js` (now/next, refresh)    |
 | `static/wayfinding.js`| Campus graph parser and router, MapLibre + OpenFreeMap tiles |
-| `tools/`              | `georef.py` fits `campus.svg` onto real coordinates          |
+| `tools/`              | `georef.py` fits `campus.svg` onto real coordinates, `osm-paths.py` refreshes the OSM walkways |
 | `server/`             | Room lookup API and staff editor                            |
 | `config.toml`         | Site settings and the banner on every page                  |
 | `Dockerfile`          | Production image                                            |

@@ -67,20 +67,20 @@
       else if (/^Links/.test(id)) { if (x.f) lay(x.f).links.push(...pl); }
     });
     Object.values(L).forEach((l) => { if (l.key !== "O" && !l.paths.length) { l.pts.forEach((p) => L.O.pts.push({ ...p, place: l.bld })); delete L[l.key]; } });
-    if (!L.O.paths.length) warn.push("No Outdoor Paths found, so buildings can't be linked");
     return { L, warn };
   }
 
   // ---- layers -> graph ----
   function makeModel(L) {
     const G = { n: {}, a: {} }, W = [], layers = Object.values(L), LO = L.O;
+    if (!LO.paths.length) W.push("No outdoor paths (OpenStreetMap or an Outdoor Paths layer), so buildings can't be linked");
     const addN = (id, o) => { if (!G.n[id]) { G.n[id] = o; G.a[id] = []; } };
-    function addE(a, b, t, m, one, w) {
+    function addE(a, b, t, m, one, w, nm) {
       if (a === b) return;
       const A = G.n[a], B = G.n[b];
       if (m === undefined) m = dist([A.x, A.y], [B.x, B.y]) * MPP;
-      if (w === undefined) w = t === "stairs" ? STAIRS : t === "elev" ? ELEV : m / WALK;
-      G.a[a].push({ to: b, t, m, w }); if (!one) G.a[b].push({ to: a, t, m, w });
+      if (w === undefined) w = t === "stairs" ? STAIRS : t === "elev" ? ELEV : (t === "steps" ? 1.5 : 1) * m / WALK;
+      G.a[a].push({ to: b, t, m, w, nm }); if (!one) G.a[b].push({ to: a, t, m, w, nm });
     }
     const proj = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], q = dx * dx + dy * dy, t = q ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / q)) : 0; return [a[0] + t * dx, a[1] + t * dy]; };
     function nearest(d, p, ex) {
@@ -96,12 +96,12 @@
       const addSplit = (r) => { const k = r.pi + "_" + r.si; (spl[k] = spl[k] || []).push(r.q); };
       d.pts.forEach((c) => { if (touched.has(c.n)) return; const r = nearest(d, [c.x, c.y]); if (r.q) { snap[c.n] = r; addSplit(r); } });
       d.links.forEach((pl) => [pl[0], pl[pl.length - 1]].forEach((p) => { if (!circAt(p)) { const r = nearest(d, p); if (r.q && r.d < 12) addSplit(r); } }));
-      (extra || []).forEach((p) => { const r = nearest(d, p); if (r.q && r.d < 40) addSplit(r); });
+      (extra || []).forEach((p) => { const r = nearest(d, p); if (r.q && r.d * MPP < 25) addSplit(r); });
       d.paths.forEach((pl, pi) => [pl[0], pl[pl.length - 1]].forEach((p) => { const r = nearest(d, p, pi); if (r.q && r.d < 8 && r.d > 0.05) { addSplit(r); weld.push([p, r.q]); } }));
       const node = (p) => { const id = K(p); addN(id, { f, x: p[0], y: p[1], k: "geo", names: [] }); return id; };
       d.paths.forEach((pl, pi) => pl.slice(1).forEach((c, si) => {
         const a = pl[si], qs = (spl[pi + "_" + si] || []).slice().sort((u, v) => dist(a, u) - dist(a, v)), seq = [a, ...qs, c];
-        seq.forEach(node); for (let i = 0; i < seq.length - 1; i++) addE(K(seq[i]), K(seq[i + 1]), "walk");
+        seq.forEach(node); for (let i = 0; i < seq.length - 1; i++) addE(K(seq[i]), K(seq[i + 1]), pl.s ? "steps" : "walk", undefined, false, undefined, pl.nm);
       }));
       weld.forEach((w) => { node(w[0]); node(w[1]); addE(K(w[0]), K(w[1]), "walk"); });
       d.pts.forEach((c) => { const id = f + "|" + c.n; addN(id, { f, x: c.x, y: c.y, k: c.t, name: c.n, names: [] }); if (snap[c.n]) { const s = K(snap[c.n].q); addE(id, s, "walk"); G.n[s].names.push(c); } });
@@ -121,7 +121,7 @@
     floors.forEach((l) => l.pts.forEach((c) => {
       if (c.t !== "exit") return;
       const r = nearest(LO, [c.x, c.y]);
-      if (r.q && r.d < 40) addE(l.key + "|" + c.n, KO(r.q), "walk", r.d * MPP, !/Entrance/i.test(c.n)); else W.push(`"${norm(c.n)}" is not near an outdoor path`);
+      if (r.q && r.d * MPP < 25) addE(l.key + "|" + c.n, KO(r.q), "walk", r.d * MPP, !/Entrance/i.test(c.n)); else W.push(`"${norm(c.n)}" is not near an outdoor path`);
     }));
     const ORD = {}, byB = {};
     floors.forEach((l) => (byB[l.bld] = byB[l.bld] || []).push(l));
@@ -157,17 +157,23 @@
       const [d, u] = q.shift();
       if (done[u]) continue; done[u] = 1;
       if (T.has(u)) { const p = [u]; while (pr[p[0]]) p.unshift(pr[p[0]]); return { p, s: d }; }
-      for (const e of G.a[u]) { if (stepFree && e.t === "stairs") continue; const nd = d + e.w; if (nd < (dd[e.to] === undefined ? 1e18 : dd[e.to])) { dd[e.to] = nd; pr[e.to] = u; q.push([nd, e.to]); } }
+      for (const e of G.a[u]) { if (stepFree && (e.t === "stairs" || e.t === "steps")) continue; const nd = d + e.w; if (nd < (dd[e.to] === undefined ? 1e18 : dd[e.to])) { dd[e.to] = nd; pr[e.to] = u; q.push([nd, e.to]); } }
     }
     return null;
   }
   const best = (M, u, v) => M.G.a[u].filter((x) => x.to === v).sort((a, b) => a.w - b.w)[0];
   function steps(M, p, fromLabel, toLabel) {
     const G = M.G, S = [], N = (i) => G.n[p[i]];
-    let acc = 0, hd = null, ps = [], f = N(0).f;
+    let acc = 0, hd = null, ps = [], nms = {}, f = N(0).f;
     const r = (m) => (m > 100 ? Math.round(m / 10) * 10 : Math.max(5, Math.round(m / 5) * 5));
-    const walk = () => { const w = acc >= 3 || ps.length ? "Walk about " + r(acc) + " m" + (ps.length ? ", passing " + [...new Set(ps)].join(" and ") : "") : ""; acc = 0; ps = []; return w; };
+    const walk = () => {
+      const nm = Object.keys(nms).sort((a, b) => nms[b] - nms[a])[0], along = nm && nms[nm] > acc * 0.4 ? " along " + nm : "";
+      const w = acc >= 3 || ps.length ? "Walk about " + r(acc) + " m" + along + (ps.length ? ", passing " + [...new Set(ps)].join(" and ") : "") : "";
+      acc = 0; ps = []; nms = {}; return w;
+    };
     const pos = (i) => [N(i).x, N(i).y];
+    const seen = new Set(), LM = Object.values(G.n).filter((n) => n.f === "O" && (n.names || []).some((c) => c.t === "info"));
+    const near = (a, b, q) => { const dx = b.x - a.x, dy = b.y - a.y, L = dx * dx + dy * dy, t = L ? Math.max(0, Math.min(1, ((q.x - a.x) * dx + (q.y - a.y) * dy) / L)) : 0; return Math.hypot(q.x - a.x - t * dx, q.y - a.y - t * dy) * MPP; };
     S.push({ f, t: "Start at " + fromLabel, at: pos(0) });
     for (let i = 0; i < p.length - 1; i++) {
       const a = N(i), b = N(i + 1), ed = best(M, p[i], p[i + 1]);
@@ -185,11 +191,17 @@
       }
       const v = [b.x - a.x, b.y - a.y];
       if (Math.hypot(v[0], v[1]) > 4) {
-        if (hd) { const ang = Math.atan2(hd[0] * v[1] - hd[1] * v[0], hd[0] * v[0] + hd[1] * v[1]) * 180 / Math.PI; if (Math.abs(ang) >= 35) { const w = walk(), d = ang > 0 ? "right" : "left"; S.push({ f, t: w ? w + ", then turn " + d : "Turn " + d, at: pos(i) }); } }
+        if (hd) { const ang = Math.atan2(hd[0] * v[1] - hd[1] * v[0], hd[0] * v[0] + hd[1] * v[1]) * 180 / Math.PI; if (Math.abs(ang) >= 35) {
+            const d = ang > 0 ? "right" : "left", last = S[S.length - 1];
+            if (last && last.turn && last.turn !== d && acc < 20) { acc += last.acc; for (const k in last.nms) nms[k] = (nms[k] || 0) + last.nms[k]; ps = last.ps.concat(ps); S.pop(); }
+            else if (acc >= (S.length === 1 ? 8 : 4) || (last && last.turn)) { const a0 = acc, n0 = nms, p0 = ps, w = walk(); S.push({ f, t: w ? w + ", then turn " + d : "Turn " + d, at: pos(i), turn: d, acc: a0, nms: n0, ps: p0 }); }
+          } }
         hd = v;
       }
-      acc += ed.m;
-      if (i + 1 < p.length - 1) (b.names || []).forEach((c) => { const n = disp(c.n); if (c.t === "info" && n !== fromLabel && n !== toLabel) ps.push(n); });
+      acc += ed.m; if (ed.nm) nms[ed.nm] = (nms[ed.nm] || 0) + ed.m;
+      const pass = (n) => { if (n !== fromLabel && n !== toLabel && !seen.has(n)) { seen.add(n); ps.push(n); } };
+      if (i + 1 < p.length - 1) (b.names || []).forEach((c) => { if (c.t === "info") pass(disp(c.n)); });
+      if (a.f === "O" && b.f === "O") LM.forEach((q) => { if (q !== a && q !== b && near(a, b, q) < 25) q.names.forEach((c) => { if (c.t === "info") pass(disp(c.n)); }); });
     }
     const w = walk(), Lp = p.length - 1;
     if (w) S.push({ f: N(Lp).f, t: w + " to " + toLabel, at: pos(Lp) });
@@ -221,7 +233,7 @@
   function draw() {
     if (!map || !map.getSource("paths")) return;
     const paths = [], nodes = [];
-    Object.values(M.L).forEach((l) => { if (!visible(l.key)) return; l.paths.forEach((pl) => paths.push({ type: "Feature", properties: { o: l.key === "O" ? 1 : 0 }, geometry: { type: "LineString", coordinates: pl.map((p) => toLngLat(p[0], p[1])) } })); });
+    Object.values(M.L).forEach((l) => { if (!visible(l.key)) return; l.paths.forEach((pl) => { if (pl.osm) return; paths.push({ type: "Feature", properties: { o: l.key === "O" ? 1 : 0 }, geometry: { type: "LineString", coordinates: pl.map((p) => toLngLat(p[0], p[1])) } }); }); });
     Object.entries(M.G.n).forEach(([id, n]) => { if (n.k !== "geo" && visible(n.f)) nodes.push(nodeFeature(id, n)); });
     map.getSource("paths").setData({ type: "FeatureCollection", features: paths });
     map.getSource("nodes").setData({ type: "FeatureCollection", features: nodes });
@@ -315,8 +327,13 @@
 
   async function start() {
     try {
-      const txt = await (await fetch(root.dataset.svg, { cache: "no-cache" })).text();
-      const { L, warn } = parseSVG(txt); M = makeModel(L); M.W.push(...warn);
+      const useOsm = root.dataset.osm && !/[?&]osm=0/.test(location.search);
+      const [txt, osm] = await Promise.all([fetch(root.dataset.svg, { cache: "no-cache" }).then((r) => r.text()), useOsm ? fetch(root.dataset.osm).then((r) => r.json()) : null]);
+      const { L, warn } = parseSVG(txt);
+      if (/[?&]osm=only/.test(location.search)) L.O.paths = [];
+      (osm ? osm.features : []).forEach((f) => { const pl = f.geometry.coordinates.map((c) => toSvg(c[0], c[1])); pl.osm = 1; pl.nm = f.properties.n; pl.s = f.properties.s; L.O.paths.push(pl); });
+      M = makeModel(L); M.W.push(...warn);
+      if (/debug/.test(location.search)) window.wayfinding = { M, ST };
       if (M.W.length && /debug/.test(location.search)) console.warn("campus.svg checks:\n" + M.W.join("\n"));
     } catch (e) { show("The map isn't available right now"); return; }
     fill();

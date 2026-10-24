@@ -3,7 +3,7 @@
     static/images/campus.svg (Figma export); its position on the real map is data/map.toml. -#}
 {%- set map = load_data(path="data/map.toml") -%}
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-<div class="not-prose my-8 flex flex-col gap-4" data-wayfinding data-svg="/images/campus.svg"
+<div class="not-prose my-8 flex flex-col gap-4" data-wayfinding data-svg="/images/campus.svg" data-osm="/osm-paths.json"
   data-lon="{{ map.georef.origin_lon }}" data-lat="{{ map.georef.origin_lat }}" data-mpp="{{ map.georef.meters_per_px }}">
 <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-end">
   <label class="flex flex-col gap-1 min-w-0 text-sm text-gray-600">From
