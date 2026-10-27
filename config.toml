@@ -11,8 +11,3 @@ site_url = "https://live.berkeley.mt"
 
 # Site-wide banner shown on every page. Delete or comment out the whole
 # [extra.advisory] table to remove it. `status` is "info", "warning" or "error".
-[extra.advisory]
-status = "info"
-title = "Archived event"
-timestamp = "Apr 12, 2026"
-body = "This page shows BmMT 2026 (April 12, 2026). Visit [berkeley.mt](https://berkeley.mt/events/bmt-2026/) for BMT 2026 on November 14."
