@@ -1,7 +1,7 @@
 # Room lookup (/rooms). server/rooms_api.py looks IDs up live on this
-# ContestDojo event and returns room names only.
+# ContestDojo event and returns room names only. Edit here or at /admin.
 
-event_id = "9hJZTzftFdrZswSyerPy"   # BmMT 2026
+event_id = "CqYgOX2GCGqEbOVrOawG"
 
 # Messages on Find my rooms when a lookup finds nothing. {id} is the ID the
 # visitor typed. **bold** and [links](/map/) work.
@@ -17,7 +17,4 @@ unavailable_title = "Room lookup isn't available right now"
 unavailable_text = "Please try again in a moment, or ask your coach or the information desk in Dwinelle Hall."
 
 # Optional: ContestDojo's roomAssignments keys are used as the round labels,
-# in order of first appearance. To rename or reorder them, list them here:
-# [[columns]]
-# key = "Testing Room"      # exactly as ContestDojo names it
-# label = "All rounds"      # what visitors see
+# in order of first appearance. List them here to rename or reorder them.
