@@ -1,9 +1,10 @@
+{% import "macros.html" as macros %}
 {% extends "base.html" %}
 
 {% block content %}
 {% if section.content %}
 <main id="content" class="prose">
-  {{ section.content | safe }}
+  {{ macros::content(html=section.content) }}
 </main>
 {% endif %}
 {% endblock %}

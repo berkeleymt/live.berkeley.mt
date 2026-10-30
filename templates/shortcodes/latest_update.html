@@ -1,7 +1,3 @@
-{#- The newest update as one line linking to the updates list. Put {{ latest_update() }} on its own line on the Home page:
-    content/updates is `transparent`, so its posts are Home's pages too, newest first. -#}
-{%- import "macros.html" as macros -%}
-{%- set pages = section.pages | default(value=[]) | filter(attribute="date") | sort(attribute="date") | reverse -%}
-{%- if pages -%}
-<div class="not-prose">{{ macros::update_card(page=pages | first) }}</div>
-{%- endif -%}
+{#- The newest update as one line linking to the updates list. Put {{ latest_update() }} on its own line in any page.
+    Shortcodes render before Zola knows about other pages, so this only leaves a marker; macros::content fills it in. -#}
+<!--latest_update-->

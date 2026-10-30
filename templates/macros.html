@@ -110,3 +110,14 @@
   {% endif %}
 </details>
 {% endmacro schedule_row %}
+
+{# Page/section HTML with widget markers filled in. {{ latest_update() }} leaves <!--latest_update--> because
+   shortcodes can't see other pages; here the newest update is looked up and the card put in its place. #}
+{% macro content(html) %}
+{% set parts = html | split(pat="<!--latest_update-->") %}
+{% if parts | length > 1 %}{% set updates = get_section(path="updates/_index.md") %}{% endif %}
+{% for part in parts %}
+{% if not loop.first and updates.pages %}<div class="not-prose">{{ self::update_card(page=updates.pages | first) }}</div>{% endif %}
+{{ part | safe }}
+{% endfor %}
+{% endmacro content %}
