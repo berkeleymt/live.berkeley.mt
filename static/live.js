@@ -4,7 +4,6 @@
 (function () {
   const TZ = "America/Los_Angeles";
   const mins = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
-  const t12 = (t) => { const [h, m] = t.split(":").map(Number); return `${(h + 11) % 12 + 1}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`; };
   const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
 
   function pacificNow(tz) {
@@ -24,21 +23,9 @@
     const phase = date < data.date ? "before" : date > data.date ? "after" : "today";
     const current = phase === "today" ? events.find((e) => mins(e.start) <= now && mins(e.end) > now) : null;
     const next = phase === "after" ? null : events.find((e) => mins(e.start) > now || phase === "before");
-    const meta = (e) => `${t12(e.start)} to ${t12(e.end)}${e.location ? ", " + e.location : ""}`;
 
-    if (phase === "today") {
-      if (current) {
-        setText("now-label", "Happening now"); setText("now-title", current.title); setText("now-meta", meta(current));
-      } else {
-        setText("now-label", next ? "Between events" : "That's a wrap"); setText("now-title", data.title);
-        setText("now-meta", next ? "Nothing scheduled right now." : "Thanks for coming! Scores and photos follow on berkeley.mt.");
-      }
-    } else if (phase === "after") {
-      setText("now-label", "Event complete"); setText("now-meta", "Thanks for being part of " + data.title + ". The schedule and updates stay available.");
-    }
-    setText("next-label", phase === "before" ? "First on the schedule" : next ? "Up next" : "Later today");
-    setText("next-title", next ? next.title : "No more scheduled events");
-    setText("next-meta", next ? meta(next) : "Keep an eye on live updates.");
+    setText("sched-status", phase === "before" ? "Upcoming" : phase === "after" ? "Finished" : current ? "Live" : next ? "Live · between rounds" : "Live · all done");
+    document.getElementById("live-dot")?.classList.toggle("hidden", phase !== "today");
 
     document.querySelectorAll("[data-event]").forEach((row) => {
       const e = data.events[Number(row.dataset.event)];
