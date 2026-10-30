@@ -297,8 +297,8 @@ def page_for(path):
 
 
 # ---------------------------------------------------------------- documents
-PAGE_LABELS = {"content/_index.md": "Home page (help & FAQ)", "content/guide.md": "Tournament guide",
-               "content/map.md": "Map & rooms", "content/rooms.md": "Find my rooms", "content/lost-found.md": "Lost & found"}
+PAGE_LABELS = {"content/_index.md": "Home", "content/rooms.md": "My rooms", "content/map.md": "Map",
+               "content/updates/_index.md": "Updates", "content/guide.md": "Guide", "content/lost-found.md": "Lost & found"}
 DATA_ITEMS = [("data/schedule.toml", "Tournament schedule", "calendar3"), ("data/rooms.toml", "Rooms", "door-open"),
               ("config.toml", "Settings", "gear")]
 HIDDEN_STATIC = re.compile(r"^static/(fonts/|input\.css|style\.css|live\.js|site\.webmanifest|browserconfig\.xml|favicon|android-chrome|apple-touch|mstile|safari-pinned)")
@@ -511,7 +511,7 @@ def list_items():
             items["updates"].append({"path": p, "title": fields.get("title") or os.path.basename(p)[16:-3].replace("-", " "),
                                      "date": str(fields.get("date", "")) or (f"{m.group(1)}T{m.group(2)}:{m.group(3)}:00" if m else ""),
                                      "urgent": bool(fields.get("urgent", False))})
-        elif p.startswith("content/") and p.endswith(".md") and "/updates/" not in p:
+        elif p.startswith("content/") and p.endswith(".md"):
             text = local_text(p)
             fields = parse_front(text)[0] if text else {}
             items["pages"].append({"path": p, "title": PAGE_LABELS.get(p) or fields.get("title") or os.path.basename(p)})

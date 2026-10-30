@@ -111,13 +111,20 @@
 </details>
 {% endmacro schedule_row %}
 
-{# Page/section HTML with widget markers filled in. {{ latest_update() }} leaves <!--latest_update--> because
-   shortcodes can't see other pages; here the newest update is looked up and the card put in its place. #}
+{# Page/section HTML with widget markers filled in. {{ latest_update() }} and {{ updates() }} leave
+   <!--latest_update--> / <!--updates--> because shortcodes can't see other pages; here they are looked up. #}
 {% macro content(html) %}
-{% set parts = html | split(pat="<!--latest_update-->") %}
-{% if parts | length > 1 %}{% set updates = get_section(path="updates/_index.md") %}{% endif %}
-{% for part in parts %}
+{% set updates = get_section(path="updates/_index.md") %}
+{% for part in html | split(pat="<!--latest_update-->") %}
 {% if not loop.first and updates.pages %}<div class="not-prose">{{ self::update_card(page=updates.pages | first) }}</div>{% endif %}
-{{ part | safe }}
+{% for piece in part | split(pat="<!--updates-->") %}
+{% if not loop.first %}
+<div class="not-prose flex flex-col gap-4">
+  {% for page in updates.pages %}{{ self::update_article(page=page) }}{% endfor %}
+  {% if not updates.pages %}<p class="text-gray-500">No updates yet. Announcements from the organizers will appear here.</p>{% endif %}
+</div>
+{% endif %}
+{{ piece | safe }}
+{% endfor %}
 {% endfor %}
 {% endmacro content %}

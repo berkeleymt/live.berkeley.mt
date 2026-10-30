@@ -14,6 +14,13 @@
     return { date: `${get("year")}-${get("month")}-${get("day")}`, now: Number(get("hour")) * 60 + Number(get("minute")) };
   }
 
+  // Finished rounds fold away so the current one is never further down than the second row;
+  // the one just before it stays for context, the rest are behind the "earlier" button.
+  let showEarlier = false;
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-earlier]")) { showEarlier = !showEarlier; render(); }
+  });
+
   function render() {
     const raw = document.getElementById("schedule-data");
     if (!raw) return;
@@ -37,6 +44,16 @@
       row.querySelector(".now-badge")?.classList.toggle("hidden", !isNow);
       row.querySelector(".next-badge")?.classList.toggle("hidden", !isNext);
     });
+
+    const rows = [...document.querySelectorAll("[data-event]")];
+    const anchor = phase === "today" ? rows.findIndex((r) => r.classList.contains("is-now") || r.querySelector(".next-badge:not(.hidden)")) : -1;
+    const folded = Math.max(0, anchor - 1);
+    rows.forEach((row, i) => row.classList.toggle("hidden", i < folded && !showEarlier));
+    const btn = document.querySelector("[data-earlier]");
+    if (btn) {
+      btn.classList.toggle("hidden", folded === 0);
+      btn.textContent = showEarlier ? "Hide earlier rounds" : `${folded} earlier round${folded === 1 ? "" : "s"}`;
+    }
   }
 
   // Compare server HTML with the last server HTML (never with the live DOM, which

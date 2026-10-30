@@ -15,6 +15,7 @@
     </p>
   </div>
   <div class="py-1">
+    <button type="button" data-earlier class="hidden w-full text-left text-sm text-gray-500 px-4 py-2 hover:bg-gray-50 transition-colors"></button>
     {%- for e in s.events %}
     {{ macros::schedule_row(e=e, i=loop.index0) }}
     {%- endfor %}
