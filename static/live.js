@@ -52,7 +52,7 @@
     const btn = document.querySelector("[data-earlier]");
     if (btn) {
       btn.classList.toggle("hidden", folded === 0);
-      btn.textContent = showEarlier ? "Hide earlier rounds" : `${folded} earlier round${folded === 1 ? "" : "s"}`;
+      btn.innerHTML = `<i class="bi ${showEarlier ? "bi-chevron-up" : "bi-chevron-down"} text-xs mr-1.5"></i>${showEarlier ? "Hide earlier rounds" : `${folded} earlier round${folded === 1 ? "" : "s"}`}`;
     }
   }
 
