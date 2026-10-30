@@ -285,7 +285,7 @@ def page_for(path):
         name = os.path.splitext(os.path.basename(path))[0]
         return "/" if name == "_index" else f"/{name}/"
     if path == "data/schedule.toml":
-        return "/schedule/"
+        return "/#schedule"
     if path == "data/rooms.toml":
         return "/rooms/"
     if path == "config.toml":
@@ -297,9 +297,8 @@ def page_for(path):
 
 
 # ---------------------------------------------------------------- documents
-PAGE_LABELS = {"content/_index.md": "Home page", "content/faq.md": "FAQ", "content/guide.md": "Tournament guide",
-               "content/help.md": "Help", "content/map.md": "Map & rooms", "content/rooms.md": "Find my rooms",
-               "content/lost-found.md": "Lost & found", "content/schedule.md": "Schedule page"}
+PAGE_LABELS = {"content/_index.md": "Home page (help & FAQ)", "content/guide.md": "Tournament guide",
+               "content/map.md": "Map & rooms", "content/rooms.md": "Find my rooms", "content/lost-found.md": "Lost & found"}
 DATA_ITEMS = [("data/schedule.toml", "Tournament schedule", "calendar3"), ("data/rooms.toml", "Rooms", "door-open"),
               ("config.toml", "Settings", "gear")]
 HIDDEN_STATIC = re.compile(r"^static/(fonts/|input\.css|style\.css|live\.js|site\.webmanifest|browserconfig\.xml|favicon|android-chrome|apple-touch|mstile|safari-pinned)")
