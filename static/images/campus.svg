@@ -1,10 +1,11 @@
 <svg width="13826" height="11594" viewBox="0 0 13826 11594" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g id="General" clip-path="url(#clip0_8_21)">
 <rect width="13826" height="11594" fill="white"/>
-<g id="Hearst Field Annex">
+<g id="Hearst Field Annex (Floor 1)">
 <g id="Graph">
 <circle id="HFAX Main Entrance [1]" cx="13544.4" cy="8079.43" r="8.5" transform="rotate(-117 13544.4 8079.43)" fill="#D000FF"/>
 <circle id="HFAX A1 (Door)" cx="13444.6" cy="8115.61" r="8.5" transform="rotate(-107 13444.6 8115.61)" fill="#FF0000"/>
+<path id="Paths" d="M13541 8081L13445 8117.97" stroke="black"/>
 </g>
 </g>
 <g id="MLK Student Union (Floor 3)">
@@ -13,7 +14,7 @@
 <circle id="Elevator [4]" cx="9143.49" cy="8546.76" r="8.5" transform="rotate(-107 9143.49 8546.76)" fill="#00FF00"/>
 <circle id="Pauley Ballroom (Door 2)" cx="9300.61" cy="8456.61" r="8.5" transform="rotate(-107 9300.61 8456.61)" fill="#FF0000"/>
 <circle id="Pauley Ballroom (Door 1)" cx="8965.61" cy="8508.61" r="8.5" transform="rotate(-107 8965.61 8508.61)" fill="#FF0000"/>
-<path id="Paths" d="M9302 8467L9317 8559L8980 8619.97L8966 8523" stroke="black"/>
+<path id="Paths_2" d="M9302 8467L9317 8559L8980 8619.97L8966 8523" stroke="black"/>
 </g>
 </g>
 <g id="MLK Student Union (Floor 2)">
@@ -24,7 +25,7 @@
 <circle id="Elevator [4]_2" cx="9143.49" cy="8546.81" r="8.5" transform="rotate(-107 9143.49 8546.81)" fill="#00FF00"/>
 <circle id="Female Bathroom [7] (Door)" cx="9067.61" cy="8277.61" r="8.5" transform="rotate(-107 9067.61 8277.61)" fill="#0000FF"/>
 <circle id="Male Bathroom [7] (Door)" cx="9088.61" cy="8180.61" r="8.5" transform="rotate(-107 9088.61 8180.61)" fill="#0000FF"/>
-<path id="Paths_2" d="M8885.75 8620.38L8499.75 8500.38M8885.75 8620.38L8803.75 8164.38L8257.75 8248.38M8885.75 8620.38L9442 8552L9398 8238L9102 8274L9094 8205M8885.75 8620.38L8943.75 8930.38" stroke="black"/>
+<path id="Paths_3" d="M8885.75 8620.38L8499.75 8500.38M8885.75 8620.38L8803.75 8164.38L8257.75 8248.38M8885.75 8620.38L9442 8552L9398 8238L9102 8274L9094 8205M8885.75 8620.38L8943.75 8930.38" stroke="black"/>
 </g>
 </g>
 <g id="MLK Student Union (Floor 1)" clip-path="url(#clip1_8_21)">
@@ -38,12 +39,12 @@
 <circle id="Elevator [4]_3" cx="9109.61" cy="8540.61" r="8.5" transform="rotate(-107 9109.61 8540.61)" fill="#00FF00"/>
 <circle id="Female Bathroom [6] (Door)" cx="9115.61" cy="8214.61" r="8.5" transform="rotate(-107 9115.61 8214.61)" fill="#0000FF"/>
 <circle id="Male Bathroom [6] (Door)" cx="9125.61" cy="8311.61" r="8.5" transform="rotate(-107 9125.61 8311.61)" fill="#0000FF"/>
-<path id="Paths_3" d="M8520 8432L8442.51 7954L8424.35 7842L8393.88 7654L9042 7558L9212 8574L8563.88 8676.19M8520 8432L8254 8474L8393.88 8764L8576 8738L8563.88 8676.19L8520 8432ZM8442.51 7954L8172 8000" stroke="black"/>
+<path id="Paths_4" d="M8520 8432L8442.51 7954L8424.35 7842L8393.88 7654L9042 7558L9212 8574L8563.88 8676.19M8520 8432L8254 8474L8393.88 8764L8576 8738L8563.88 8676.19L8520 8432ZM8442.51 7954L8172 8000" stroke="black"/>
 </g>
 </g>
 <g id="Alumni House (Floor 1)">
 <g id="Graph_5">
-<path id="Paths_4" d="M4760 6118L4854.8 6752M4854.8 6752L4888 6974M4854.8 6752L5436 6670" stroke="black"/>
+<path id="Paths_5" d="M4760 6118L4854.8 6752M4854.8 6752L4888 6974M4854.8 6752L5436 6670" stroke="black"/>
 <circle id="Alumni House Main Entrance [2]" cx="5191.61" cy="6610.61" r="8.5" transform="rotate(-107 5191.61 6610.61)" fill="#D000FF"/>
 <circle id="Alumni House Main Entrance [1]" cx="5212.61" cy="6774.61" r="8.5" transform="rotate(-107 5212.61 6774.61)" fill="#D000FF"/>
 <circle id="Alumni House Auditorium (Door)" cx="5438.61" cy="6669.61" r="8.5" transform="rotate(-107 5438.61 6669.61)" fill="#FF0000"/>
@@ -51,7 +52,7 @@
 </g>
 <g id="VLSB (Floor 2)" clip-path="url(#clip2_8_21)">
 <g id="Graph_6">
-<path id="Paths_5" d="M3327.53 1014L4335.6 734.001M3327.53 1014L3290 878M3327.53 1014L3725.5 2456M4604.07 1704L4465.68 1204L4335.6 734.001M4335.6 734.001L4288 562M3725.5 2456L4731.93 2166M3725.5 2456L3768 2610M4604.07 1704L4731.93 2166L4774 2318M4465.68 1204L4892 1078M4604.07 1704L5044 1580" stroke="black"/>
+<path id="Paths_6" d="M3327.53 1014L4335.6 734.001M3327.53 1014L3290 878M3327.53 1014L3725.5 2456M4604.07 1704L4465.68 1204L4335.6 734.001M4335.6 734.001L4288 562M3725.5 2456L4731.93 2166M3725.5 2456L3768 2610M4604.07 1704L4731.93 2166L4774 2318M4465.68 1204L4892 1078M4604.07 1704L5044 1580" stroke="black"/>
 <circle id="Tyrannosaurus Rex Exhibit" cx="3507.51" cy="1752.51" r="8.5" transform="rotate(-106 3507.51 1752.51)" fill="#00EEFF"/>
 <circle id="Exit [9]" cx="3291.92" cy="880.596" r="8.5" transform="rotate(-106 3291.92 880.596)" fill="#D000FF"/>
 <circle id="Exit [8]" cx="4291.51" cy="560.514" r="8.5" transform="rotate(-106 4291.51 560.514)" fill="#D000FF"/>
@@ -74,7 +75,7 @@
 <g id="Wheeler Hall (Floor 2)">
 <rect width="2705.77" height="2090.16" transform="translate(10596.2 680) rotate(74)" fill="white"/>
 <g id="Graph_7">
-<path id="Paths_6" d="M9478.91 1951.94L9698.48 2703.95L10587 2461.33L10356 1692L9478.91 1951.94ZM9478.91 1951.94L9450.02 1845.94" stroke="black"/>
+<path id="Paths_7" d="M9478.91 1951.94L9698.48 2703.95L10587 2461.33L10356 1692L9478.91 1951.94ZM9478.91 1951.94L9450.02 1845.94" stroke="black"/>
 <circle id="Stairs [8]" cx="10605.6" cy="2531.57" r="8.5" transform="rotate(-107 10605.6 2531.57)" fill="#FFDD00"/>
 <circle id="Stairs [9]" cx="9721.64" cy="2785.56" r="8.5" transform="rotate(-107 9721.64 2785.56)" fill="#FFDD00"/>
 <circle id="Stairs [10]" cx="9439.62" cy="1823.56" r="8.5" transform="rotate(-107 9439.62 1823.56)" fill="#FFDD00"/>
@@ -100,7 +101,7 @@
 <g id="Wheeler Hall (Floor 1)">
 <rect width="2705.77" height="2090.16" transform="translate(10596.2 680) rotate(74)" fill="white"/>
 <g id="Graph_8">
-<path id="Paths_7" d="M10589 2523L10144 2645.95L9713.97 2761.95M10589 2523L10325 1712M10589 2523L10660 2730M10325 1712L10228 1399M10325 1712L9478.86 1951.95M9713.97 2761.95L9769.98 2970M9296 1302L9478.86 1951.95L9713.97 2761.95" stroke="black"/>
+<path id="Paths_8" d="M10589 2523L10144 2645.95L9713.97 2761.95M10589 2523L10325 1712M10589 2523L10660 2730M10325 1712L10228 1399M10325 1712L9478.86 1951.95M9713.97 2761.95L9769.98 2970M9296 1302L9478.86 1951.95L9713.97 2761.95" stroke="black"/>
 <circle id="Stairs [8]_2" cx="10529.6" cy="2583.56" r="8.5" transform="rotate(-107 10529.6 2583.56)" fill="#FFDD00"/>
 <circle id="Stairs [9]_2" cx="9797.59" cy="2789.57" r="8.5" transform="rotate(-107 9797.59 2789.57)" fill="#FFDD00"/>
 <circle id="Stairs [10]_2" cx="9505.59" cy="1747.57" r="8.5" transform="rotate(-107 9505.59 1747.57)" fill="#FFDD00"/>
@@ -133,7 +134,7 @@
 <g id="Wheeler Hall (Floor B)">
 <rect width="2705.77" height="2090.16" transform="translate(10596.2 680) rotate(74)" fill="white"/>
 <g id="Graph_9">
-<path id="Paths_8" d="M10228 1557.95L10274 1727.95L9478.89 1951.95M9714 2761.95L9478.89 1951.95L9386 1631.95" stroke="black"/>
+<path id="Paths_9" d="M10228 1557.95L10274 1727.95L9478.89 1951.95M9714 2761.95L9478.89 1951.95L9386 1631.95" stroke="black"/>
 <circle id="Stairs [9]_3" cx="9781.61" cy="2733.57" r="8.5" transform="rotate(-107 9781.61 2733.57)" fill="#FFDD00"/>
 <circle id="Stairs [10]_3" cx="9505.61" cy="1747.57" r="8.5" transform="rotate(-107 9505.61 1747.57)" fill="#FFDD00"/>
 <circle id="Stairs [11]_3" cx="10226.6" cy="1557.57" r="8.5" transform="rotate(-107 10226.6 1557.57)" fill="#FFDD00"/>
@@ -151,7 +152,7 @@
 <g id="Dwinelle Hall (Floor E)">
 <rect width="4096" height="3169" transform="translate(6069.55 6123.55) rotate(-107)" fill="white"/>
 <g id="Graph_10">
-<path id="Paths_9" d="M6536.44 5126.48L7356.27 4989.68L7427.88 4977.67L8092.33 4866.21M7427.88 4977.67L7073.46 3476.37L7720.4 3278.58" stroke="black"/>
+<path id="Paths_10" d="M6536.44 5126.48L7356.27 4989.68L7427.88 4977.67L8092.33 4866.21M7427.88 4977.67L7073.46 3476.37L7720.4 3278.58" stroke="black"/>
 <circle id="Stairs [1]" cx="7148.6" cy="3621.23" r="8.5" transform="rotate(-107 7148.6 3621.23)" fill="#FFDD00"/>
 <circle id="Stairs [3]" cx="7446.56" cy="4859.21" r="8.5" transform="rotate(-107 7446.56 4859.21)" fill="#FFDD00"/>
 <circle id="Stairs [5]" cx="6544.48" cy="5171.6" r="8.5" transform="rotate(-107 6544.48 5171.6)" fill="#FFDD00"/>
@@ -219,58 +220,58 @@
 </g>
 </g>
 <g id="Dwinelle Hall (Floor D)">
-<rect width="4096" height="3169" transform="translate(6445.55 5975.55) rotate(-107)" fill="white"/>
+<rect width="4096" height="3169" transform="translate(6066.55 6112.55) rotate(-107)" fill="white"/>
 <g id="Graph_11">
-<path id="Paths_10" d="M6912.44 4978.48L7687.64 4846.22M7687.64 4846.22L8471.57 4715.13L8436 4510M7687.64 4846.22L7516.2 4133.01M8138 3274L8092.6 3118.15L7338.55 3348.68L7516.2 4133.01M7516.2 4133.01L6993.72 4259.29M7516.2 4133.01L7840 4052" stroke="black"/>
-<path id="Links" d="M7189.14 3605.59L7294.73 4087.79L7315.15 4181.93M7076.47 4239.22L7055.17 4142.21L6943.55 3660.81L7189.14 3605.59L7219.03 3599.07M7145.83 4223.24L7167.57 4314.89L7245.36 4644.55L7428.49 4607.38L7352.04 4275.22L7329.97 4177.4" stroke="black"/>
-<circle id="Stairs [1]_2" cx="7451.55" cy="3497.66" r="8.5" transform="rotate(-107 7451.55 3497.66)" fill="#FFDD00"/>
-<circle id="Stairs [2]" cx="7218.74" cy="3598.11" r="8.5" transform="rotate(-107 7218.74 3598.11)" fill="#FFDD00"/>
-<circle id="Stairs [3]_2" cx="7745.34" cy="4725.4" r="8.5" transform="rotate(-107 7745.34 4725.4)" fill="#FFDD00"/>
-<circle id="Stairs [4]" cx="7035.93" cy="4354.61" r="8.5" transform="rotate(-107 7035.93 4354.61)" fill="#FFDD00"/>
-<circle id="Stairs [5]_2" cx="6920.48" cy="5023.6" r="8.5" transform="rotate(-107 6920.48 5023.6)" fill="#FFDD00"/>
-<circle id="Stairs [6]_2" cx="8481.34" cy="4779.59" r="8.5" transform="rotate(-107 8481.34 4779.59)" fill="#FFDD00"/>
-<circle id="Stairs [7]_2" cx="8077.78" cy="3097.06" r="8.5" transform="rotate(-107 8077.78 3097.06)" fill="#FFDD00"/>
-<circle id="Exit [3]" cx="8139.61" cy="3273.61" r="8.5" transform="rotate(-107 8139.61 3273.61)" fill="#D000FF"/>
-<circle id="Exit [2]" cx="8429.61" cy="4511.61" r="8.5" transform="rotate(-107 8429.61 4511.61)" fill="#D000FF"/>
-<circle id="Dwinelle Main Entrance" cx="7839.61" cy="4049.61" r="8.5" transform="rotate(-107 7839.61 4049.61)" fill="#D000FF"/>
-<circle id="Elevator [1]_2" cx="7253.02" cy="3505.02" r="8.5" transform="rotate(-107 7253.02 3505.02)" fill="#00FF00"/>
-<circle id="Dwinelle Info Desk" cx="7519.15" cy="4132.63" r="8.5" transform="rotate(-107 7519.15 4132.63)" fill="#00EEFF"/>
-<circle id="Dwinelle 189 (Door)" cx="7950.6" cy="3135.94" r="8.5" transform="rotate(-107 7950.6 3135.94)" fill="#FF0000"/>
-<circle id="Dwinelle 187 (Door)" cx="7860.7" cy="3163.43" r="8.5" transform="rotate(-107 7860.7 3163.43)" fill="#FF0000"/>
-<circle id="Dwinelle 183 (Door)" cx="7688.57" cy="3216.05" r="8.5" transform="rotate(-107 7688.57 3216.05)" fill="#FF0000"/>
-<circle id="Dwinelle 182 (Door 2)" cx="7801" cy="3248.6" r="8.5" transform="rotate(-107 7801 3248.6)" fill="#FF0000"/>
-<circle id="Dwinelle 182 (Door 1)" cx="7678.59" cy="3286.03" r="8.5" transform="rotate(-107 7678.59 3286.03)" fill="#FF0000"/>
-<circle id="Dwinelle 179 (Door)" cx="7516.43" cy="3268.68" r="8.5" transform="rotate(-107 7516.43 3268.68)" fill="#FF0000"/>
-<circle id="Dwinelle 155 (Door 3)" cx="7190.05" cy="3606.88" r="8.5" transform="rotate(-107 7190.05 3606.88)" fill="#FF0000"/>
-<circle id="Dwinelle 155 (Door 2)" cx="7292.49" cy="4089" r="8.5" transform="rotate(-107 7292.49 4089)" fill="#FF0000"/>
-<circle id="Dwinelle 155 (Door 1)" cx="7056.09" cy="4143.49" r="8.5" transform="rotate(-107 7056.09 4143.49)" fill="#FF0000"/>
-<circle id="Dwinelle 145 (Door 2)" cx="7357.44" cy="4274.09" r="8.5" transform="rotate(-107 7357.44 4274.09)" fill="#FF0000"/>
-<circle id="Dwinelle 145 (Door 1)" cx="7166.95" cy="4314.56" r="8.5" transform="rotate(-107 7166.95 4314.56)" fill="#FF0000"/>
-<circle id="Dwinelle 134 (Door)" cx="7107.72" cy="4910.93" r="8.5" transform="rotate(-107 7107.72 4910.93)" fill="#FF0000"/>
-<circle id="Dwinelle 130 (Door)" cx="7210.53" cy="4898.32" r="8.5" transform="rotate(-107 7210.53 4898.32)" fill="#FF0000"/>
-<circle id="Dwinelle 109 (Door)" cx="8140.54" cy="4796.99" r="8.5" transform="rotate(-107 8140.54 4796.99)" fill="#FF0000"/>
-<circle id="Dwinelle 106 (Door)" cx="8170.87" cy="4735.43" r="8.5" transform="rotate(-107 8170.87 4735.43)" fill="#FF0000"/>
-<circle id="Dwinelle 105 (Door)" cx="8315.79" cy="4771.64" r="8.5" transform="rotate(-107 8315.79 4771.64)" fill="#FF0000"/>
+<path id="Paths_11" d="M6533.44 5115.48L7308.64 4983.22M7308.64 4983.22L8092.57 4852.13L8057 4647M7308.64 4983.22L7137.2 4270.01M7759 3411L7713.6 3255.15L6959.55 3485.68L7137.2 4270.01M7137.2 4270.01L6614.72 4396.29M7137.2 4270.01L7461 4189" stroke="black"/>
+<path id="Links" d="M6810.14 3742.59L6915.73 4224.79L6936.15 4318.93M6697.47 4376.22L6676.17 4279.21L6564.55 3797.81L6810.14 3742.59L6840.03 3736.07M6766.83 4360.24L6788.57 4451.89L6866.36 4781.55L7049.49 4744.38L6973.04 4412.22L6950.97 4314.4" stroke="black"/>
+<circle id="Stairs [1]_2" cx="7072.55" cy="3634.66" r="8.5" transform="rotate(-107 7072.55 3634.66)" fill="#FFDD00"/>
+<circle id="Stairs [2]" cx="6839.74" cy="3735.11" r="8.5" transform="rotate(-107 6839.74 3735.11)" fill="#FFDD00"/>
+<circle id="Stairs [3]_2" cx="7366.34" cy="4862.4" r="8.5" transform="rotate(-107 7366.34 4862.4)" fill="#FFDD00"/>
+<circle id="Stairs [4]" cx="6656.93" cy="4491.61" r="8.5" transform="rotate(-107 6656.93 4491.61)" fill="#FFDD00"/>
+<circle id="Stairs [5]_2" cx="6541.48" cy="5160.6" r="8.5" transform="rotate(-107 6541.48 5160.6)" fill="#FFDD00"/>
+<circle id="Stairs [6]_2" cx="8102.34" cy="4916.59" r="8.5" transform="rotate(-107 8102.34 4916.59)" fill="#FFDD00"/>
+<circle id="Stairs [7]_2" cx="7698.78" cy="3234.06" r="8.5" transform="rotate(-107 7698.78 3234.06)" fill="#FFDD00"/>
+<circle id="Exit [3]" cx="7760.61" cy="3410.61" r="8.5" transform="rotate(-107 7760.61 3410.61)" fill="#D000FF"/>
+<circle id="Exit [2]" cx="8050.61" cy="4648.61" r="8.5" transform="rotate(-107 8050.61 4648.61)" fill="#D000FF"/>
+<circle id="Dwinelle Main Entrance" cx="7460.61" cy="4186.61" r="8.5" transform="rotate(-107 7460.61 4186.61)" fill="#D000FF"/>
+<circle id="Elevator [1]_2" cx="6874.02" cy="3642.02" r="8.5" transform="rotate(-107 6874.02 3642.02)" fill="#00FF00"/>
+<circle id="Dwinelle Info Desk" cx="7140.15" cy="4269.63" r="8.5" transform="rotate(-107 7140.15 4269.63)" fill="#00EEFF"/>
+<circle id="Dwinelle 189 (Door)" cx="7571.6" cy="3272.94" r="8.5" transform="rotate(-107 7571.6 3272.94)" fill="#FF0000"/>
+<circle id="Dwinelle 187 (Door)" cx="7481.7" cy="3300.43" r="8.5" transform="rotate(-107 7481.7 3300.43)" fill="#FF0000"/>
+<circle id="Dwinelle 183 (Door)" cx="7309.57" cy="3353.05" r="8.5" transform="rotate(-107 7309.57 3353.05)" fill="#FF0000"/>
+<circle id="Dwinelle 182 (Door 2)" cx="7422" cy="3385.6" r="8.5" transform="rotate(-107 7422 3385.6)" fill="#FF0000"/>
+<circle id="Dwinelle 182 (Door 1)" cx="7299.59" cy="3423.03" r="8.5" transform="rotate(-107 7299.59 3423.03)" fill="#FF0000"/>
+<circle id="Dwinelle 179 (Door)" cx="7137.43" cy="3405.68" r="8.5" transform="rotate(-107 7137.43 3405.68)" fill="#FF0000"/>
+<circle id="Dwinelle 155 (Door 3)" cx="6811.05" cy="3743.88" r="8.5" transform="rotate(-107 6811.05 3743.88)" fill="#FF0000"/>
+<circle id="Dwinelle 155 (Door 2)" cx="6913.49" cy="4226" r="8.5" transform="rotate(-107 6913.49 4226)" fill="#FF0000"/>
+<circle id="Dwinelle 155 (Door 1)" cx="6677.09" cy="4280.49" r="8.5" transform="rotate(-107 6677.09 4280.49)" fill="#FF0000"/>
+<circle id="Dwinelle 145 (Door 2)" cx="6978.44" cy="4411.09" r="8.5" transform="rotate(-107 6978.44 4411.09)" fill="#FF0000"/>
+<circle id="Dwinelle 145 (Door 1)" cx="6787.95" cy="4451.56" r="8.5" transform="rotate(-107 6787.95 4451.56)" fill="#FF0000"/>
+<circle id="Dwinelle 134 (Door)" cx="6728.72" cy="5047.93" r="8.5" transform="rotate(-107 6728.72 5047.93)" fill="#FF0000"/>
+<circle id="Dwinelle 130 (Door)" cx="6831.53" cy="5035.32" r="8.5" transform="rotate(-107 6831.53 5035.32)" fill="#FF0000"/>
+<circle id="Dwinelle 109 (Door)" cx="7761.54" cy="4933.99" r="8.5" transform="rotate(-107 7761.54 4933.99)" fill="#FF0000"/>
+<circle id="Dwinelle 106 (Door)" cx="7791.87" cy="4872.43" r="8.5" transform="rotate(-107 7791.87 4872.43)" fill="#FF0000"/>
+<circle id="Dwinelle 105 (Door)" cx="7936.79" cy="4908.64" r="8.5" transform="rotate(-107 7936.79 4908.64)" fill="#FF0000"/>
 </g>
 <g id="Rooms_2">
-<rect id="Dwinelle 179" opacity="0.15" x="7305" y="3173.32" width="186.056" height="137.065" transform="rotate(-17 7305 3173.32)" fill="#FF0000"/>
-<rect id="Dwinelle 183" opacity="0.15" x="7490" y="3117.4" width="173.611" height="137.065" transform="rotate(-17 7490 3117.4)" fill="#FF0000"/>
-<rect id="Dwinelle 134" opacity="0.15" x="6947" y="4783.15" width="150.195" height="132.954" transform="rotate(-10 6947 4783.15)" fill="#FF0000"/>
-<rect id="Dwinelle 130" opacity="0.15" x="7143" y="4751.08" width="197.801" height="139.384" transform="rotate(-10 7143 4751.08)" fill="#FF0000"/>
-<rect id="Dwinelle 106" opacity="0.15" x="8097" y="4587.35" width="150.867" height="134.9" transform="rotate(-10 8097 4587.35)" fill="#FF0000"/>
-<rect id="Dwinelle 109" opacity="0.15" x="8130.24" y="4822.35" width="145.98" height="200.316" transform="rotate(-10 8130.24 4822.35)" fill="#FF0000"/>
-<rect id="Dwinelle 105" opacity="0.15" x="8287.72" y="4794.09" width="127.212" height="201.217" transform="rotate(-10 8287.72 4794.09)" fill="#FF0000"/>
-<rect id="Dwinelle 187" opacity="0.15" x="7667" y="3062.76" width="173.611" height="137.065" transform="rotate(-17 7667 3062.76)" fill="#FF0000"/>
-<rect id="Dwinelle 189" opacity="0.15" x="7843" y="3008.76" width="132.889" height="137.065" transform="rotate(-17 7843 3008.76)" fill="#FF0000"/>
-<rect id="Dwinelle 182" opacity="0.15" x="7659" y="3304.45" width="169.709" height="208.712" transform="rotate(-17 7659 3304.45)" fill="#FF0000"/>
-<path id="Dwinelle 155" opacity="0.15" d="M6883 3733.5L6907.5 3574L7173 3511L7267 3645L7351.5 3841.5L7395.5 4008.5L7258.5 4076.5L7258.5 4091L7079.5 4133L7073.5 4118.5L6928 4118.5L6893 3949.5L6883 3733.5Z" fill="#FF0000" stroke="black"/>
-<path id="Dwinelle 145" opacity="0.15" d="M7130 4473L7106 4356L7198.5 4335.5L7194 4307.5L7329 4275.5L7339.5 4304L7462 4280L7491.5 4406L7491.5 4665.5L7239.5 4712L7130 4473Z" fill="#FF0000" stroke="black"/>
+<rect id="Dwinelle 179" opacity="0.15" x="6926" y="3310.32" width="186.056" height="137.065" transform="rotate(-17 6926 3310.32)" fill="#FF0000"/>
+<rect id="Dwinelle 183" opacity="0.15" x="7111" y="3254.4" width="173.611" height="137.065" transform="rotate(-17 7111 3254.4)" fill="#FF0000"/>
+<rect id="Dwinelle 134" opacity="0.15" x="6568" y="4920.15" width="150.195" height="132.954" transform="rotate(-10 6568 4920.15)" fill="#FF0000"/>
+<rect id="Dwinelle 130" opacity="0.15" x="6764" y="4888.08" width="197.801" height="139.384" transform="rotate(-10 6764 4888.08)" fill="#FF0000"/>
+<rect id="Dwinelle 106" opacity="0.15" x="7718" y="4724.35" width="150.867" height="134.9" transform="rotate(-10 7718 4724.35)" fill="#FF0000"/>
+<rect id="Dwinelle 109" opacity="0.15" x="7751.24" y="4959.35" width="145.98" height="200.316" transform="rotate(-10 7751.24 4959.35)" fill="#FF0000"/>
+<rect id="Dwinelle 105" opacity="0.15" x="7908.72" y="4931.09" width="127.212" height="201.217" transform="rotate(-10 7908.72 4931.09)" fill="#FF0000"/>
+<rect id="Dwinelle 187" opacity="0.15" x="7288" y="3199.76" width="173.611" height="137.065" transform="rotate(-17 7288 3199.76)" fill="#FF0000"/>
+<rect id="Dwinelle 189" opacity="0.15" x="7464" y="3145.76" width="132.889" height="137.065" transform="rotate(-17 7464 3145.76)" fill="#FF0000"/>
+<rect id="Dwinelle 182" opacity="0.15" x="7280" y="3441.45" width="169.709" height="208.712" transform="rotate(-17 7280 3441.45)" fill="#FF0000"/>
+<path id="Dwinelle 155" opacity="0.15" d="M6504 3870.5L6528.5 3711L6794 3648L6888 3782L6972.5 3978.5L7016.5 4145.5L6879.5 4213.5L6879.5 4228L6700.5 4270L6694.5 4255.5L6549 4255.5L6514 4086.5L6504 3870.5Z" fill="#FF0000" stroke="black"/>
+<path id="Dwinelle 145" opacity="0.15" d="M6751 4610L6727 4493L6819.5 4472.5L6815 4444.5L6950 4412.5L6960.5 4441L7083 4417L7112.5 4543L7112.5 4802.5L6860.5 4849L6751 4610Z" fill="#FF0000" stroke="black"/>
 </g>
 </g>
 <g id="Dwinelle Hall (Floor C)">
 <rect width="4096" height="3169" transform="translate(6069.55 6123.55) rotate(-107)" fill="white"/>
 <g id="Graph_12">
-<path id="Paths_11" d="M6536.44 5126.48L7356.27 4989.68L8092.33 4866.21M7760 3262L6979.74 3505.02L7009.58 3620.34L7166.53 4226.96L7356.27 4989.68M7166.53 4226.96L6631.05 4355.11" stroke="black"/>
+<path id="Paths_12" d="M6536.44 5126.48L7356.27 4989.68L8092.33 4866.21M7760 3262L6979.74 3505.02L7009.58 3620.34L7166.53 4226.96L7356.27 4989.68M7166.53 4226.96L6631.05 4355.11" stroke="black"/>
 <circle id="Stairs [1]_3" cx="7086.07" cy="3680.08" r="8.5" transform="rotate(-107 7086.07 3680.08)" fill="#FFDD00"/>
 <circle id="Stairs [2]_2" cx="6939.99" cy="3715.33" r="8.5" transform="rotate(-107 6939.99 3715.33)" fill="#FFDD00"/>
 <circle id="Stairs [3]_3" cx="7369.34" cy="4873.4" r="8.5" transform="rotate(-107 7369.34 4873.4)" fill="#FFDD00"/>
