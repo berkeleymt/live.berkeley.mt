@@ -207,7 +207,10 @@ function render() {
     e.querySelectorAll("[data-md]").forEach((b) => b.addEventListener("click", () => mdInsert(b.dataset.md)));
     if (isU) $("del").onclick = removeUpdate;
   } else if (k === "schedule") {
-    e.innerHTML = `<div class="hint" style="margin-top:4px">All times are Pacific. When you change a time, visitors see the old time crossed out next to the new one. You can add a short note to say why.</div><div id="events"></div><div style="margin-top:14px"><button id="addEv"><i class="bi bi-plus-lg"></i> Add an event</button></div>`;
+    e.innerHTML = `<div class="row2"><div><label class="f">Tournament</label><input class="f" data-h="title" value="${esc(d.header.title || "")}" placeholder="For example, BmMT 2026"></div><div><label class="f">Date</label><input class="f" type="date" data-h="date" value="${esc(d.header.date || "")}"></div></div>
+      <label class="f">Note under the schedule <small>optional</small></label><input class="f" data-h="footnote" value="${esc(d.header.footnote || "")}" placeholder="For example, times are approximate; your proctor says when to begin">
+      <label class="f" style="margin-top:22px">Events</label><div class="hint" style="margin-top:0">All times are Pacific. When you change a time, visitors see the old time in red under the new one. You can add a short note to say why.</div><div id="events"></div><div style="margin-top:14px"><button id="addEv"><i class="bi bi-plus-lg"></i> Add an event</button></div>`;
+    e.querySelectorAll("[data-h]").forEach((inp) => inp.addEventListener("input", () => { d.header[inp.dataset.h] = inp.value; onChange(); }));
     renderEvents();
     const d0 = d;
     $("events").addEventListener("click", (e) => {

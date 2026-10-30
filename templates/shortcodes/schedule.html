@@ -1,0 +1,26 @@
+{#- The tournament-day schedule from data/schedule.toml as a timeline. Put {{ schedule() }} on its own line in any page.
+    live.js reads the embedded JSON to mark now / next / past and the live status. -#}
+{%- import "macros.html" as macros -%}
+{%- set s = load_data(path="data/schedule.toml") -%}
+<script type="application/json" id="schedule-data">{{ s | json_encode | safe }}</script>
+<section id="schedule" class="not-prose bg-white rounded-xl border border-gray-200 overflow-hidden scroll-mt-20 md:scroll-mt-4">
+  <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between gap-4">
+    <div>
+      <h2 class="font-semibold leading-6">{{ s.title }}</h2>
+      <p class="text-sm text-gray-500 leading-5">{{ s.date | date(format="%A, %B %-d") }}</p>
+    </div>
+    <p class="text-xs font-medium text-gray-500 flex items-center gap-1.5 whitespace-nowrap">
+      <span id="live-dot" class="hidden w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
+      <span id="sched-status"></span>
+    </p>
+  </div>
+  <div class="py-1">
+    <button type="button" data-earlier class="hidden w-full text-left text-sm text-gray-500 px-4 py-2 hover:bg-gray-50 transition-colors"></button>
+    {%- for e in s.events %}
+    {{ macros::schedule_row(e=e, i=loop.index0) }}
+    {%- endfor %}
+  </div>
+  {%- if s.footnote %}
+  <p class="text-xs text-gray-500 px-4 py-2.5 border-t border-gray-200 bg-gray-50">{{ s.footnote }}</p>
+  {%- endif %}
+</section>

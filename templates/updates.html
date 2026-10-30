@@ -4,20 +4,12 @@
 {% block content %}
 <div class="flex flex-col gap-1">
   <h1 class="text-3xl font-semibold">{{ section.title }}</h1>
-  <p class="text-gray-500">Updates are listed from newest to oldest. The page refreshes itself every minute.</p>
+  {% if section.description %}<p class="text-gray-500">{{ section.description }}</p>{% endif %}
 </div>
 
 {% if section.content %}
-<div class="prose">{{ section.content | safe }}</div>
-{% endif %}
-
-{% if section.pages %}
-<div class="flex flex-col gap-4">
-  {% for page in section.pages %}
-  {{ macros::update_article(page=page) }}
-  {% endfor %}
-</div>
-{% else %}
-<p class="text-gray-500">No updates yet. Announcements from the organizers will appear here.</p>
+<main id="content" class="prose">
+  {{ macros::content(html=section.content) }}
+</main>
 {% endif %}
 {% endblock %}

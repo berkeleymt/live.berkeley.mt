@@ -285,7 +285,7 @@ def page_for(path):
         name = os.path.splitext(os.path.basename(path))[0]
         return "/" if name == "_index" else f"/{name}/"
     if path == "data/schedule.toml":
-        return "/schedule/"
+        return "/#schedule"
     if path == "data/rooms.toml":
         return "/rooms/"
     if path == "config.toml":
@@ -297,9 +297,8 @@ def page_for(path):
 
 
 # ---------------------------------------------------------------- documents
-PAGE_LABELS = {"content/_index.md": "Home page", "content/faq.md": "FAQ", "content/guide.md": "Tournament guide",
-               "content/help.md": "Help", "content/map.md": "Map & rooms", "content/rooms.md": "Find my rooms",
-               "content/lost-found.md": "Lost & found", "content/schedule.md": "Schedule page"}
+PAGE_LABELS = {"content/_index.md": "Home", "content/rooms.md": "My rooms", "content/map.md": "Map",
+               "content/updates/_index.md": "Updates", "content/guide.md": "Guide", "content/lost-found.md": "Lost & found"}
 DATA_ITEMS = [("data/schedule.toml", "Tournament schedule", "calendar3"), ("data/rooms.toml", "Rooms", "door-open"),
               ("config.toml", "Settings", "gear")]
 HIDDEN_STATIC = re.compile(r"^static/(fonts/|input\.css|style\.css|live\.js|site\.webmanifest|browserconfig\.xml|favicon|android-chrome|apple-touch|mstile|safari-pinned)")
@@ -441,7 +440,7 @@ def compose_schedule(header, events):
     out = ["# Tournament-day schedule. Times are 24-hour Pacific. Edit here or at /admin.",
            "# To change a time, set `start`/`end` and keep the original in `was_start`/`was_end`",
            "# (plus an optional `note`) so visitors see what moved.", ""]
-    for k in ("title", "date", "timezone"):
+    for k in ("title", "date", "timezone", "footnote"):
         if header.get(k):
             out.append(f"{k} = {toml_str(header[k])}")
     for e in events:
@@ -512,7 +511,7 @@ def list_items():
             items["updates"].append({"path": p, "title": fields.get("title") or os.path.basename(p)[16:-3].replace("-", " "),
                                      "date": str(fields.get("date", "")) or (f"{m.group(1)}T{m.group(2)}:{m.group(3)}:00" if m else ""),
                                      "urgent": bool(fields.get("urgent", False))})
-        elif p.startswith("content/") and p.endswith(".md") and "/updates/" not in p:
+        elif p.startswith("content/") and p.endswith(".md"):
             text = local_text(p)
             fields = parse_front(text)[0] if text else {}
             items["pages"].append({"path": p, "title": PAGE_LABELS.get(p) or fields.get("title") or os.path.basename(p)})

@@ -7,4 +7,4 @@ Rooms are assigned at check-in. Enter the student ID on your name tag (like **30
 
 {{ room_lookup() }}
 
-Can't find your ID? Ask your coach, or visit the information desk in Dwinelle Hall. The [map](/map/) has floor plans for every building, and the [schedule](/schedule/) says where each round is held.
+Can't find your ID? Ask your coach, or visit the information desk in Dwinelle Hall. The [map](/map/) gives walking directions to every room, and the [schedule](/#schedule) says where each round is held.

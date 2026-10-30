@@ -4,7 +4,6 @@
 (function () {
   const TZ = "America/Los_Angeles";
   const mins = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
-  const t12 = (t) => { const [h, m] = t.split(":").map(Number); return `${(h + 11) % 12 + 1}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`; };
   const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
 
   function pacificNow(tz) {
@@ -15,6 +14,13 @@
     return { date: `${get("year")}-${get("month")}-${get("day")}`, now: Number(get("hour")) * 60 + Number(get("minute")) };
   }
 
+  // Finished rounds fold away so the current one is never further down than the second row;
+  // the one just before it stays for context, the rest are behind the "earlier" button.
+  let showEarlier = false;
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-earlier]")) { showEarlier = !showEarlier; render(); }
+  });
+
   function render() {
     const raw = document.getElementById("schedule-data");
     if (!raw) return;
@@ -24,21 +30,9 @@
     const phase = date < data.date ? "before" : date > data.date ? "after" : "today";
     const current = phase === "today" ? events.find((e) => mins(e.start) <= now && mins(e.end) > now) : null;
     const next = phase === "after" ? null : events.find((e) => mins(e.start) > now || phase === "before");
-    const meta = (e) => `${t12(e.start)} to ${t12(e.end)}${e.location ? ", " + e.location : ""}`;
 
-    if (phase === "today") {
-      if (current) {
-        setText("now-label", "Happening now"); setText("now-title", current.title); setText("now-meta", meta(current));
-      } else {
-        setText("now-label", next ? "Between events" : "That's a wrap"); setText("now-title", data.title);
-        setText("now-meta", next ? "Nothing scheduled right now." : "Thanks for coming! Scores and photos follow on berkeley.mt.");
-      }
-    } else if (phase === "after") {
-      setText("now-label", "Event complete"); setText("now-meta", "Thanks for being part of " + data.title + ". The schedule and updates stay available.");
-    }
-    setText("next-label", phase === "before" ? "First on the schedule" : next ? "Up next" : "Later today");
-    setText("next-title", next ? next.title : "No more scheduled events");
-    setText("next-meta", next ? meta(next) : "Keep an eye on live updates.");
+    setText("sched-status", phase === "before" ? "Upcoming" : phase === "after" ? "Finished" : current ? "Live" : next ? "Live · between rounds" : "Live · all done");
+    document.getElementById("live-dot")?.classList.toggle("hidden", phase !== "today");
 
     document.querySelectorAll("[data-event]").forEach((row) => {
       const e = data.events[Number(row.dataset.event)];
@@ -50,6 +44,16 @@
       row.querySelector(".now-badge")?.classList.toggle("hidden", !isNow);
       row.querySelector(".next-badge")?.classList.toggle("hidden", !isNext);
     });
+
+    const rows = [...document.querySelectorAll("[data-event]")];
+    const anchor = phase === "today" ? rows.findIndex((r) => r.classList.contains("is-now") || r.querySelector(".next-badge:not(.hidden)")) : -1;
+    const folded = Math.max(0, anchor - 1);
+    rows.forEach((row, i) => row.classList.toggle("hidden", i < folded && !showEarlier));
+    const btn = document.querySelector("[data-earlier]");
+    if (btn) {
+      btn.classList.toggle("hidden", folded === 0);
+      btn.innerHTML = `<i class="bi ${showEarlier ? "bi-chevron-up" : "bi-chevron-down"} text-xs mr-1.5"></i>${showEarlier ? "Hide earlier rounds" : `${folded} earlier round${folded === 1 ? "" : "s"}`}`;
+    }
   }
 
   // Compare server HTML with the last server HTML (never with the live DOM, which
@@ -71,7 +75,14 @@
       const keep = mine.querySelector("[data-map]")?.parentNode;
       mine.innerHTML = html;
       const slot = keep && mine.querySelector("[data-map]")?.parentNode; if (slot) slot.replaceWith(keep);
-      mine.querySelectorAll("script").forEach((old) => { const s = document.createElement("script"); s.textContent = old.textContent; old.replaceWith(s); });
+      // Re-create inline scripts so they run again. External ones (maplibre, wayfinding.js) already run and
+      // keep their state; data blocks (type="application/json") are left as they are.
+      mine.querySelectorAll("script").forEach((old) => {
+        if (old.src || (old.type && old.type !== "text/javascript" && old.type !== "module")) return;
+        const s = document.createElement("script");
+        for (const a of old.attributes) s.setAttribute(a.name, a.value);
+        s.textContent = old.textContent; old.replaceWith(s);
+      });
       mine.querySelectorAll("details").forEach((d, i) => { if (open[i]) d.open = true; });
       window.scrollTo(0, y);
       render();
@@ -80,7 +91,8 @@
 
   // /map/#wheeler opens that building's floor plan.
   function openHash() {
-    const el = /^#[\w-]+$/.test(location.hash) && document.querySelector("details" + location.hash);
+    const target = location.hash.length > 1 && document.getElementById(location.hash.slice(1));
+    const el = target && target.tagName === "DETAILS" ? target : null;
     if (el) el.open = true;
   }
   openHash();

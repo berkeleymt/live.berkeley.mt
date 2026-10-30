@@ -27,59 +27,27 @@
   <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
   <meta name="theme-color" content="#00afe6">
 
-  <script>
-    function toggleMobileMenu() {
-      const menu = document.getElementById("mobile-menu");
-      const btn = document.getElementById("mobile-menu-btn");
-      const icon = btn.querySelector("i");
-      menu.classList.toggle("hidden");
-      const isOpen = !menu.classList.contains("hidden");
-      icon.classList.toggle("bi-list", !isOpen);
-      icon.classList.toggle("bi-x-lg", isOpen);
-    }
-  </script>
 </head>
 
 <body>
-  <div class="max-w-4xl min-h-screen p-4 md:p-8 mx-auto flex flex-col gap-8">
-    <div id="mobile-menu" class="md:hidden hidden fixed inset-x-0 top-0 bg-white z-50 border-b shadow-lg">
-      <div class="flex justify-between items-center p-4">
-        <img src="/images/logo.svg" alt="BMT Logo" width="44" class="-mt-1">
-        <button class="p-2" onclick="toggleMobileMenu()" aria-label="Close menu">
-          <i class="bi bi-x-lg text-2xl"></i>
-        </button>
-      </div>
-      <nav class="flex flex-col gap-2 p-4 pt-0">
-        {{ macros::mobile_nav_link(path="@/_index.md", label="Home") }}
-        {{ macros::mobile_nav_link(path="@/rooms.md", label="My Rooms") }}
-        {{ macros::mobile_nav_link(path="@/schedule.md", label="Schedule") }}
-        {{ macros::mobile_nav_link(path="@/updates/_index.md", label="Live Updates") }}
-        {{ macros::mobile_nav_link(path="@/map.md", label="Map") }}
-        {{ macros::mobile_nav_link(path="@/guide.md", label="Guide") }}
-        {{ macros::mobile_nav_link(path="@/faq.md", label="FAQ") }}
-        {{ macros::mobile_nav_link(path="@/help.md", label="Help") }}
-        {{ macros::mobile_nav_link(path="@/lost-found.md", label="Lost & Found") }}
-      </nav>
-    </div>
-
-    <button id="mobile-menu-btn" class="md:hidden fixed top-4 right-4 border py-2 px-3 rounded-xl bg-white z-50" onclick="toggleMobileMenu()" aria-label="Open menu">
-      <i class="bi bi-list text-xl"></i>
-    </button>
-
-    <header class="flex flex-col gap-4 text-center">
-      <a class="mx-auto" href="/"><img src="/images/logo.svg" alt="BMT Logo" width="80"></a>
-      <p class="text-2xl font-bold">Berkeley Math Tournament <span class="text-teal-500">Live</span></p>
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-gray-200 grid grid-cols-5 pb-[env(safe-area-inset-bottom)]" aria-label="Main">
+    {{ macros::tab_link(path="@/_index.md", label="Home", icon="bi-house-door") }}
+    {{ macros::tab_link(path="@/rooms.md", label="My rooms", icon="bi-person-badge") }}
+    {{ macros::tab_link(path="@/map.md", label="Map", icon="bi-map") }}
+    {{ macros::tab_link(path="@/updates/_index.md", label="Updates", icon="bi-megaphone") }}
+    {{ macros::tab_link(path="@/guide.md", label="Guide", icon="bi-book") }}
+  </nav>
+  <div class="max-w-4xl min-h-screen p-4 pb-24 md:p-8 mx-auto flex flex-col gap-5 md:gap-8">
+    <header class="flex items-center justify-center gap-3 md:flex-col md:gap-4 text-center">
+      <a href="/"><img src="/images/logo.svg" alt="BMT Logo" class="w-10 md:w-20" width="80" height="80"></a>
+      <p class="text-xl md:text-2xl font-bold">Berkeley Math Tournament <span class="text-teal-500">Live</span></p>
 
       <nav class="hidden md:flex md:flex-row md:mx-auto gap-4 items-stretch">
         {{ macros::nav_link(path="@/_index.md", label="Home") }}
-        {{ macros::nav_link(path="@/rooms.md", label="My Rooms") }}
-        {{ macros::nav_link(path="@/schedule.md", label="Schedule") }}
-        {{ macros::nav_link(path="@/updates/_index.md", label="Live Updates") }}
+        {{ macros::nav_link(path="@/rooms.md", label="My rooms") }}
         {{ macros::nav_link(path="@/map.md", label="Map") }}
+        {{ macros::nav_link(path="@/updates/_index.md", label="Updates") }}
         {{ macros::nav_link(path="@/guide.md", label="Guide") }}
-        {{ macros::nav_link(path="@/faq.md", label="FAQ") }}
-        {{ macros::nav_link(path="@/help.md", label="Help") }}
-        {{ macros::nav_link(path="@/lost-found.md", label="Lost & Found") }}
       </nav>
     </header>
 

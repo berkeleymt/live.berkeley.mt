@@ -11,7 +11,7 @@
 
 {% if page.content %}
 <main id="content" class="prose">
-  {{ page.content | safe }}
+  {{ macros::content(html=page.content) }}
 </main>
 {% endif %}
 
