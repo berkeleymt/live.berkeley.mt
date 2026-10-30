@@ -12,14 +12,16 @@
 </div>
 {% endmacro nav_link %}
 
-{% macro mobile_nav_link(path, label) %}
+{# Bottom tab bar on phones. `icon` is a Bootstrap icon that also exists as `-fill`. #}
+{% macro tab_link(path, label, icon) %}
 {% set href = get_url(path=path) %}
 {% set active = current_url | default(value='') == href %}
 
-<a href="{{ href }}" class="py-2 px-3 rounded-lg {% if active %} bg-gray-100 font-semibold {% endif %}">
-  {{ label }}
+<a href="{{ href }}" class="flex flex-col items-center gap-0.5 py-2 text-[11px] leading-tight {% if active %}text-teal-600 font-semibold{% else %}text-gray-500 hover:text-gray-800{% endif %}"{% if active %} aria-current="page"{% endif %}>
+  <i class="bi {{ icon }}{% if active %}-fill{% endif %} text-xl"></i>
+  <span>{{ label }}</span>
 </a>
-{% endmacro mobile_nav_link %}
+{% endmacro tab_link %}
 
 {% macro advisory(advisory) %}
 {% if advisory.status == "info" %}
@@ -97,31 +99,34 @@
 </a>
 {% endmacro tile %}
 
-{# One schedule row. `i` is the event's index into data/schedule.toml; live.js uses it. #}
+{# One schedule row; tap it for the description. `i` is the event's index into data/schedule.toml; live.js uses it. #}
 {% macro schedule_row(e, i) %}
-<div data-event="{{ i }}" class="sched grid grid-cols-[5.5rem_1fr] md:grid-cols-[8rem_1fr] gap-x-4 gap-y-1 py-4 px-3 -mx-3 rounded-xl border-b border-gray-200 last:border-0 transition-colors">
-  <div class="text-sm leading-6">
-    <p class="font-semibold">{{ self::t12(t=e.start) }}</p>
-    <p class="text-gray-500">{{ self::t12(t=e.end) }}</p>
-  </div>
-  <div class="flex flex-col gap-1 min-w-0">
-    <p class="text-lg font-semibold flex items-center gap-2 flex-wrap">
-      <span>{{ e.title }}</span>
-      <span class="now-badge hidden text-xs font-semibold uppercase bg-teal-500 text-white rounded-full px-2 py-0.5">Now</span>
-      <span class="next-badge hidden text-xs font-semibold uppercase bg-gray-200 text-gray-700 rounded-full px-2 py-0.5">Up next</span>
-    </p>
-    {% if e.location %}
-    <p class="text-sm text-gray-600 flex items-center gap-1.5"><i class="bi bi-geo-alt"></i><span>{{ e.location }}</span></p>
-    {% endif %}
-    {% if e.was_start %}
-    <p class="text-sm text-rose-700 font-medium flex items-center gap-1.5">
-      <i class="bi bi-clock-history"></i>
-      <span>Time changed from {{ self::t12(t=e.was_start) }} to {{ self::t12(t=e.was_end | default(value=e.end)) }}{% if e.note %}. {{ e.note }}{% endif %}</span>
-    </p>
-    {% endif %}
-    {% if e.description %}
-    <p class="text-sm text-gray-700">{{ e.description | markdown(inline=true) | safe }}</p>
-    {% endif %}
-  </div>
-</div>
+<details data-event="{{ i }}" class="sched group px-3 -mx-3 rounded-xl border-b border-gray-200 last:border-0 transition-colors">
+  <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer select-none grid grid-cols-[5.5rem_1fr_auto] md:grid-cols-[8rem_1fr_auto] gap-x-4 gap-y-1 py-4">
+    <div class="text-sm leading-6">
+      <p class="font-semibold">{{ self::t12(t=e.start) }}</p>
+      <p class="text-gray-500">{{ self::t12(t=e.end) }}</p>
+    </div>
+    <div class="flex flex-col gap-1 min-w-0">
+      <p class="text-lg font-semibold flex items-center gap-2 flex-wrap">
+        <span>{{ e.title }}</span>
+        <span class="now-badge hidden text-xs font-semibold uppercase bg-teal-500 text-white rounded-full px-2 py-0.5">Now</span>
+        <span class="next-badge hidden text-xs font-semibold uppercase bg-gray-200 text-gray-700 rounded-full px-2 py-0.5">Up next</span>
+      </p>
+      {% if e.location %}
+      <p class="text-sm text-gray-600 flex items-center gap-1.5"><i class="bi bi-geo-alt"></i><span>{{ e.location }}</span></p>
+      {% endif %}
+      {% if e.was_start %}
+      <p class="text-sm text-rose-700 font-medium flex items-center gap-1.5">
+        <i class="bi bi-clock-history"></i>
+        <span>Time changed from {{ self::t12(t=e.was_start) }} to {{ self::t12(t=e.was_end | default(value=e.end)) }}{% if e.note %}. {{ e.note }}{% endif %}</span>
+      </p>
+      {% endif %}
+    </div>
+    <i class="bi bi-chevron-down text-gray-400 mt-1.5 transition-transform group-open:rotate-180 {% if not e.description %}invisible{% endif %}"></i>
+  </summary>
+  {% if e.description %}
+  <p class="text-sm text-gray-700 pb-4 md:pl-[9rem]">{{ e.description | markdown(inline=true) | safe }}</p>
+  {% endif %}
+</details>
 {% endmacro schedule_row %}

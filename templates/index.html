@@ -26,29 +26,39 @@
   </div>
 </div>
 
-{# Latest updates #}
+{# Newest update #}
 {% set updates = get_section(path="updates/_index.md") %}
-{% if updates.pages %}
-<div class="flex flex-col gap-4">
-  {% for page in updates.pages | slice(end=3) %}
-  {{ macros::update_card(page=page) }}
-  {% endfor %}
+<div class="flex flex-col gap-2">
+  {% if updates.pages %}
+  {{ macros::update_card(page=updates.pages | first) }}
+  {% else %}
+  <p class="text-sm text-gray-500 border border-gray-200 rounded-xl p-4">No updates yet. Announcements from the organizers will appear here.</p>
+  {% endif %}
   <a href="{{ updates.permalink | safe }}" class="text-sm text-gray-600 hover:text-black self-end">All updates <i class="bi bi-arrow-right"></i></a>
 </div>
-{% endif %}
 
-{# Where to go #}
-<div class="grid grid-cols-1 md:grid-cols-6 gap-4">
-  {{ macros::tile(class="md:col-span-2 bg-gradient-to-br from-teal-600 to-teal-800 text-white shadow-lg", name="Find my rooms", icon="bi-person-badge", href="/rooms/", description="Enter your student ID to see your rooms.") }}
-  {{ macros::tile(class="md:col-span-2 bg-gradient-to-br from-fuchsia-700 to-fuchsia-900 text-white shadow-lg", name="Schedule", icon="bi-calendar3", href="/schedule/", description="Every round and break, with any changed times.") }}
-  {{ macros::tile(class="md:col-span-2 bg-gradient-to-br from-orange-700 to-orange-900 text-white shadow-lg", name="Map & rooms", icon="bi-map", href="/map/", description="Campus map and floor plans for each building.") }}
-  {{ macros::tile(class="md:col-span-2 bg-gradient-to-br from-slate-200 to-slate-300", name="Guide", icon="bi-book", href="/guide/", description="What to bring and how the day works.") }}
-  {{ macros::tile(class="md:col-span-2 bg-gradient-to-br from-slate-200 to-slate-300", name="FAQ & help", icon="bi-question-circle", href="/faq/", description="Wi-Fi, restrooms, info desk, emergencies.") }}
-  {{ macros::tile(class="md:col-span-2 bg-gradient-to-br from-slate-200 to-slate-300", name="Lost & found", icon="bi-search", href="/lost-found/", description="Report a lost or found item.") }}
+{# Where to go; same order as the nav #}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+  {{ macros::tile(class="bg-gradient-to-br from-teal-600 to-teal-800 text-white shadow-lg", name="My rooms", icon="bi-person-badge", href="/rooms/", description="Enter your student ID to see your rooms, with directions.") }}
+  {{ macros::tile(class="bg-gradient-to-br from-orange-700 to-orange-900 text-white shadow-lg", name="Map", icon="bi-map", href="/map/", description="Walking directions to any room, floor by floor.") }}
+  {{ macros::tile(class="bg-gradient-to-br from-slate-200 to-slate-300", name="Guide", icon="bi-book", href="/guide/", description="What to bring and how the day works.") }}
 </div>
 
+{# Today's schedule #}
+<section id="schedule" class="flex flex-col gap-3 scroll-mt-20 md:scroll-mt-4">
+  <div class="flex items-baseline justify-between gap-4 flex-wrap">
+    <h2 class="text-2xl font-semibold">Today</h2>
+    <p class="text-sm text-gray-500">{{ s.date | date(format="%A, %B %-d") }}, Pacific time</p>
+  </div>
+  <p class="text-sm text-gray-600">Times are approximate; a scheduled time is not a signal to begin, so follow your proctor. Changed times are in red. Tap a row for details.</p>
+  <div class="flex flex-col">
+    {% for e in s.events %}
+    {{ macros::schedule_row(e=e, i=loop.index0) }}
+    {% endfor %}
+  </div>
+</section>
+
 {% if section.content %}
-<hr>
 <div class="prose">
   {{ section.content | safe }}
 </div>
