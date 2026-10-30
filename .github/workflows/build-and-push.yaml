@@ -51,7 +51,20 @@ jobs:
           chmod 600 "$RUNNER_TEMP/kubeconfig"
           export KUBECONFIG="$RUNNER_TEMP/kubeconfig"
           kubectl -n bmt rollout restart deployment/live
-          kubectl -n bmt rollout status deployment/live --timeout=300s
+          if ! kubectl -n bmt rollout status deployment/live --timeout=120s; then
+            # One replica on a ReadWriteOnce volume: a rolling update deadlocks whenever the new
+            # pod lands on another node, since it can't mount /app/data while the old pod holds
+            # it and the old pod is only removed once the new one is Ready. Hand the volume over.
+            kubectl -n bmt get pods -l app=live -o wide
+            pods=$(kubectl -n bmt get pods -l app=live --sort-by=.metadata.creationTimestamp -o name)
+            new=$(echo "$pods" | tail -n 1)
+            kubectl -n bmt describe "$new" | sed -n '/^Events:/,$p'
+            if ! kubectl -n bmt describe "$new" | grep -q -E 'Multi-Attach|FailedAttachVolume|FailedMount|ContainerCreating'; then
+              echo "The new pod is stuck for another reason, see its events above."; exit 1
+            fi
+            echo "$pods" | head -n -1 | xargs -r kubectl -n bmt delete --wait=true
+            kubectl -n bmt rollout status deployment/live --timeout=180s
+          fi
 
       - name: Give the pod its secrets (room lookup token, staff editor)
         env:
