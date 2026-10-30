@@ -1,38 +1,9 @@
-{% import "macros.html" as macros %}
 {% extends "base.html" %}
 
 {% block content %}
-{% set s = load_data(path="data/schedule.toml") %}
-<script type="application/json" id="schedule-data">{{ s | json_encode | safe }}</script>
-
-{% set updates = get_section(path="updates/_index.md") %}
-{% if updates.pages %}
-{{ macros::update_card(page=updates.pages | first) }}
-{% endif %}
-
-{# The schedule is the hero: live.js marks now / next / past and the live status. #}
-<section id="schedule" class="bg-white rounded-xl border border-gray-200 overflow-hidden scroll-mt-20 md:scroll-mt-4">
-  <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between gap-4">
-    <div>
-      <h2 class="font-semibold leading-6">{{ s.title }}</h2>
-      <p class="text-sm text-gray-500 leading-5">{{ s.date | date(format="%A, %B %-d") }} · Pacific time</p>
-    </div>
-    <p class="text-xs font-medium text-gray-500 flex items-center gap-1.5 whitespace-nowrap">
-      <span id="live-dot" class="hidden w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
-      <span id="sched-status"></span>
-    </p>
-  </div>
-  <div class="py-1">
-    {% for e in s.events %}
-    {{ macros::schedule_row(e=e, i=loop.index0) }}
-    {% endfor %}
-  </div>
-  <p class="text-xs text-gray-500 px-4 py-2.5 border-t border-gray-200 bg-gray-50">Times are approximate; your proctor says when to begin. Moved times are in red. Tap a round for details.</p>
-</section>
-
 {% if section.content %}
-<div class="prose">
+<main id="content" class="prose">
   {{ section.content | safe }}
-</div>
+</main>
 {% endif %}
 {% endblock %}

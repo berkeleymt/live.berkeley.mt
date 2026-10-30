@@ -80,19 +80,6 @@
   @apply mt-2;
 }
 
-/* {% grid() %} list: "**Label** text" items in two columns on wide screens */
-.prose .grid-list ul {
-  @apply list-none p-0 my-0 grid md:grid-cols-2 gap-x-8 gap-y-4;
-}
-
-.prose .grid-list li {
-  @apply p-0 m-0 text-sm leading-5;
-}
-
-.prose .grid-list li > strong:first-child {
-  @apply block text-xs uppercase tracking-wide text-gray-500 font-medium mb-0.5;
-}
-
 #text-404 {
   @apply bg-gradient-to-br from-teal-400 to-emerald-300 bg-clip-text text-transparent;
   font-size: 12rem;

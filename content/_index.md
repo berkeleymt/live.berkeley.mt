@@ -1,18 +1,21 @@
 +++
 title = "Home"
+sort_by = "date"
 description = "Tournament-day companion for the Berkeley Math Tournament: the live schedule, latest update, help and quick answers."
 +++
 
+{{ latest_update() }}
+
+{{ schedule() }}
+
 ## Help
 
-{% grid() %}
-- **Emergency** Call 911, then tell any BMT staff member.
-- **Information desk** Dwinelle Hall, main entrance (floor D). Directions, room assignments and lost items.
-- **Wi-Fi** Join **Berkeley-Visitor** and accept the terms. No password.
-- **Restrooms and elevators** Marked on the [map](/map/); tick "Step-free" for routes without stairs.
-- **Lost & found** Fill in the [form](/lost-found/), or bring found items to the information desk.
-- **Anything else** Ask a volunteer in a BMT shirt, or email [team@berkeley.mt](mailto:team@berkeley.mt).
-{% end %}
+- **Emergency:** call 911, then tell any BMT staff member.
+- **Information desk:** Dwinelle Hall, main entrance (floor D), for directions, room assignments and lost items.
+- **Wi-Fi:** join **Berkeley-Visitor** and accept the terms; no password.
+- **Restrooms and elevators:** marked on the [map](/map/); tick "Step-free" for routes without stairs.
+- **Lost & found:** fill in the [form](/lost-found/), or bring found items to the information desk.
+- **Anything else:** ask a volunteer in a BMT shirt, or email [team@berkeley.mt](mailto:team@berkeley.mt).
 
 ## FAQ
 
