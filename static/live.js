@@ -75,7 +75,13 @@
       const keep = mine.querySelector("[data-map]")?.parentNode;
       mine.innerHTML = html;
       const slot = keep && mine.querySelector("[data-map]")?.parentNode; if (slot) slot.replaceWith(keep);
-      mine.querySelectorAll("script").forEach((old) => { const s = document.createElement("script"); s.textContent = old.textContent; old.replaceWith(s); });
+      // Re-create scripts so they run again; data blocks (type="application/json") are left as they are.
+      mine.querySelectorAll("script").forEach((old) => {
+        if (old.type && old.type !== "text/javascript" && old.type !== "module") return;
+        const s = document.createElement("script");
+        for (const a of old.attributes) s.setAttribute(a.name, a.value);
+        s.textContent = old.textContent; old.replaceWith(s);
+      });
       mine.querySelectorAll("details").forEach((d, i) => { if (open[i]) d.open = true; });
       window.scrollTo(0, y);
       render();
