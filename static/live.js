@@ -75,9 +75,10 @@
       const keep = mine.querySelector("[data-map]")?.parentNode;
       mine.innerHTML = html;
       const slot = keep && mine.querySelector("[data-map]")?.parentNode; if (slot) slot.replaceWith(keep);
-      // Re-create scripts so they run again; data blocks (type="application/json") are left as they are.
+      // Re-create inline scripts so they run again. External ones (maplibre, wayfinding.js) already run and
+      // keep their state; data blocks (type="application/json") are left as they are.
       mine.querySelectorAll("script").forEach((old) => {
-        if (old.type && old.type !== "text/javascript" && old.type !== "module") return;
+        if (old.src || (old.type && old.type !== "text/javascript" && old.type !== "module")) return;
         const s = document.createElement("script");
         for (const a of old.attributes) s.setAttribute(a.name, a.value);
         s.textContent = old.textContent; old.replaceWith(s);
