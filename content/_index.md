@@ -5,9 +5,7 @@ description = "Tournament-day companion for the Berkeley Math Tournament: what's
 
 ## Help
 
-{% alert(status="error", title="Emergency") %}
-For an immediate emergency, **call 911** and alert the nearest BMT staff member. Emails and online forms are not monitored for emergencies.
-{% end %}
+**Emergency?** Call 911 and alert the nearest BMT staff member. Emails and online forms are not monitored for emergencies.
 
 ### Information desk
 

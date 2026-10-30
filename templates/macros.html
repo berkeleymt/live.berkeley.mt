@@ -101,7 +101,7 @@
 
 {# One schedule row; tap it for the description. `i` is the event's index into data/schedule.toml; live.js uses it. #}
 {% macro schedule_row(e, i) %}
-<details data-event="{{ i }}" class="sched group px-3 -mx-3 rounded-xl border-b border-gray-200 last:border-0 transition-colors">
+<details data-event="{{ i }}" class="sched group px-3 my-0.5 rounded-xl border-b border-gray-200 last:border-0 transition-colors">
   <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer select-none grid grid-cols-[5.5rem_1fr_auto] md:grid-cols-[8rem_1fr_auto] gap-x-4 gap-y-1 py-4">
     <div class="text-sm leading-6">
       <p class="font-semibold">{{ self::t12(t=e.start) }}</p>
