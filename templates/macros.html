@@ -86,12 +86,23 @@
 
 {# One schedule row on the home timeline; tap it for the description. `i` is the event's index into
    data/schedule.toml, which live.js uses to mark it now / next / past. Layout maths lives in input.css (.sched). #}
+{# "Moved from 1:15 PM" / "Was 1:15 – 2:30 PM" / "Ends 12:30 PM, was 12:00 PM": only the times that actually changed. #}
+{% macro moved(e) %}
+{% set old_start = e.was_start | default(value=e.start) %}
+{% set old_end = e.was_end | default(value=e.end) %}
+{% if old_start != e.start or old_end != e.end %}
+<p class="text-sm text-rose-700 leading-5">{% if old_start != e.start and old_end != e.end %}Was {{ self::t12(t=old_start) }} – {{ self::t12(t=old_end) }}{% elif old_start != e.start %}Moved from {{ self::t12(t=old_start) }}{% else %}Ends {{ self::t12(t=e.end) }}, was {{ self::t12(t=old_end) }}{% endif %}{% if e.note %}. {{ e.note }}{% endif %}</p>
+{% elif e.note %}
+<p class="text-sm text-gray-500 leading-5">{{ e.note }}</p>
+{% endif %}
+{% endmacro moved %}
+
 {% macro schedule_row(e, i) %}
 <details data-event="{{ i }}" class="sched group">
   <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer select-none grid grid-cols-[var(--t)_1rem_1fr_1rem] gap-x-3 px-4 py-3 transition-colors">
     <div class="text-sm leading-5 tabular-nums">
-      <p class="font-semibold{% if e.was_start %} text-rose-700{% endif %}">{{ self::t12(t=e.start) }}</p>
-      <p class="text-gray-500">{{ self::t12(t=e.end) }}</p>
+      <p class="font-semibold{% if e.was_start and e.was_start != e.start %} text-rose-700{% endif %}">{{ self::t12(t=e.start) }}</p>
+      <p class="{% if e.was_end and e.was_end != e.end %}text-rose-700{% else %}text-gray-500{% endif %}">{{ self::t12(t=e.end) }}</p>
     </div>
     <div class="flex justify-center pt-[0.4rem]"><span class="dot relative block w-2.5 h-2.5 rounded-full border-2 border-gray-300 bg-white"></span></div>
     <div class="min-w-0 flex flex-col gap-0.5">
@@ -101,7 +112,7 @@
         <span class="next-badge hidden text-[11px] leading-4 font-semibold uppercase tracking-wide text-teal-700">Next</span>
       </p>
       {% if e.location %}<p class="text-sm text-gray-500 leading-5">{{ e.location }}</p>{% endif %}
-      {% if e.was_start %}<p class="text-sm text-rose-700 leading-5">Moved from {{ self::t12(t=e.was_start) }}{% if e.note %}. {{ e.note }}{% endif %}</p>{% endif %}
+      {{ self::moved(e=e) }}
     </div>
     <i class="bi bi-chevron-down text-sm text-gray-400 leading-5 self-start transition-transform group-open:rotate-180{% if not e.description %} invisible{% endif %}"></i>
   </summary>
