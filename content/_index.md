@@ -1,6 +1,5 @@
 +++
 title = "Home"
-sort_by = "date"
 description = "Tournament-day companion for the Berkeley Math Tournament: the live schedule, latest update, help and quick answers."
 +++
 
