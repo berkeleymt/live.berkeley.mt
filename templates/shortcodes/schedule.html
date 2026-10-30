@@ -7,7 +7,7 @@
   <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between gap-4">
     <div>
       <h2 class="font-semibold leading-6">{{ s.title }}</h2>
-      <p class="text-sm text-gray-500 leading-5">{{ s.date | date(format="%A, %B %-d") }} · Pacific time</p>
+      <p class="text-sm text-gray-500 leading-5">{{ s.date | date(format="%A, %B %-d") }}</p>
     </div>
     <p class="text-xs font-medium text-gray-500 flex items-center gap-1.5 whitespace-nowrap">
       <span id="live-dot" class="hidden w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
@@ -19,5 +19,7 @@
     {{ macros::schedule_row(e=e, i=loop.index0) }}
     {%- endfor %}
   </div>
-  <p class="text-xs text-gray-500 px-4 py-2.5 border-t border-gray-200 bg-gray-50">Times are approximate; your proctor says when to begin. Moved times are in red. Tap a round for details.</p>
+  {%- if s.footnote %}
+  <p class="text-xs text-gray-500 px-4 py-2.5 border-t border-gray-200 bg-gray-50">{{ s.footnote }}</p>
+  {%- endif %}
 </section>

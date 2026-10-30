@@ -99,3 +99,12 @@
   font-weight: bold;
   text-shadow: var(--text-shadow);
 }
+
+/* Widgets ({{ schedule() }}, {{ latest_update() }}) sit in the prose flow with paragraph spacing. */
+.prose > .not-prose {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+.prose > .not-prose:first-child {
+  margin-top: 0;
+}

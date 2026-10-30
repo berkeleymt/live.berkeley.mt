@@ -440,7 +440,7 @@ def compose_schedule(header, events):
     out = ["# Tournament-day schedule. Times are 24-hour Pacific. Edit here or at /admin.",
            "# To change a time, set `start`/`end` and keep the original in `was_start`/`was_end`",
            "# (plus an optional `note`) so visitors see what moved.", ""]
-    for k in ("title", "date", "timezone"):
+    for k in ("title", "date", "timezone", "footnote"):
         if header.get(k):
             out.append(f"{k} = {toml_str(header[k])}")
     for e in events:
