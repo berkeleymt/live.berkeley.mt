@@ -297,7 +297,7 @@ def page_for(path):
 
 
 # ---------------------------------------------------------------- documents
-PAGE_LABELS = {"content/_index.md": "Home", "content/rooms.md": "My rooms", "content/map.md": "Map",
+PAGE_LABELS = {"content/_index.md": "Home", "content/rooms.md": "My Rooms", "content/map.md": "Map",
                "content/updates/_index.md": "Updates", "content/guide.md": "Guide", "content/lost-found.md": "Lost & found"}
 DATA_ITEMS = [("data/schedule.toml", "Tournament schedule", "calendar3"), ("data/rooms.toml", "Rooms", "door-open"),
               ("config.toml", "Settings", "gear")]

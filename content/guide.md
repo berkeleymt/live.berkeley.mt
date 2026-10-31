@@ -11,7 +11,7 @@ description = "How tournament day works at the Berkeley Math Tournament: what to
 
 ## Finding your room
 
-Your coach has your room assignment for each round. Use [My rooms](/rooms/) to look them up with your student ID, or the [map](/map/) for walking directions. Room numbers in Dwinelle tell you the floor (1xx is floor D at the main entrance, 2xx is floor E). Volunteers in BMT shirts can point you the right way, and the information desk by Dwinelle's main entrance (floor D) has every room assignment.
+Your coach has your room assignment for each round. Use [My Rooms](/rooms/) to look them up with your student ID, or the [map](/map/) for walking directions. Room numbers in Dwinelle tell you the floor (1xx is floor D at the main entrance, 2xx is floor E). Volunteers in BMT shirts can point you the right way, and the information desk by Dwinelle's main entrance (floor D) has every room assignment.
 
 ## During the day
 

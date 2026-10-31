@@ -19,7 +19,7 @@ description = "Tournament-day companion for the Berkeley Math Tournament: the li
 ## FAQ
 
 {% details(title="Where do I find my room?") %}
-Look it up under [My rooms](/rooms/) with the student ID on your name tag. Your coach has the assignments too.
+Look it up under [My Rooms](/rooms/) with the student ID on your name tag. Your coach has the assignments too.
 {% end %}
 
 {% details(title="What if the schedule changes?") %}
